@@ -1,8 +1,8 @@
-# Toki Dating App - Project Details
+# MatchMint Dating App - Project Details
 
 ## Overview
 
-Toki is a dating application that connects male and female users through messaging and video calls. The platform operates on a coin-based economy where male users purchase coins to send messages and initiate video calls, while female users earn coins from these interactions.
+MatchMint is a dating application that connects male and female users through messaging and video calls. The platform operates on a coin-based economy where male users purchase coins to send messages and initiate video calls, while female users earn coins from these interactions.
 
 ---
 
@@ -198,7 +198,7 @@ Administrators manage the platform, monitor users, handle withdrawals, and confi
   - Expiration days for coins
 - "Buy Coins" button
 - Quick actions grid:
-  - Toki VIP membership
+  - MatchMint VIP membership
   - Send Gift option
 - Transaction history section with:
   - Segmented controls (All, Purchased, Spent)
@@ -824,5 +824,5 @@ Administrators manage the platform, monitor users, handle withdrawals, and confi
 
 ## Summary
 
-Toki is a coin-based dating platform where male users purchase coins to interact with female users through messaging and video calls. Female users earn coins from these interactions and can withdraw their earnings. The platform emphasizes online connections rather than physical meetups, with location data used for informational purposes only. The admin panel provides comprehensive management tools for monitoring users, processing withdrawals, and configuring the platform economy.
+MatchMint is a coin-based dating platform where male users purchase coins to interact with female users through messaging and video calls. Female users earn coins from these interactions and can withdraw their earnings. The platform emphasizes online connections rather than physical meetups, with location data used for informational purposes only. The admin panel provides comprehensive management tools for monitoring users, processing withdrawals, and configuring the platform economy.
 

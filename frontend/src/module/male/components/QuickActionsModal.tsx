@@ -56,7 +56,7 @@ export const QuickActionsModal = ({
         <div className="sticky top-0 bg-white dark:bg-[#2f151e] border-b border-gray-200 dark:border-gray-700 z-10">
           <div className="flex items-center justify-between px-4 py-4">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              {actionId === 'vip' ? 'Toki VIP Membership' : 'Send Gift'}
+              {actionId === 'vip' ? 'MatchMint VIP Membership' : 'Send Gift'}
             </h2>
             <button
               onClick={onClose}

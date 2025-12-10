@@ -1,7 +1,0 @@
-# Providers Directory
-
-Place React context providers here:
-- ThemeProvider.tsx
-- SocketProvider.tsx
-- AuthProvider.tsx
-

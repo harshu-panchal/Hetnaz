@@ -9,4 +9,86 @@ Also if working on a specific module. Do not make changes to the other modules.
 
 1 developer should only work on a specific module and should not be allowed to make changes to the other module. If required to make changes to the other module while implementation, make sure to provide a warning to ask to the other developer to make the specific change before moving to the next process. Stop your process then and there itself and ask to move further once the changes have been made and pushed by the other developer and move further only when you have pulled the change.
 
+Do not generate any md, summary or guide file unless explicitely asked to do so.
+
+While implementing a feature code, making changes to the logic, adding a logic, making some code correction, do not interfere with the other code portion that is unrelated to the concerned request. If making a change in the code file that is already having a lot of logics, and functionality involved, just scan if the change you are going to implement won't affect other functionality in that code. 
+
+Focus on only 1 thing at a time and do that task properly. Do not collect a lot of tasks and implement them at once to mess things up. Do not mess anything.
+## Progress File Updates
+
+**CRITICAL**: Progress files must be updated with EVERY operation that affects the module's implementation status.
+
+### Progress Files Location
+- Male Module: `frontend/PROGRESS_MALE.md`
+- Female Module: `frontend/PROGRESS_FEMALE.md`
+- Admin Module: `frontend/PROGRESS_ADMIN.md`
+
+### When to Update Progress Files
+
+1. **After completing any feature implementation**:
+   - Update the status from "Not Started" or "In Progress" to appropriate status
+   - Mark as "Done" only when feature is complete with full testing and updates
+   - Mark as "Mock/Placeholder" if UI exists but uses mock data
+   - Mark as "In Progress" if partially implemented
+
+2. **After adding new components, pages, services, hooks, or types**:
+   - Add entry to the appropriate section
+   - Update status accordingly
+   - Add any missing dependencies or TODOs
+
+3. **After fixing bugs or issues**:
+   - Update the "Critical Issues & TODOs" section
+   - Remove resolved issues
+   - Add new issues if discovered
+
+4. **After API integration**:
+   - Update API Integration Status section
+   - Mark endpoints as implemented
+   - Update service status
+
+5. **After testing**:
+   - Update Testing Status section
+   - Mark tests as complete when written and passing
+
+6. **After any changes to existing features**:
+   - Update the relevant feature entry
+   - Note what changed
+   - Update status if completion status changed
+
+### Progress File Update Rules
+
+- **DO NOT update progress files** when:
+  - Generating summary files or other markdown documentation files (unless explicitly requested)
+  - The operation is purely informational or exploratory
+  - No actual code changes were made
+
+- **ALWAYS update progress files** when:
+  - Implementing new features
+  - Completing features
+  - Fixing bugs
+  - Adding tests
+  - Integrating APIs
+  - Making any code changes that affect module status
+
+### Status Legend (Use in Progress Files)
+- ✅ **Done** - Feature complete with full testing and updates
+- 🟡 **In Progress** - Partially implemented, needs completion
+- ⚠️ **Mock/Placeholder** - UI exists but uses mock data, needs API integration
+- ❌ **Not Started** - Not yet implemented
+
+### Module-Specific Updates
+
+- **Male Module Developer**: Only update `PROGRESS_MALE.md`
+- **Female Module Developer**: Only update `PROGRESS_FEMALE.md`
+- **Admin Module Developer**: Only update `PROGRESS_ADMIN.md`
+
+### Update Format
+
+When updating progress files:
+1. Update the "Last Updated" timestamp (or note that it's auto-updated)
+2. Update the specific feature/component/service entry
+3. Update status indicators
+4. Update "Next Steps" if priorities change
+5. Update "Critical Issues & TODOs" if new issues arise or are resolved
+
 ---

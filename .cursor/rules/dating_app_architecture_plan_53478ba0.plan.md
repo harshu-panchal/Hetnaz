@@ -111,7 +111,7 @@ todos:
       - docker-setup
 ---
 
-# Toki-Inspired Dating Application - Complete Architecture & Execution Plan
+# MatchMint Dating Application - Complete Architecture & Execution Plan
 
 ## Project Overview
 
@@ -143,7 +143,7 @@ A monolithic but modular full-stack dating application with a coin-based economy
 ## Project Structure
 
 ```
-toki-dating-app/
+matchmint-dating-app/
 ├── backend/
 │   ├── src/
 │   │   ├── config/
@@ -682,7 +682,7 @@ toki-dating-app/
 ```
 NODE_ENV=development
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/toki-dating
+MONGODB_URI=mongodb://localhost:27017/matchmint-dating
 REDIS_URL=redis://localhost:6379
 JWT_ACCESS_SECRET=your-access-secret
 JWT_REFRESH_SECRET=your-refresh-secret

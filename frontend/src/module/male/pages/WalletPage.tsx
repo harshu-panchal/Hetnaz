@@ -58,7 +58,7 @@ const quickActions = [
   {
     id: 'vip',
     icon: 'card_membership',
-    label: 'Toki VIP',
+    label: 'MatchMint VIP',
     iconColor: 'text-primary',
     iconBgColor: 'bg-primary/10',
   },

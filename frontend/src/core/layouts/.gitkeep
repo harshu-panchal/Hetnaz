@@ -1,8 +1,0 @@
-# Layouts Directory
-
-Place layout wrappers here:
-- AuthLayout.tsx
-- MaleLayout.tsx
-- FemaleLayout.tsx
-- AdminLayout.tsx
-

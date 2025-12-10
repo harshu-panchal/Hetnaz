@@ -1,6 +1,0 @@
-# API Client Directory
-
-Place API client setup here:
-- client.ts - Axios instance with interceptors
-- endpoints.ts - API endpoint constants
-

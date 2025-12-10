@@ -24,10 +24,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@features/*": ["./src/features/*"],
-      "@module/*": ["./src/module/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@core/*": ["./src/core/*"]
+      "@module/*": ["./src/module/*"]
     }
   },
   "include": ["src"],

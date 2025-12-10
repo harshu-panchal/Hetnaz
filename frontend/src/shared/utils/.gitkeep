@@ -1,7 +1,0 @@
-# Utilities Directory
-
-Place utility functions here:
-- formatters.ts - Date, currency, number formatters
-- validators.ts - Zod validation schemas
-- helpers.ts - General helper functions
-

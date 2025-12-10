@@ -1,4 +1,4 @@
-# Toki Dating App - Frontend
+# MatchMint Dating App - Frontend
 
 ## Project Structure
 
