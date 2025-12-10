@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChatWindowHeader } from '../components/ChatWindowHeader';
 import { MessageBubble } from '../components/MessageBubble';
 import { MessageInput } from '../components/MessageInput';
+import { PhotoPickerModal } from '../components/PhotoPickerModal';
+import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import type { Message } from '../types/male.types';
 
 // Mock data - replace with actual API calls
@@ -174,6 +176,8 @@ export const ChatWindowPage = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [coinBalance] = useState(450);
+  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
+  const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInfo = chatId ? mockChats[chatId] : null;
 
@@ -228,13 +232,55 @@ export const ChatWindowPage = () => {
   };
 
   const handleSendPhoto = () => {
-    // TODO: Implement photo picker and send
-    console.log('Send photo clicked');
+    setIsPhotoPickerOpen(true);
+  };
+
+  const handlePhotoSelect = (file: File) => {
+    if (!chatId) return;
+
+    // TODO: Upload photo and send message
+    // For now, just create a mock image message
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      chatId,
+      senderId: 'me',
+      senderName: 'You',
+      content: file.name,
+      timestamp: new Date(),
+      type: 'image',
+      isSent: true,
+      readStatus: 'sent',
+      cost: 20,
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
   };
 
   const handleMoreClick = () => {
-    // TODO: Open more options menu (block, report, etc.)
-    console.log('More options clicked');
+    setIsMoreOptionsOpen(true);
+  };
+
+  const handleViewProfile = () => {
+    if (chatInfo?.userName) {
+      // Navigate to profile - would need userId from chatInfo
+      console.log('View profile for:', chatInfo.userName);
+    }
+  };
+
+  const handleBlock = () => {
+    console.log('Block user');
+    // TODO: Implement block functionality
+  };
+
+  const handleReport = () => {
+    console.log('Report user');
+    // TODO: Implement report functionality
+  };
+
+  const handleDelete = () => {
+    console.log('Delete chat');
+    navigate('/chats');
+    // TODO: Implement delete chat functionality
   };
 
   if (!chatId || !chatInfo) {
@@ -267,6 +313,24 @@ export const ChatWindowPage = () => {
         placeholder="Type a message..."
         coinCost={20}
         disabled={coinBalance < 20}
+      />
+
+      {/* Photo Picker Modal */}
+      <PhotoPickerModal
+        isOpen={isPhotoPickerOpen}
+        onClose={() => setIsPhotoPickerOpen(false)}
+        onPhotoSelect={handlePhotoSelect}
+      />
+
+      {/* More Options Modal */}
+      <ChatMoreOptionsModal
+        isOpen={isMoreOptionsOpen}
+        onClose={() => setIsMoreOptionsOpen(false)}
+        onViewProfile={handleViewProfile}
+        onBlock={handleBlock}
+        onReport={handleReport}
+        onDelete={handleDelete}
+        userName={chatInfo?.userName}
       />
     </div>
   );

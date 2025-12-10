@@ -94,3 +94,16 @@ export interface CoinPlan {
   isBestValue?: boolean;
 }
 
+export interface Notification {
+  id: string;
+  type: 'match' | 'message' | 'system' | 'payment' | 'gift';
+  title: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  avatar?: string;
+  relatedUserId?: string;
+  relatedChatId?: string;
+  actionUrl?: string;
+}
+

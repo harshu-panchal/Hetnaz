@@ -6,6 +6,8 @@ import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { SegmentedControls } from '../components/SegmentedControls';
 import { TransactionItem } from '../components/TransactionItem';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { HelpModal } from '../components/HelpModal';
+import { QuickActionsModal } from '../components/QuickActionsModal';
 import { MaterialSymbol } from '../types/material-symbol';
 import type { Transaction } from '../types/male.types';
 
@@ -79,6 +81,9 @@ export const WalletPage = () => {
   const navigate = useNavigate();
   const [coinBalance] = useState(2450);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
+  const [quickActionId, setQuickActionId] = useState<'vip' | 'gift' | null>(null);
   const [userAvatar] = useState(
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBoS_YLtV4hpNVbbyf0nrVmbQX6vzgn-xGLdye-t2gBz0LRib9HX4PeYJIj364IRM63hBRKmTLtWfuVOfikvNIryKKMjql6Ig1suPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPZpOMLYRY2W5WgHwClZhJ-JaWw470QybQVyCQD-hZYfamq_iJqx0EAJE0UNaa6Ee3_FbUUYSuUIIViQ_QxI6ytCepxc'
   );
@@ -108,7 +113,7 @@ export const WalletPage = () => {
         navigate('/wallet');
         break;
       case 'profile':
-        navigate('/dashboard');
+        navigate('/my-profile');
         break;
       default:
         break;
@@ -120,13 +125,24 @@ export const WalletPage = () => {
   };
 
   const handleQuickAction = (actionId: string) => {
-    // TODO: Handle quick actions
-    console.log('Quick action clicked:', actionId);
+    if (actionId === 'vip' || actionId === 'gift') {
+      setQuickActionId(actionId);
+      setIsQuickActionOpen(true);
+    }
   };
 
   const handleHelpClick = () => {
-    // TODO: Open help modal or navigate to help page
-    console.log('Help clicked');
+    setIsHelpOpen(true);
+  };
+
+  const handleVipPurchase = () => {
+    // TODO: Navigate to VIP purchase page or handle purchase
+    console.log('VIP purchase');
+  };
+
+  const handleSendGift = () => {
+    // TODO: Navigate to gift selection or handle gift sending
+    console.log('Send gift');
   };
 
   return (
@@ -196,6 +212,23 @@ export const WalletPage = () => {
 
       {/* Bottom Navigation Bar */}
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+
+      {/* Help Modal */}
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+
+      {/* Quick Actions Modal */}
+      {quickActionId && (
+        <QuickActionsModal
+          isOpen={isQuickActionOpen}
+          onClose={() => {
+            setIsQuickActionOpen(false);
+            setQuickActionId(null);
+          }}
+          actionId={quickActionId}
+          onVipPurchase={handleVipPurchase}
+          onSendGift={handleSendGift}
+        />
+      )}
     </div>
   );
 };

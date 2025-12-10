@@ -4,6 +4,7 @@ import { ChatListHeader } from '../components/ChatListHeader';
 import { SearchBar } from '../components/SearchBar';
 import { ChatListItem } from '../components/ChatListItem';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { EditChatModal } from '../components/EditChatModal';
 import type { Chat } from '../types/male.types';
 
 // Mock data - replace with actual API calls
@@ -94,6 +95,7 @@ export const ChatListPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [coinBalance] = useState(450);
+  const [isEditChatOpen, setIsEditChatOpen] = useState(false);
 
   const filteredChats = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -112,8 +114,12 @@ export const ChatListPage = () => {
   };
 
   const handleEditClick = () => {
-    // TODO: Open edit/new chat modal
-    console.log('Edit clicked');
+    setIsEditChatOpen(true);
+  };
+
+  const handleCreateChat = (userId: string) => {
+    // TODO: Create chat and navigate to it
+    navigate(`/chat/${userId}`);
   };
 
   const handleChatClick = (chatId: string) => {
@@ -132,7 +138,7 @@ export const ChatListPage = () => {
         navigate('/wallet');
         break;
       case 'profile':
-        navigate('/dashboard');
+        navigate('/my-profile');
         break;
       default:
         break;
@@ -179,6 +185,13 @@ export const ChatListPage = () => {
 
       {/* Bottom Navigation Bar */}
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+
+      {/* Edit Chat Modal */}
+      <EditChatModal
+        isOpen={isEditChatOpen}
+        onClose={() => setIsEditChatOpen(false)}
+        onCreateChat={handleCreateChat}
+      />
     </div>
   );
 };

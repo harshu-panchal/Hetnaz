@@ -4,13 +4,25 @@ import type { NearbyFemale } from '../types/male.types';
 interface ProfileCardProps {
   profile: NearbyFemale;
   onChatClick?: (profileId: string) => void;
+  onProfileClick?: (profileId: string) => void;
 }
 
-export const ProfileCard = ({ profile, onChatClick }: ProfileCardProps) => {
+export const ProfileCard = ({ profile, onChatClick, onProfileClick }: ProfileCardProps) => {
   const isPrimaryButton = profile.isOnline || profile.bio?.includes('New here');
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on the chat button
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    onProfileClick?.(profile.id);
+  };
+
   return (
-    <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-gray-200 dark:bg-[#342d18] shadow-sm hover:shadow-md transition-shadow">
+    <div
+      onClick={handleCardClick}
+      className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-gray-200 dark:bg-[#342d18] shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+    >
       <img
         alt={`${profile.name} profile picture`}
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"

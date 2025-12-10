@@ -69,14 +69,11 @@ export const CoinPurchasePage = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('apple_pay');
 
   const handleHistoryClick = () => {
-    // TODO: Navigate to purchase history page
-    console.log('History clicked');
+    navigate('/purchase-history');
   };
 
   const handleBuyClick = (planId: string) => {
-    // TODO: Navigate to payment page or open payment modal
-    console.log('Buy clicked for plan:', planId);
-    // navigate(`/payment/${planId}`);
+    navigate(`/payment/${planId}`);
   };
 
   return (

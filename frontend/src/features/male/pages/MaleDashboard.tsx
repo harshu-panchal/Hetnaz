@@ -82,8 +82,7 @@ export const MaleDashboard = () => {
   const [dashboardData] = useState<MaleDashboardData>(mockDashboardData);
 
   const handleNotificationClick = () => {
-    // TODO: Navigate to notifications page
-    console.log('Notifications clicked');
+    navigate('/notifications');
   };
 
   const handleTopUpClick = () => {
@@ -102,8 +101,7 @@ export const MaleDashboard = () => {
   };
 
   const handleSeeAllChatsClick = () => {
-    // TODO: Navigate to full chat list
-    console.log('See all chats clicked');
+    navigate('/chats');
   };
 
   const handleNavigationClick = (itemId: string) => {
@@ -118,7 +116,7 @@ export const MaleDashboard = () => {
         navigate('/wallet');
         break;
       case 'profile':
-        navigate('/dashboard');
+        navigate('/my-profile');
         break;
       default:
         break;

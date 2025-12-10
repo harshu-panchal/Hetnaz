@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TopAppBar } from '../components/TopAppBar';
 import { FilterChips } from '../components/FilterChips';
+import { FilterPanel, type FilterOptions } from '../components/FilterPanel';
 import { ProfileCard } from '../components/ProfileCard';
 import { FloatingActionButton } from '../components/FloatingActionButton';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -81,39 +82,107 @@ const navigationItems = [
 export const NearbyFemalesPage = () => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    ageRange: { min: 18, max: 50 },
+    maxDistance: 50,
+    onlineOnly: false,
+    verifiedOnly: false,
+  });
 
   const filteredProfiles = useMemo(() => {
+    let profiles = mockProfiles;
+
+    // Apply filter chips
     switch (activeFilter) {
       case 'online':
-        return mockProfiles.filter((profile) => profile.isOnline);
+        profiles = profiles.filter((profile) => profile.isOnline);
+        break;
       case 'new':
-        return mockProfiles.filter((profile) => profile.bio?.includes('New here'));
+        profiles = profiles.filter((profile) => profile.bio?.includes('New here'));
+        break;
       case 'popular':
         // Mock: could be based on views, matches, etc.
-        return mockProfiles.slice(0, 3);
+        profiles = profiles.slice(0, 3);
+        break;
       default:
-        return mockProfiles;
+        break;
     }
-  }, [activeFilter]);
 
-  const handleSearchClick = () => {
-    // TODO: Navigate to search page or open search modal
-    console.log('Search clicked');
+    // Apply advanced filters
+    profiles = profiles.filter((profile) => {
+      // Age filter
+      if (profile.age < filterOptions.ageRange.min || profile.age > filterOptions.ageRange.max) {
+        return false;
+      }
+
+      // Distance filter (parse distance string like "1.2 km" or "500 m")
+      const distanceStr = profile.distance.toLowerCase();
+      let distanceKm = 0;
+      if (distanceStr.includes('km')) {
+        distanceKm = parseFloat(distanceStr.replace('km', '').trim());
+      } else if (distanceStr.includes('m')) {
+        distanceKm = parseFloat(distanceStr.replace('m', '').trim()) / 1000;
+      }
+      if (distanceKm > filterOptions.maxDistance) {
+        return false;
+      }
+
+      // Online only filter
+      if (filterOptions.onlineOnly && !profile.isOnline) {
+        return false;
+      }
+
+      // Verified only filter (mock - assume some profiles are verified)
+      // In real app, this would check a verified property
+      if (filterOptions.verifiedOnly) {
+        // Mock: consider profiles with occupation as verified
+        if (!profile.occupation) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      profiles = profiles.filter((profile) => {
+        const nameMatch = profile.name.toLowerCase().includes(query);
+        const occupationMatch = profile.occupation?.toLowerCase().includes(query);
+        const bioMatch = profile.bio?.toLowerCase().includes(query);
+        return nameMatch || occupationMatch || bioMatch;
+      });
+    }
+
+    return profiles;
+  }, [activeFilter, searchQuery, filterOptions]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
   };
 
   const handleFilterClick = () => {
-    // TODO: Open advanced filter modal
-    console.log('Filter clicked');
+    setIsFilterPanelOpen(true);
+  };
+
+  const handleFilterApply = (filters: FilterOptions) => {
+    setFilterOptions(filters);
   };
 
   const handleChatClick = (profileId: string) => {
-    // TODO: Navigate to chat or open chat window
-    console.log('Chat clicked for profile:', profileId);
+    // Navigate to chat - create new chat or open existing
+    navigate(`/chat/${profileId}`);
+  };
+
+  const handleProfileClick = (profileId: string) => {
+    navigate(`/profile/${profileId}`);
   };
 
   const handleGetCoinsClick = () => {
-    // TODO: Navigate to coin purchase page
-    console.log('Get Coins clicked');
+    navigate('/buy-coins');
   };
 
   const handleNavigationClick = (itemId: string) => {
@@ -128,7 +197,7 @@ export const NearbyFemalesPage = () => {
         navigate('/wallet');
         break;
       case 'profile':
-        navigate('/dashboard');
+        navigate('/my-profile');
         break;
       default:
         break;
@@ -141,24 +210,43 @@ export const NearbyFemalesPage = () => {
       <TopAppBar
         title="Nearby"
         icon="favorite"
-        onSearchClick={handleSearchClick}
         onFilterClick={handleFilterClick}
+        onSearch={handleSearch}
       />
 
       {/* Filter Chips */}
       <FilterChips activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 
+      {/* Filter Panel */}
+      <FilterPanel
+        isOpen={isFilterPanelOpen}
+        onClose={() => setIsFilterPanelOpen(false)}
+        onApply={handleFilterApply}
+        initialFilters={filterOptions}
+      />
+
       {/* Main Content: Profile Grid */}
       <main className="p-3">
-        <div className="grid grid-cols-2 gap-3 pb-4">
-          {filteredProfiles.map((profile) => (
-            <ProfileCard
-              key={profile.id}
-              profile={profile}
-              onChatClick={handleChatClick}
-            />
-          ))}
-        </div>
+        {filteredProfiles.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 pb-4">
+            {filteredProfiles.map((profile) => (
+              <ProfileCard
+                key={profile.id}
+                profile={profile}
+                onChatClick={handleChatClick}
+                onProfileClick={handleProfileClick}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <p className="text-gray-500 dark:text-[#cc8ea3] text-center">
+              {searchQuery.trim()
+                ? `No profiles found matching "${searchQuery}"`
+                : 'No profiles found'}
+            </p>
+          </div>
+        )}
       </main>
 
       {/* Floating Action Button */}
