@@ -73,7 +73,7 @@ export const UserDetailPage = () => {
           items={navigationItems}
           onItemClick={handleNavigationClick}
         />
-        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-80 flex items-center justify-center">
+        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 flex items-center justify-center">
           <div className="text-center">
             <MaterialSymbol name="person_off" className="text-gray-400 mx-auto mb-4" size={64} />
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">User Not Found</h2>
@@ -138,7 +138,7 @@ export const UserDetailPage = () => {
         onItemClick={handleNavigationClick}
       />
 
-      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-80 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 overflow-y-auto">
         <div className="max-w-5xl mx-auto">
           {/* Header with Back Button */}
           <div className="mb-6">
@@ -169,11 +169,10 @@ export const UserDetailPage = () => {
                   <p className="text-blue-100 text-lg">{user.email}</p>
                   <div className="flex flex-wrap gap-2 mt-3">
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        user.role === 'male'
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${user.role === 'male'
                           ? 'bg-blue-500/30 text-white backdrop-blur-sm'
                           : 'bg-pink-500/30 text-white backdrop-blur-sm'
-                      }`}
+                        }`}
                     >
                       {user.role.charAt(0).toUpperCase() + user.role.slice(1)} User
                     </span>
@@ -271,22 +270,20 @@ export const UserDetailPage = () => {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handleBlockToggle}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg ${
-                    user.isBlocked
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg ${user.isBlocked
                       ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800'
                       : 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800'
-                  }`}
+                    }`}
                 >
                   <MaterialSymbol name={user.isBlocked ? 'lock_open' : 'block'} size={20} />
                   {user.isBlocked ? 'Unblock User' : 'Block User'}
                 </button>
                 <button
                   onClick={handleVerifyToggle}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg ${
-                    user.isVerified
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg ${user.isVerified
                       ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-700 hover:to-gray-800'
                       : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
-                  }`}
+                    }`}
                 >
                   <MaterialSymbol name={user.isVerified ? 'verified' : 'verified_user'} size={20} />
                   {user.isVerified ? 'Mark Unverified' : 'Verify User'}
@@ -360,11 +357,10 @@ export const UserDetailPage = () => {
                   </button>
                   <button
                     onClick={handleBlockToggle}
-                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                      user.isBlocked
+                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${user.isBlocked
                         ? 'bg-green-600 text-white hover:bg-green-700'
                         : 'bg-red-600 text-white hover:bg-red-700'
-                    }`}
+                      }`}
                   >
                     {user.isBlocked ? 'Unblock' : 'Block'} User
                   </button>

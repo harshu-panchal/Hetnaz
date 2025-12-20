@@ -68,78 +68,75 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
       {/* Sidebar */}
       <div
         className={`
-          fixed top-0 h-full w-80 bg-white dark:bg-[#1a1a1a] z-[9999] transition-transform duration-300 ease-out
+          fixed top-0 h-full w-64 bg-white dark:bg-[#1a1a1a] z-[9999] transition-transform duration-300 ease-out
           lg:left-0 lg:translate-x-0 lg:shadow-none lg:border-r lg:border-gray-200 lg:dark:border-gray-700
           ${isOpen ? 'right-0 translate-x-0 shadow-2xl' : 'right-0 translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 h-[57px]">
           <div className="flex items-center gap-2">
-            <MaterialSymbol name="admin_panel_settings" className="text-blue-600 dark:text-blue-400" size={24} filled />
-            <span className="text-lg font-bold text-gray-900 dark:text-white">Admin Panel</span>
+            <MaterialSymbol name="admin_panel_settings" className="text-blue-600 dark:text-blue-400" size={20} filled />
+            <span className="text-base font-bold text-gray-900 dark:text-white">Admin Panel</span>
           </div>
           {/* Close button - Only on mobile */}
           <button
             onClick={onClose}
-            className="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-95 lg:hidden"
+            className="flex items-center justify-center size-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-95 lg:hidden"
             aria-label="Close menu"
           >
-            <MaterialSymbol name="close" size={24} className="text-gray-900 dark:text-white" />
+            <MaterialSymbol name="close" size={20} className="text-gray-900 dark:text-white" />
           </button>
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex flex-col p-4 overflow-y-auto max-h-[calc(100vh-180px)]">
+        <nav className="flex flex-col px-3 py-4 overflow-y-auto max-h-[calc(100vh-110px)] custom-scrollbar">
           {items.map((item) => (
             <button
               key={item.id}
               onClick={() => handleItemClick(item.id)}
-              className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group relative active:scale-95 mb-1 ${
-                item.isActive
-                  ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 shadow-md'
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative active:scale-95 mb-0.5 ${item.isActive
+                  ? 'bg-blue-50 dark:bg-blue-900/10'
                   : 'hover:bg-gray-50 dark:hover:bg-gray-900/50'
-              }`}
+                }`}
             >
               <div
-                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 shadow-sm ${
-                  item.isActive
-                    ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-gradient-to-br group-hover:from-blue-500 group-hover:to-purple-500 group-hover:text-white'
-                }`}
+                className={`flex items-center justify-center size-8 rounded-lg transition-all duration-200 ${item.isActive
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 group-hover:bg-blue-600 group-hover:text-white'
+                  }`}
               >
                 <MaterialSymbol
                   name={item.icon}
                   filled={item.isActive}
-                  size={24}
+                  size={18}
                 />
               </div>
               <div className="flex-1 text-left min-w-0">
                 <span
-                  className={`text-base font-medium transition-colors duration-200 truncate block ${
-                    item.isActive
+                  className={`text-sm font-medium transition-colors duration-200 truncate block ${item.isActive
                       ? 'text-blue-700 dark:text-blue-300'
-                      : 'text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400'
-                  }`}
+                      : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
+                    }`}
                 >
                   {item.label}
                 </span>
               </div>
               {item.hasBadge && (
-                <span className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold shadow-md">
+                <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold shadow-sm">
                   {item.badgeCount || ''}
                 </span>
               )}
               {item.isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-10 w-1 bg-gradient-to-b from-blue-600 to-purple-600 rounded-r-full shadow-sm" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-blue-600 rounded-r-full" />
               )}
             </button>
           ))}
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a]">
+          <div className="text-[10px] text-gray-400 dark:text-gray-500 text-center">
             MatchMint Admin © {new Date().getFullYear()}
           </div>
         </div>

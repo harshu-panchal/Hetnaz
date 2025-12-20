@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AdminTopNavbar } from '../components/AdminTopNavbar';
 import { AdminSidebar } from '../components/AdminSidebar';
 import { ApprovalCard } from '../components/ApprovalCard';
@@ -11,6 +12,7 @@ import * as adminService from '../services/admin.service';
 import { useAuth } from '../../../core/context/AuthContext';
 
 export const FemaleApprovalPage = () => {
+  const navigate = useNavigate();
   const [approvals, setApprovals] = useState<FemaleApproval[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'resubmit_requested'>('pending');
@@ -107,7 +109,7 @@ export const FemaleApprovalPage = () => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-80">
+      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
@@ -243,9 +245,9 @@ export const FemaleApprovalPage = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredApprovals.map((approval) => (
-                <div key={approval.userId} className="relative">
+                <div key={approval.userId} className="relative h-full">
                   {showBulkActions && filter === 'pending' && (
                     <div className="absolute top-4 left-4 z-10">
                       <input
@@ -258,9 +260,7 @@ export const FemaleApprovalPage = () => {
                   )}
                   <ApprovalCard
                     approval={approval}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                    onResubmitRequest={handleResubmitRequest}
+                    onViewAction={() => navigate(`/admin/female-approval/${approval.userId}`)}
                   />
                 </div>
               ))}

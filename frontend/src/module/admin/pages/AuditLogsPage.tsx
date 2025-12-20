@@ -199,7 +199,7 @@ export const AuditLogsPage = () => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-80">
+      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
@@ -305,11 +305,10 @@ export const AuditLogsPage = () => {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setAdminFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    adminFilter === 'all'
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${adminFilter === 'all'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   All Admins
                 </button>
@@ -317,11 +316,10 @@ export const AuditLogsPage = () => {
                   <button
                     key={admin.id}
                     onClick={() => setAdminFilter(admin.id)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      adminFilter === admin.id
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${adminFilter === admin.id
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
+                      }`}
                   >
                     {admin.name}
                   </button>
@@ -357,9 +355,8 @@ export const AuditLogsPage = () => {
                   <div className="flex items-start gap-4">
                     {/* Icon */}
                     <div
-                      className={`p-3 rounded-lg ${getActionColor(log.action).split(' ')[0]} ${
-                        getActionColor(log.action).split(' ')[1]
-                      }`}
+                      className={`p-3 rounded-lg ${getActionColor(log.action).split(' ')[0]} ${getActionColor(log.action).split(' ')[1]
+                        }`}
                     >
                       <MaterialSymbol
                         name={getActionIcon(log.action)}

@@ -162,7 +162,7 @@ export const UsersManagementPage = () => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-80">
+      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">

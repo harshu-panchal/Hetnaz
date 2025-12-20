@@ -38,6 +38,7 @@ import { AdminLoginPage } from './module/admin/pages/AdminLoginPage';
 import { UsersManagementPage } from './module/admin/pages/UsersManagementPage';
 import { UserDetailPage } from './module/admin/pages/UserDetailPage';
 import { FemaleApprovalPage } from './module/admin/pages/FemaleApprovalPage';
+import { FemaleApprovalDetailPage } from './module/admin/pages/FemaleApprovalDetailPage';
 import { RejectApprovalPage } from './module/admin/pages/RejectApprovalPage';
 import { WithdrawalManagementPage } from './module/admin/pages/WithdrawalManagementPage';
 import { RejectWithdrawalPage } from './module/admin/pages/RejectWithdrawalPage';
@@ -112,6 +113,7 @@ function App() {
                 <Route path="/admin/users" element={<UsersManagementPage />} />
                 <Route path="/admin/users/:userId" element={<UserDetailPage />} />
                 <Route path="/admin/female-approval" element={<FemaleApprovalPage />} />
+                <Route path="/admin/female-approval/:userId" element={<FemaleApprovalDetailPage />} />
                 <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
                 <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
                 <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />

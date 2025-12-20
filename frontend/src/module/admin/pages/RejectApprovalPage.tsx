@@ -72,7 +72,7 @@ export const RejectApprovalPage = () => {
           items={navigationItems}
           onItemClick={handleNavigationClick}
         />
-        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-80 flex items-center justify-center">
+        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 flex items-center justify-center">
           <div className="text-center">
             <MaterialSymbol name="error" className="text-gray-400 mx-auto mb-4" size={64} />
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Approval Not Found</h2>
@@ -99,7 +99,7 @@ export const RejectApprovalPage = () => {
         onItemClick={handleNavigationClick}
       />
 
-      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-80 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-6">

@@ -6,7 +6,7 @@ interface AdminTopNavbarProps {
 
 export const AdminTopNavbar = ({ onMenuClick }: AdminTopNavbarProps) => {
   return (
-    <div className="sticky top-0 z-40 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm lg:ml-80">
+    <div className="sticky top-0 z-40 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm lg:ml-64">
       <div className="flex items-center justify-between px-5 py-4">
         {/* Logo */}
         <div className="flex items-center gap-3">
