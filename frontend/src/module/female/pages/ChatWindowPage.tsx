@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChatWindowHeader } from '../components/ChatWindowHeader';
 import { MessageBubble } from '../components/MessageBubble';
@@ -9,318 +8,288 @@ import { PhotoPickerModal } from '../components/PhotoPickerModal';
 import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
-import type { Message, Gift } from '../types/female.types';
-
-// Mock data - replace with actual API calls
-const mockChats: Record<string, { userId: string; userName: string; userAvatar: string; isOnline: boolean }> = {
-  '1': {
-    userId: '1',
-    userName: 'Alex',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
-    isOnline: true,
-  },
-  '2': {
-    userId: '2',
-    userName: 'Michael',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
-    isOnline: true,
-  },
-  '3': {
-    userId: '3',
-    userName: 'David',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
-    isOnline: false,
-  },
-};
-
-// Mock messages for each chat
-const getMockMessages = (chatId: string): Message[] => {
-  const chatInfo = mockChats[chatId];
-  if (!chatInfo) return [];
-
-  const baseMessages: Record<string, Message[]> = {
-    '1': [
-      {
-        id: '1-1',
-        chatId: '1',
-        senderId: 'other',
-        senderName: 'Alex',
-        content: 'Hey! Thanks for the message! 😊',
-        timestamp: new Date(Date.now() - 3600000),
-        type: 'text',
-        isSent: false,
-      },
-      {
-        id: '1-2',
-        chatId: '1',
-        senderId: 'me',
-        senderName: 'You',
-        content: 'Hi Alex! How are you doing?',
-        timestamp: new Date(Date.now() - 3300000),
-        type: 'text',
-        isSent: true,
-        readStatus: 'read',
-      },
-      {
-        id: '1-3',
-        chatId: '1',
-        senderId: 'other',
-        senderName: 'Alex',
-        content: '',
-        timestamp: new Date(Date.now() - 3000000),
-        type: 'gift',
-        isSent: false,
-        gifts: [
-          {
-            id: 'gift-1',
-            name: 'Rose',
-            icon: 'local_florist',
-            cost: 50,
-            tradeValue: 25,
-            description: 'A beautiful rose',
-            category: 'romantic',
-            receivedAt: new Date(Date.now() - 3000000),
-            senderId: '1',
-            senderName: 'Alex',
-            quantity: 4, // 4 roses
-          },
-        ],
-        giftNote: 'Hope you like this! 🌹',
-      },
-      {
-        id: '1-4',
-        chatId: '1',
-        senderId: 'other',
-        senderName: 'Alex',
-        content: "I'm doing great! Thanks for asking!",
-        timestamp: new Date(Date.now() - 2700000),
-        type: 'text',
-        isSent: false,
-      },
-    ],
-    '2': [
-      {
-        id: '2-1',
-        chatId: '2',
-        senderId: 'other',
-        senderName: 'Michael',
-        content: 'Hey there! 👋',
-        timestamp: new Date(Date.now() - 7200000),
-        type: 'text',
-        isSent: false,
-      },
-      {
-        id: '2-2',
-        chatId: '2',
-        senderId: 'me',
-        senderName: 'You',
-        content: 'Hi Michael! How are you?',
-        timestamp: new Date(Date.now() - 6900000),
-        type: 'text',
-        isSent: true,
-        readStatus: 'read',
-      },
-      {
-        id: '2-3',
-        chatId: '2',
-        senderId: 'other',
-        senderName: 'Michael',
-        content: '',
-        timestamp: new Date(Date.now() - 6600000),
-        type: 'gift',
-        isSent: false,
-        gifts: [
-          {
-            id: 'gift-2',
-            name: 'Chocolate',
-            icon: 'cake',
-            cost: 100,
-            tradeValue: 50,
-            description: 'Sweet chocolate',
-            category: 'romantic',
-            receivedAt: new Date(Date.now() - 6600000),
-            senderId: '2',
-            senderName: 'Michael',
-            quantity: 3, // 3 chocolates
-          },
-        ],
-        giftNote: 'Hope you enjoy these! 🍫',
-      },
-    ],
-    '3': [
-      {
-        id: '3-1',
-        chatId: '3',
-        senderId: 'other',
-        senderName: 'David',
-        content: "I'd love to chat more!",
-        timestamp: new Date(Date.now() - 86400000),
-        type: 'text',
-        isSent: false,
-      },
-    ],
-  };
-
-  return baseMessages[chatId] || [];
-};
+import chatService from '../../../core/services/chat.service';
+import socketService from '../../../core/services/socket.service';
+import type { Chat as ApiChat, Message as ApiMessage } from '../../../core/types/chat.types';
 
 export const ChatWindowPage = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
   const { navigationItems, handleNavigationClick } = useFemaleNavigation();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [chatId]);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ApiMessage[]>([]);
+  const [chatInfo, setChatInfo] = useState<ApiChat | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatInfo = chatId ? mockChats[chatId] : null;
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
 
-  // Load messages for the current chat
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const user = JSON.parse(localStorage.getItem('matchmint_user') || '{}');
+  const currentUserId = user._id || user.id;
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Fetch chat info and messages
   useEffect(() => {
-    if (!chatId || !chatInfo) {
+    if (!chatId) {
       navigate('/female/chats');
       return;
     }
-    // Load messages for this chat
-    const chatMessages = getMockMessages(chatId);
-    setMessages(chatMessages);
-  }, [chatId, chatInfo, navigate]);
+
+    const init = async () => {
+      try {
+        setIsLoading(true);
+
+        // Get chat info
+        const chat = await chatService.getChatById(chatId);
+        setChatInfo(chat);
+
+        // Get messages
+        const { messages: msgData } = await chatService.getChatMessages(chatId);
+        setMessages(msgData);
+
+        // Join chat room
+        socketService.connect();
+        socketService.joinChat(chatId);
+
+        setError(null);
+      } catch (err: any) {
+        console.error('Failed to load chat:', err);
+        setError(err.response?.data?.message || 'Failed to load chat');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (chatId) {
+        socketService.leaveChat(chatId);
+      }
+    };
+  }, [chatId, navigate]);
+
+  // Socket event listeners
+  useEffect(() => {
+    const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
+      if (data.chatId === chatId) {
+        setMessages(prev => [...prev, data.message]);
+        scrollToBottom();
+      }
+    };
+
+    const handleTyping = (data: { chatId: string; userId: string; isTyping: boolean }) => {
+      if (data.chatId === chatId && data.userId !== currentUserId) {
+        setIsOtherTyping(data.isTyping);
+      }
+    };
+
+    // User online/offline status updates
+    const handleUserOnline = (data: { userId: string }) => {
+      if (chatInfo && data.userId === chatInfo.otherUser._id) {
+        setChatInfo(prev => prev ? {
+          ...prev,
+          otherUser: { ...prev.otherUser, isOnline: true }
+        } : null);
+      }
+    };
+
+    const handleUserOffline = (data: { userId: string; lastSeen: string }) => {
+      if (chatInfo && data.userId === chatInfo.otherUser._id) {
+        setChatInfo(prev => prev ? {
+          ...prev,
+          otherUser: { ...prev.otherUser, isOnline: false, lastSeen: data.lastSeen }
+        } : null);
+      }
+    };
+
+    socketService.on('message:new', handleNewMessage);
+    socketService.on('chat:typing', handleTyping);
+    socketService.on('user:online', handleUserOnline);
+    socketService.on('user:offline', handleUserOffline);
+
+    return () => {
+      socketService.off('message:new', handleNewMessage);
+      socketService.off('chat:typing', handleTyping);
+      socketService.off('user:online', handleUserOnline);
+      socketService.off('user:offline', handleUserOffline);
+    };
+  }, [chatId, chatInfo, currentUserId, scrollToBottom]);
 
   useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
-  const handleSendMessage = (content: string) => {
-    if (!chatId) return;
+  // Female users don't pay to send messages
+  const handleSendMessage = async (content: string) => {
+    if (!chatId || isSending) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      chatId,
-      senderId: 'me',
-      senderName: 'You',
-      content,
-      timestamp: new Date(),
-      type: 'text',
-      isSent: true,
-      readStatus: 'sent',
-    };
+    try {
+      setIsSending(true);
+      setError(null);
 
-    setMessages((prev) => [...prev, newMessage]);
-
-    // Simulate response after 1 second
-    setTimeout(() => {
-      const responseMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        chatId,
-        senderId: 'other',
-        senderName: chatInfo?.userName || 'User',
-        content: 'Thanks for your message! 😊',
-        timestamp: new Date(),
-        type: 'text',
-        isSent: false,
-      };
-      setMessages((prev) => [...prev, responseMessage]);
-    }, 1000);
+      const result = await chatService.sendMessage(chatId, content);
+      setMessages(prev => [...prev, result.message]);
+    } catch (err: any) {
+      console.error('Failed to send message:', err);
+      setError(err.response?.data?.message || 'Failed to send message');
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const handleSendPhoto = () => {
-    setIsPhotoPickerOpen(true);
-  };
 
-  const handlePhotoSelect = (file: File) => {
-    if (!chatId) return;
-
-    // TODO: Upload photo and send message
-    // For now, just create a mock image message
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      chatId,
-      senderId: 'me',
-      senderName: 'You',
-      content: URL.createObjectURL(file),
-      timestamp: new Date(),
-      type: 'image',
-      isSent: true,
-      readStatus: 'sent',
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-  };
 
   const handleMoreClick = () => {
     setIsMoreOptionsOpen(true);
   };
 
   const handleViewProfile = () => {
-    if (chatInfo?.userId) {
-      navigate(`/female/profile/${chatInfo.userId}`);
+    if (chatInfo?.otherUser._id) {
+      navigate(`/female/profile/${chatInfo.otherUser._id}`);
     }
   };
 
-  const handleBlock = () => {
-    console.log('Block user');
-    // TODO: Implement block functionality
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background-light dark:bg-background-dark">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-  const handleReport = () => {
-    console.log('Report user');
-    // TODO: Implement report functionality
-  };
-
-  const handleDelete = () => {
-    console.log('Delete chat');
-    navigate('/female/chats');
-    // TODO: Implement delete chat functionality
-  };
-
-  if (!chatId || !chatInfo) {
-    return null;
+  if (!chatInfo) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-background-light dark:bg-background-dark p-4">
+        <p className="text-gray-500 dark:text-gray-400 mb-4">Chat not found</p>
+        <button
+          onClick={() => navigate('/female/chats')}
+          className="px-4 py-2 bg-primary text-white rounded-lg"
+        >
+          Go Back
+        </button>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden pb-20">
       {/* Header */}
       <ChatWindowHeader
-        userName={chatInfo.userName}
-        userAvatar={chatInfo.userAvatar}
-        isOnline={chatInfo.isOnline}
+        userName={chatInfo.otherUser.name}
+        userAvatar={chatInfo.otherUser.avatar || ''}
+        isOnline={chatInfo.otherUser.isOnline}
         onMoreClick={handleMoreClick}
       />
 
+      {/* Error Banner */}
+      {error && (
+        <div className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">✕</button>
+        </div>
+      )}
+
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto py-4 min-h-0">
-        {messages.map((message) => (
-          message.type === 'gift' && message.gifts ? (
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-2 min-h-0">
+        {messages.length === 0 && (
+          <div className="text-center text-gray-400 dark:text-gray-500 py-8">
+            <p>No messages yet</p>
+          </div>
+        )}
+
+        {messages.map((message) => {
+          // Robust sender ID extraction
+          let senderId;
+          if (typeof message.senderId === 'string') {
+            senderId = message.senderId;
+          } else if (message.senderId) {
+            senderId = message.senderId._id || (message.senderId as any).id;
+          }
+
+          // Robust current user ID extraction
+          const user = JSON.parse(localStorage.getItem('matchmint_user') || '{}');
+          const currentUserId = user._id || user.id;
+
+          const isSent = String(senderId) === String(currentUserId);
+
+          const senderName = (typeof message.senderId === 'object' && message.senderId)
+            ? message.senderId.profile?.name
+            : 'User';
+
+          return message.messageType === 'gift' && message.gift ? (
             <GiftMessageBubble
-              key={message.id}
-              gifts={message.gifts}
-              note={message.giftNote}
-              timestamp={message.timestamp}
-              senderName={message.senderName}
+              key={message._id}
+              gifts={[{
+                id: message.gift.giftId,
+                name: message.gift.giftName,
+                icon: 'redeem',
+                cost: message.gift.giftCost,
+                tradeValue: Math.floor(message.gift.giftCost * 0.5),
+                description: '',
+                category: 'romantic',
+                receivedAt: new Date(message.createdAt),
+                senderId: String(senderId),
+                senderName: senderName || 'User',
+                quantity: 1,
+              }]}
+              note=""
+              timestamp={new Date(message.createdAt)}
+              senderName={senderName || 'User'}
             />
           ) : (
-            <MessageBubble key={message.id} message={message} />
-          )
-        ))}
+            <MessageBubble
+              key={message._id}
+              message={{
+                id: message._id,
+                chatId: message.chatId,
+                senderId: String(senderId),
+                senderName: senderName || 'User',
+                content: message.content,
+                timestamp: new Date(message.createdAt),
+                type: message.messageType as any,
+                isSent,
+                readStatus: message.status as any,
+              }}
+            />
+          );
+        })}
+
+        {/* Typing Indicator */}
+        {isOtherTyping && (
+          <div className="flex items-center gap-2 px-3 py-2">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="text-xs text-gray-400">{chatInfo.otherUser.name} is typing...</span>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
+      {/* Message Input - Females don't pay */}
       <MessageInput
         onSendMessage={handleSendMessage}
-        onSendPhoto={handleSendPhoto}
+        onSendPhoto={() => setIsPhotoPickerOpen(true)}
         placeholder="Type a message..."
+        disabled={isSending}
       />
 
       {/* Photo Picker Modal */}
       <PhotoPickerModal
         isOpen={isPhotoPickerOpen}
         onClose={() => setIsPhotoPickerOpen(false)}
-        onPhotoSelect={handlePhotoSelect}
+        onPhotoSelect={() => { }}
       />
 
       {/* More Options Modal */}
@@ -328,10 +297,10 @@ export const ChatWindowPage = () => {
         isOpen={isMoreOptionsOpen}
         onClose={() => setIsMoreOptionsOpen(false)}
         onViewProfile={handleViewProfile}
-        onBlock={handleBlock}
-        onReport={handleReport}
-        onDelete={handleDelete}
-        userName={chatInfo.userName}
+        onBlock={() => { }}
+        onReport={() => { }}
+        onDelete={() => navigate('/female/chats')}
+        userName={chatInfo.otherUser.name}
       />
 
       {/* Bottom Navigation */}
@@ -339,4 +308,3 @@ export const ChatWindowPage = () => {
     </div>
   );
 };
-

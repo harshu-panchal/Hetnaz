@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
-import { getGiftTheme } from '../utils/giftThemes';
+import { getGiftTheme, getGiftImage } from '../utils/giftThemes';
 import type { Gift } from '../types/male.types';
 
 interface GiftCarouselViewerProps {
@@ -112,10 +112,10 @@ export const GiftCarouselViewer = ({
               {/* Gift Icon */}
               <div className="relative">
                 <div className="p-8 bg-white/90 dark:bg-black/50 rounded-full shadow-2xl backdrop-blur-sm">
-                  <MaterialSymbol
-                    name={currentGift.icon as any}
-                    size={80}
-                    className={theme.iconColor}
+                  <img
+                    src={getGiftImage(currentGift.name)}
+                    alt={currentGift.name}
+                    className="w-32 h-32 object-contain drop-shadow-xl"
                   />
                 </div>
                 {/* Category Badge */}
@@ -165,31 +165,31 @@ export const GiftCarouselViewer = ({
               {/* Decorative background elements */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-pink-200/30 dark:bg-pink-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-200/30 dark:bg-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-              
+
               <div className="relative flex items-start gap-3">
                 {/* Quote icon */}
                 <div className="flex-shrink-0 mt-1">
                   <div className="p-2 bg-white/80 dark:bg-black/40 rounded-full shadow-md backdrop-blur-sm">
-                    <MaterialSymbol 
-                      name="format_quote" 
-                      size={24} 
+                    <MaterialSymbol
+                      name="format_quote"
+                      size={24}
                       className="text-pink-500 dark:text-pink-400"
                     />
                   </div>
                 </div>
-                
+
                 {/* Note content */}
                 <div className="flex-1 min-w-0">
                   <p className="text-base text-gray-800 dark:text-gray-100 leading-relaxed font-medium italic relative z-10">
                     "{note}"
                   </p>
-                  
+
                   {/* Decorative line */}
                   <div className="mt-3 flex items-center gap-2">
                     <div className="flex-1 h-px bg-gradient-to-r from-pink-300 via-purple-300 to-pink-300 dark:from-pink-500/50 dark:via-purple-500/50 dark:to-pink-500/50" />
-                    <MaterialSymbol 
-                      name="favorite" 
-                      size={12} 
+                    <MaterialSymbol
+                      name="favorite"
+                      size={12}
                       className="text-pink-400 dark:text-pink-500"
                     />
                     <div className="flex-1 h-px bg-gradient-to-l from-pink-300 via-purple-300 to-pink-300 dark:from-pink-500/50 dark:via-purple-500/50 dark:to-pink-500/50" />
@@ -207,11 +207,10 @@ export const GiftCarouselViewer = ({
                   <button
                     key={index}
                     onClick={() => handleDotClick(index)}
-                    className={`size-2 rounded-full transition-all ${
-                      index === currentIndex
-                        ? 'bg-pink-500 size-3'
-                        : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
-                    }`}
+                    className={`size-2 rounded-full transition-all ${index === currentIndex
+                      ? 'bg-pink-500 size-3'
+                      : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                      }`}
                     aria-label={`Go to gift ${index + 1}`}
                   />
                 ))}

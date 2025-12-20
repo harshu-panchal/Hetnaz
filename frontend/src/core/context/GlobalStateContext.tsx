@@ -1,118 +1,183 @@
+/**
+ * Global State Context - Centralized state management with Socket.IO sync
+ * @purpose: Cache user data, balance, and sync via WebSocket for real-time updates
+ */
 
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { useAuth } from './AuthContext';
-import { useSocket } from './SocketContext';
-import { WalletState, UnreadCounts, BalanceUpdatePayload } from '../types/global';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import socketService from '../services/socket.service';
+import walletService from '../services/wallet.service';
 
-interface GlobalStateContextType {
-    wallet: WalletState;
-    counts: UnreadCounts;
-    refreshWallet: () => Promise<void>;
-    refreshCounts: () => Promise<void>;
+interface User {
+    _id: string;
+    phoneNumber: string;
+    role: 'male' | 'female' | 'admin';
+    profile?: {
+        name?: string;
+        age?: number;
+        photos?: Array<{ url: string; isPrimary?: boolean }>;
+        bio?: string;
+        occupation?: string;
+    };
+    coinBalance: number;
+    approvalStatus?: string;
+    isOnline?: boolean;
 }
 
-const GlobalStateContext = createContext<GlobalStateContextType | undefined>(undefined);
+interface GlobalState {
+    user: User | null;
+    coinBalance: number;
+    isLoading: boolean;
+    isConnected: boolean;
 
-export const GlobalStateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { isAuthenticated } = useAuth();
-    const { socket } = useSocket();
+    // Actions
+    setUser: (user: User | null) => void;
+    updateBalance: (balance: number) => void;
+    refreshBalance: () => Promise<void>;
+    logout: () => void;
+}
 
-    // State
-    const [wallet, setWallet] = useState<WalletState>({
-        balance: 0,
-        isVip: false,
-        currency: 'INR'
+const GlobalStateContext = createContext<GlobalState | undefined>(undefined);
+
+// Local storage keys
+const STORAGE_KEYS = {
+    USER: 'matchmint_user',
+    TOKEN: 'matchmint_auth_token',
+    BALANCE_CACHE: 'matchmint_balance_cache',
+};
+
+interface GlobalStateProviderProps {
+    children: ReactNode;
+}
+
+export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
+    const [user, setUserState] = useState<User | null>(() => {
+        // Initialize from localStorage
+        try {
+            const stored = localStorage.getItem(STORAGE_KEYS.USER);
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
+        }
     });
 
-    const [counts, setCounts] = useState<UnreadCounts>({
-        messages: 0,
-        notifications: 0
+    const [coinBalance, setCoinBalance] = useState<number>(() => {
+        // Initialize from cache
+        try {
+            const cached = localStorage.getItem(STORAGE_KEYS.BALANCE_CACHE);
+            return cached ? parseInt(cached, 10) : 0;
+        } catch {
+            return 0;
+        }
     });
 
-    // Fetch Logic (Placeholder for API calls)
-    const refreshWallet = useCallback(async () => {
-        if (!isAuthenticated) return;
-        try {
-            // TODO: Replace with actual API call
-            // const res = await api.get('/wallet/balance');
-            // setWallet(res.data);
-            console.log('Fetching wallet...');
-        } catch (err) {
-            console.error('Failed to fetch wallet', err);
-        }
-    }, [isAuthenticated]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isConnected, setIsConnected] = useState(false);
 
-    const refreshCounts = useCallback(async () => {
-        if (!isAuthenticated) return;
-        try {
-            // TODO: Replace with actual API call
-            // const res = await api.get('/user/stats');
-            // setCounts(res.data);
-            console.log('Fetching counts...');
-        } catch (err) {
-            console.error('Failed to fetch counts', err);
-        }
-    }, [isAuthenticated]);
-
-    // Initial Load
-    useEffect(() => {
-        if (isAuthenticated) {
-            refreshWallet();
-            refreshCounts();
+    // Update user and persist to localStorage
+    const setUser = useCallback((newUser: User | null) => {
+        setUserState(newUser);
+        if (newUser) {
+            localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
+            setCoinBalance(newUser.coinBalance || 0);
+            localStorage.setItem(STORAGE_KEYS.BALANCE_CACHE, String(newUser.coinBalance || 0));
         } else {
-            // Reset on logout
-            setWallet({ balance: 0, isVip: false, currency: 'INR' });
-            setCounts({ messages: 0, notifications: 0 });
+            localStorage.removeItem(STORAGE_KEYS.USER);
+            localStorage.removeItem(STORAGE_KEYS.BALANCE_CACHE);
+            setCoinBalance(0);
         }
-    }, [isAuthenticated, refreshWallet, refreshCounts]);
+    }, []);
 
-    // Socket Event Listeners
+    // Update balance and cache
+    const updateBalance = useCallback((balance: number) => {
+        setCoinBalance(balance);
+        localStorage.setItem(STORAGE_KEYS.BALANCE_CACHE, String(balance));
+    }, []);
+
+    // Fetch fresh balance from API
+    const refreshBalance = useCallback(async () => {
+        try {
+            const data = await walletService.getBalance();
+            // Backend returns { balance: number }, not { coinBalance }
+            updateBalance(data.balance || data.coinBalance || 0);
+        } catch (error) {
+            console.error('Failed to refresh balance:', error);
+        }
+    }, [updateBalance]);
+
+    // Logout
+    const logout = useCallback(() => {
+        socketService.disconnect();
+        localStorage.removeItem(STORAGE_KEYS.USER);
+        localStorage.removeItem(STORAGE_KEYS.TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.BALANCE_CACHE);
+        setUserState(null);
+        setCoinBalance(0);
+    }, []);
+
+    // Socket.IO event listeners
     useEffect(() => {
-        if (!socket || !isAuthenticated) return;
+        if (!user) return;
 
-        // Handle Balance Updates
-        const handleBalanceUpdate = (payload: BalanceUpdatePayload) => {
-            console.log('💰 Socket: Balance Update', payload);
-            if (payload.newBalance !== undefined) {
-                setWallet(prev => ({ ...prev, balance: payload.newBalance }));
-            } else if (payload.delta !== undefined) {
-                setWallet(prev => ({ ...prev, balance: prev.balance + payload.delta }));
+        // Connect to socket
+        socketService.connect();
+
+        // Handle connection status
+        const handleConnect = () => setIsConnected(true);
+        const handleDisconnect = () => setIsConnected(false);
+
+        // Handle balance updates - backend sends { balance: number }
+        const handleBalanceUpdate = (data: { balance: number }) => {
+            updateBalance(data.balance);
+        };
+
+        // Handle user updates (profile changes, online status, etc.)
+        const handleUserUpdate = (data: any) => {
+            if (data.userId === user._id) {
+                setUserState(prev => prev ? { ...prev, ...data } : null);
             }
         };
 
-        // Handle Notifications
-        const handleNotification = () => {
-            setCounts(prev => ({ ...prev, notifications: prev.notifications + 1 }));
-        };
+        // Register listeners
+        socketService.on('connect', handleConnect);
+        socketService.on('disconnect', handleDisconnect);
+        socketService.on('balance:update', handleBalanceUpdate);
+        socketService.on('user:update', handleUserUpdate);
 
-        // Handle New Messages (Global Counter)
-        const handleNewMessage = () => {
-            // Ideally, we check if we are already viewing this chat, but for now simple increment
-            setCounts(prev => ({ ...prev, messages: prev.messages + 1 }));
-        };
-
-        socket.on('balance:update', handleBalanceUpdate);
-        socket.on('notification:new', handleNotification);
-        socket.on('chat:message', handleNewMessage);
+        // Initial balance fetch
+        refreshBalance();
 
         return () => {
-            socket.off('balance:update', handleBalanceUpdate);
-            socket.off('notification:new', handleNotification);
-            socket.off('chat:message', handleNewMessage);
+            socketService.off('connect', handleConnect);
+            socketService.off('disconnect', handleDisconnect);
+            socketService.off('balance:update', handleBalanceUpdate);
+            socketService.off('user:update', handleUserUpdate);
         };
-    }, [socket, isAuthenticated]);
+    }, [user?._id, updateBalance, refreshBalance]);
+
+    const value: GlobalState = {
+        user,
+        coinBalance,
+        isLoading,
+        isConnected,
+        setUser,
+        updateBalance,
+        refreshBalance,
+        logout,
+    };
 
     return (
-        <GlobalStateContext.Provider value={{ wallet, counts, refreshWallet, refreshCounts }}>
+        <GlobalStateContext.Provider value={value}>
             {children}
         </GlobalStateContext.Provider>
     );
 };
 
-export const useGlobalState = () => {
+export const useGlobalState = (): GlobalState => {
     const context = useContext(GlobalStateContext);
     if (context === undefined) {
         throw new Error('useGlobalState must be used within a GlobalStateProvider');
     }
     return context;
 };
+
+export default GlobalStateContext;

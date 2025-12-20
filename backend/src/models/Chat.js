@@ -43,6 +43,25 @@ const chatSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Intimacy Level System
+    intimacyLevel: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    messageCountByUser: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
+    totalMessageCount: {
+      type: Number,
+      default: 0,
+    },
+    lastLevelUpAt: {
+      type: Date,
+      default: null,
+    },
     deletedBy: [
       {
         userId: {

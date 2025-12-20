@@ -7,72 +7,77 @@ import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
 import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
-import type { Chat } from '../types/female.types';
-
-// Mock data - replace with actual API calls
-const mockChats: Chat[] = [
-  {
-    id: '1',
-    userId: '1',
-    userName: 'Alex',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
-    lastMessage: "Hey! Thanks for the message! 😊",
-    timestamp: '10:45 AM',
-    isOnline: true,
-    hasUnread: true,
-    unreadCount: 2,
-  },
-  {
-    id: '2',
-    userId: '2',
-    userName: 'Michael',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
-    lastMessage: 'That sounds great!',
-    timestamp: '10:12 AM',
-    isOnline: true,
-    hasUnread: false,
-  },
-  {
-    id: '3',
-    userId: '3',
-    userName: 'David',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
-    lastMessage: "I'd love to chat more!",
-    timestamp: 'Yesterday',
-    isOnline: false,
-    hasUnread: false,
-  },
-  {
-    id: '4',
-    userId: '4',
-    userName: 'James',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
-    lastMessage: 'Thanks for responding!',
-    timestamp: 'Yesterday',
-    isOnline: false,
-    hasUnread: true,
-    unreadCount: 1,
-  },
-];
+import chatService from '../../../core/services/chat.service';
+import socketService from '../../../core/services/socket.service';
+import type { Chat as ApiChat } from '../../../core/types/chat.types';
 
 export const ChatListPage = () => {
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [chats, setChats] = useState<ApiChat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     window.scrollTo(0, 0);
+    fetchChats();
+
+    // Connect socket
+    socketService.connect();
+
+    // Listen for new messages to update chat list
+    const handleNewMessage = () => {
+      fetchChats();
+    };
+    socketService.on('message:new', handleNewMessage);
+    socketService.on('message:notification', handleNewMessage);
+
+    return () => {
+      socketService.off('message:new', handleNewMessage);
+      socketService.off('message:notification', handleNewMessage);
+    };
   }, []);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchChats = async () => {
+    try {
+      setIsLoading(true);
+      const data = await chatService.getMyChatList();
+      setChats(data);
+      setError(null);
+    } catch (err: any) {
+      console.error('Failed to fetch chats:', err);
+      setError(err.response?.data?.message || 'Failed to load chats');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Transform API chats to component format
+  const transformedChats = useMemo(() => {
+    return chats.map(chat => ({
+      id: chat._id,
+      userId: chat.otherUser._id,
+      userName: chat.otherUser.name,
+      userAvatar: chat.otherUser.avatar || '',
+      lastMessage: chat.lastMessage?.content || 'Start chatting!',
+      timestamp: formatTimestamp(chat.lastMessageAt),
+      isOnline: chat.otherUser.isOnline,
+      hasUnread: chat.unreadCount > 0,
+      unreadCount: chat.unreadCount,
+    }));
+  }, [chats]);
 
   const filteredChats = useMemo(() => {
-    if (!searchQuery.trim()) return mockChats;
+    if (!searchQuery.trim()) return transformedChats;
     const query = searchQuery.toLowerCase();
-    return mockChats.filter(
+    return transformedChats.filter(
       (chat) =>
         chat.userName.toLowerCase().includes(query) ||
         chat.lastMessage.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [searchQuery, transformedChats]);
 
   const handleChatClick = (chatId: string) => {
     navigate(`/female/chat/${chatId}`);
@@ -93,22 +98,58 @@ export const ChatListPage = () => {
 
       <ChatListHeader />
       <SearchBar onSearch={setSearchQuery} placeholder="Search chats..." />
+
       <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
-        {filteredChats.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Empty/No Results State */}
+        {!isLoading && !error && filteredChats.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center py-12">
+            <span className="text-5xl mb-4">💬</span>
             <p className="text-gray-500 dark:text-[#cbbc90] text-lg">No chats found</p>
             <p className="text-gray-400 dark:text-[#cbbc90]/70 text-sm mt-2">
-              {searchQuery ? 'Try a different search term' : 'Start a conversation'}
+              {searchQuery ? 'Try a different search term' : 'Wait for someone to message you!'}
             </p>
           </div>
-        ) : (
-          filteredChats.map((chat) => (
-            <ChatListItem key={chat.id} chat={chat} onClick={handleChatClick} />
-          ))
         )}
+
+        {/* Chat List */}
+        {!isLoading && !error && filteredChats.map((chat) => (
+          <ChatListItem key={chat.id} chat={chat as any} onClick={handleChatClick} />
+        ))}
       </div>
+
       <FemaleBottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
     </div>
   );
 };
 
+// Helper function to format timestamp
+function formatTimestamp(date: string | Date): string {
+  const d = new Date(date);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  } else if (diffDays === 1) {
+    return 'Yesterday';
+  } else if (diffDays < 7) {
+    return d.toLocaleDateString('en-US', { weekday: 'short' });
+  } else {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+}

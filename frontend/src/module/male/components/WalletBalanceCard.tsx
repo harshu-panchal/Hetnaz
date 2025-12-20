@@ -4,20 +4,16 @@ interface WalletBalanceCardProps {
   balance: number;
   memberTier?: string;
   userAvatar?: string;
-  valueEstimate?: string;
-  expirationDays?: number;
 }
 
 export const WalletBalanceCard = ({
   balance,
-  memberTier = 'Gold Member',
+  memberTier = 'Member',
   userAvatar,
-  valueEstimate,
-  expirationDays,
 }: WalletBalanceCardProps) => {
-  const formattedBalance = balance.toLocaleString();
+  const formattedBalance = (balance || 0).toLocaleString();
   const defaultAvatar =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBoS_YLtV4hpNVbbyf0nrVmbQX6vzgn-xGLdye-t2gBz0LRib9HX4PeYJIj364IRM63hBRKmTLtWfuVOfikvNIryKKMjql6Ig1suPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPZpOMLYRY2W5WgHwClZhJ-JaWw470QybQVyCQD-hZYfamq_iJqx0EAJE0UNaa6Ee3_FbUUYSuUIIViQ_QxI6ytCepxc';
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuBoS_YLtV4hpNVbbyf0nrVmbQX6vzgn-xGLdye-t2gBz0LRib9HX4PeYJIj364IRM63hBRKmTLtWfuVOfikvNIryKKMjql6Ig1suPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPZpOMLYRY2W5WgHwClZhJ-JaWw470QybQVyCQD-hZYfamq_iJqx0EAJE0UNaa6Ee3_FbUUYSuUIIViQ_QxI6ytCepxc';
 
   return (
     <div className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#3a301e] to-[#2a2315] border border-primary/20 shadow-lg p-6 flex flex-col items-center justify-center gap-4">
@@ -46,15 +42,12 @@ export const WalletBalanceCard = ({
           <MaterialSymbol name="monetization_on" filled size={32} className="text-primary" />
         </h1>
 
-        {(valueEstimate || expirationDays) && (
-          <p className="text-white/60 text-xs mt-2">
-            {valueEstimate && `~${valueEstimate} Value`}
-            {valueEstimate && expirationDays && ' • '}
-            {expirationDays && `Expires in ${expirationDays} days`}
-          </p>
-        )}
+        <p className="text-white/60 text-xs mt-2">
+          Your coin balance
+        </p>
       </div>
     </div>
   );
 };
+
 

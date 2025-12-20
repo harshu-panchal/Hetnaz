@@ -49,16 +49,16 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-import { authRoutes, adminRoutes, userRoutes, walletRoutes, paymentRoutes } from './routes/index.js';
+import { authRoutes, adminRoutes, userRoutes, walletRoutes, paymentRoutes, chatRoutes } from './routes/index.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/chat', chatRoutes);
 // app.use('/api/male', maleRoutes);
 // app.use('/api/female', femaleRoutes);
-// app.use('/api/chat', chatRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

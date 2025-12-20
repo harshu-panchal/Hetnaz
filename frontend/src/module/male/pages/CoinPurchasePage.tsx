@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { CoinPurchaseHeader } from '../components/CoinPurchaseHeader';
 import { BalanceDisplay } from '../components/BalanceDisplay';
 import { PromoBanner } from '../components/PromoBanner';
@@ -18,6 +19,7 @@ import type { CoinPlan as WalletCoinPlan } from '../../../core/types/wallet.type
 export const CoinPurchasePage = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const { updateBalance } = useGlobalState();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   const [coinPlans, setCoinPlans] = useState<WalletCoinPlan[]>([]);
@@ -75,7 +77,9 @@ export const CoinPurchasePage = () => {
         // Update local balance
         if (result.newBalance !== undefined) {
           setBalance(result.newBalance);
-          // Update in context as well if available
+          // Update in global state context
+          updateBalance(result.newBalance);
+          // Update in auth context as well if available
           updateUser?.({ coinBalance: result.newBalance });
         }
         // Refresh data after successful purchase

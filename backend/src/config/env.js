@@ -58,6 +58,16 @@ export const getEnvConfig = () => {
     rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000, // 15 minutes
     rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
     logLevel: process.env.LOG_LEVEL || 'info',
+    // Video Call Config (new)
+    videoCallPrice: parseInt(process.env.VIDEO_CALL_PRICE, 10) || 500,
+    videoCallDuration: parseInt(process.env.VIDEO_CALL_DURATION_SECONDS, 10) || 300,
+    callConnectionTimeout: parseInt(process.env.CALL_CONNECTION_TIMEOUT_SECONDS, 10) || 20,
+    maxConcurrentCalls: parseInt(process.env.MAX_CONCURRENT_CALLS_PER_USER, 10) || 1,
+    // WebRTC Config (new)
+    stunUrl: process.env.STUN_URL || 'stun:stun.l.google.com:19302',
+    turnUris: process.env.TURN_URIS || '',
+    turnUser: process.env.TURN_USER || '',
+    turnPass: process.env.TURN_PASS || '',
   };
 };
 

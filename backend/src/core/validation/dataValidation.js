@@ -59,6 +59,22 @@ class DataValidation {
   }
 
   /**
+   * Validate message send (male user has enough coins)
+   */
+  async validateMessageSend(userId, coinsRequired) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new BadRequestError('User not found');
+    }
+
+    if (user.coinBalance < coinsRequired) {
+      throw new BadRequestError(`Insufficient coins. Required: ${coinsRequired}, Available: ${user.coinBalance}`);
+    }
+
+    return true;
+  }
+
+  /**
    * Validate withdrawal request
    */
   async validateWithdrawal(userId, coinsRequested) {

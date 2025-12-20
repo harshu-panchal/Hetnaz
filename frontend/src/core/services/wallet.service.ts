@@ -155,6 +155,19 @@ export const getMyBalance = async () => {
     return response.data.data;
 };
 
+// Alias for getMyBalance
+export const getBalance = getMyBalance;
+
+/**
+ * Get available gifts
+ */
+export const getGifts = async () => {
+    const response = await axios.get(`${API_URL}/chat/gifts`, {
+        headers: getAuthHeaders(),
+    });
+    return response.data.data;
+};
+
 /**
  * Get current user's transaction history
  */
@@ -301,6 +314,8 @@ export default {
     deletePayoutSlab,
     // Balance & Transactions
     getMyBalance,
+    getBalance,
+    getGifts,
     getMyTransactions,
     getAllTransactions,
     // Withdrawals (Female)

@@ -114,6 +114,7 @@ export interface Gift {
   id: string;
   name: string;
   icon: string;
+  imageUrl?: string;
   cost: number;
   description?: string;
   category?: 'romantic' | 'fun' | 'luxury' | 'special';

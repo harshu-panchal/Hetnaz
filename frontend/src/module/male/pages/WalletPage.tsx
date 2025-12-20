@@ -2,69 +2,15 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WalletHeader } from '../components/WalletHeader';
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
-import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { SegmentedControls } from '../components/SegmentedControls';
 import { TransactionItem } from '../components/TransactionItem';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { HelpModal } from '../components/HelpModal';
-import { QuickActionsModal } from '../components/QuickActionsModal';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import walletService from '../../../core/services/wallet.service';
 import type { Transaction } from '../types/male.types';
-
-
-// Mock data - replace with actual API calls
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'purchase',
-    title: 'Coins Purchased',
-    timestamp: 'Today, 10:23 AM',
-    amount: 1000,
-    isPositive: true,
-  },
-  {
-    id: '2',
-    type: 'spent',
-    title: 'Super Like sent to Sarah',
-    timestamp: 'Yesterday, 8:45 PM',
-    amount: 50,
-    isPositive: false,
-  },
-  {
-    id: '3',
-    type: 'bonus',
-    title: 'Daily Login Bonus',
-    timestamp: '2 days ago',
-    amount: 10,
-    isPositive: true,
-  },
-  {
-    id: '4',
-    type: 'gift',
-    title: 'Gift sent to Jessica',
-    timestamp: 'Sep 12, 4:30 PM',
-    amount: 200,
-    isPositive: false,
-  },
-];
-
-const quickActions = [
-  {
-    id: 'vip',
-    icon: 'card_membership',
-    label: 'MatchMint VIP',
-    iconColor: 'text-primary',
-    iconBgColor: 'bg-primary/10',
-  },
-  {
-    id: 'gift',
-    icon: 'redeem',
-    label: 'Send Gift',
-    iconColor: 'text-pink-500',
-    iconBgColor: 'bg-pink-500/10',
-  },
-];
 
 const filterOptions = [
   { id: 'all', label: 'All' },
@@ -72,60 +18,118 @@ const filterOptions = [
   { id: 'spent', label: 'Spent' },
 ];
 
+// Helper to format timestamp
+const formatTransactionTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return `Today, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  } else if (diffDays === 1) {
+    return `Yesterday, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+};
+
 export const WalletPage = () => {
   const navigate = useNavigate();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { coinBalance, user, refreshBalance } = useGlobalState();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    // Refresh balance on page load
+    refreshBalance();
+  }, [refreshBalance]);
 
-  const [coinBalance] = useState(2450);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
-  const [quickActionId, setQuickActionId] = useState<'vip' | 'gift' | null>(null);
-  const [userAvatar] = useState(
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBoS_YLtV4hpNVbbyf0nrVmbQX6vzgn-xGLdye-t2gBz0LRib9HX4PeYJIj364IRM63hBRKmTLtWfuVOfikvNIryKKMjql6Ig1suPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPZpOMLYRY2W5WgHwClZhJ-JaWw470QybQVyCQD-hZYfamq_iJqx0EAJE0UNaa6Ee3_FbUUYSuUIIViQ_QxI6ytCepxc'
-  );
+
+  // Fetch real transactions
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setIsLoadingTransactions(true);
+        const data = await walletService.getMyTransactions({ limit: 10 });
+
+        // Transform backend transactions to frontend format
+        // Filter out message_spent transactions (user doesn't want these)
+        const formattedTransactions: Transaction[] = (data.transactions || [])
+          .filter((t: any) => !['message_spent', 'message_earned'].includes(t.type))
+          .slice(0, 5)
+          .map((t: any) => ({
+            id: t._id,
+            type: t.type === 'purchase' ? 'purchase' : t.type === 'gift_sent' ? 'gift' : 'spent',
+            title: getTransactionTitle(t),
+            timestamp: formatTransactionTime(t.createdAt),
+            amount: t.amountCoins || 0, // Backend uses amountCoins, not amount
+            isPositive: t.direction === 'credit',
+          }));
+
+        setTransactions(formattedTransactions);
+      } catch (err) {
+        console.error('Failed to fetch transactions:', err);
+      } finally {
+        setIsLoadingTransactions(false);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
+  // Helper to generate transaction title
+  const getTransactionTitle = (t: any): string => {
+    // Get the related user's name from relatedUserId (populated by backend)
+    const userName = t.relatedUserId?.profile?.name || 'User';
+
+    switch (t.type) {
+      case 'purchase':
+        // Try to get plan name from coinPlanId
+        const planName = t.coinPlanId?.name || '';
+        return planName ? `Purchase of ${t.amountCoins} coins (${planName})` : `Coins Purchased`;
+      case 'gift_sent':
+        return `Gift sent to ${userName}`;
+      case 'gift_received':
+        return `Gift received from ${userName}`;
+      case 'bonus':
+        return t.description || 'Bonus Received';
+      case 'refund':
+        return 'Refund';
+      default:
+        return t.description || 'Transaction';
+    }
+  };
 
   const filteredTransactions = useMemo(() => {
     if (selectedFilter === 'all') {
-      return mockTransactions;
+      return transactions;
     }
     if (selectedFilter === 'purchased') {
-      return mockTransactions.filter((t) => t.type === 'purchase' || (t.isPositive && t.type !== 'bonus'));
+      return transactions.filter((t) => t.isPositive);
     }
     if (selectedFilter === 'spent') {
-      return mockTransactions.filter((t) => !t.isPositive);
+      return transactions.filter((t) => !t.isPositive);
     }
-    return mockTransactions;
-  }, [selectedFilter]);
-
+    return transactions;
+  }, [selectedFilter, transactions]);
 
   const handleBuyCoins = () => {
     navigate('/male/buy-coins');
-  };
-
-  const handleQuickAction = (actionId: string) => {
-    if (actionId === 'vip' || actionId === 'gift') {
-      setQuickActionId(actionId);
-      setIsQuickActionOpen(true);
-    }
   };
 
   const handleHelpClick = () => {
     setIsHelpOpen(true);
   };
 
-  const handleVipPurchase = () => {
-    // TODO: Navigate to VIP purchase page or handle purchase
-    console.log('VIP purchase');
-  };
-
-  const handleSendGift = () => {
-    navigate('/male/gifts');
-  };
+  // Get user avatar
+  const userAvatar = user?.profile?.photos?.[0]?.url || '';
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto shadow-xl bg-background-light dark:bg-background-dark pb-20">
@@ -136,11 +140,9 @@ export const WalletPage = () => {
       <div className="flex p-4 flex-col gap-6 items-center">
         {/* Hero Card */}
         <WalletBalanceCard
-          balance={coinBalance}
-          memberTier="Gold Member"
+          balance={coinBalance || 0}
+          memberTier="Member"
           userAvatar={userAvatar}
-          valueEstimate="$24.50"
-          expirationDays={30}
         />
 
         {/* Primary Action */}
@@ -153,9 +155,6 @@ export const WalletPage = () => {
             <span>Buy Coins</span>
           </button>
         </div>
-
-        {/* Quick Actions Grid */}
-        <QuickActionsGrid actions={quickActions} onActionClick={handleQuickAction} />
       </div>
 
       <div className="h-2 bg-transparent" />
@@ -178,17 +177,34 @@ export const WalletPage = () => {
 
       {/* Transaction List */}
       <div className="flex flex-col pb-24">
-        {filteredTransactions.map((transaction) => (
-          <TransactionItem
-            key={transaction.id}
-            id={transaction.id}
-            type={transaction.type}
-            title={transaction.title}
-            timestamp={transaction.timestamp}
-            amount={transaction.amount}
-            isPositive={transaction.isPositive}
-          />
-        ))}
+        {isLoadingTransactions ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filteredTransactions.length > 0 ? (
+          filteredTransactions.map((transaction) => (
+            <TransactionItem
+              key={transaction.id}
+              id={transaction.id}
+              type={transaction.type}
+              title={transaction.title}
+              timestamp={transaction.timestamp}
+              amount={transaction.amount}
+              isPositive={transaction.isPositive}
+            />
+          ))
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <MaterialSymbol
+              name="history"
+              size={48}
+              className="text-gray-400 dark:text-gray-600 mb-4"
+            />
+            <p className="text-gray-500 dark:text-[#cc8ea3] text-center">
+              No transactions yet
+            </p>
+          </div>
+        )}
         <div className="h-4" />
       </div>
 
@@ -197,20 +213,6 @@ export const WalletPage = () => {
 
       {/* Help Modal */}
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-
-      {/* Quick Actions Modal */}
-      {quickActionId && (
-        <QuickActionsModal
-          isOpen={isQuickActionOpen}
-          onClose={() => {
-            setIsQuickActionOpen(false);
-            setQuickActionId(null);
-          }}
-          actionId={quickActionId}
-          onVipPurchase={handleVipPurchase}
-          onSendGift={handleSendGift}
-        />
-      )}
     </div>
   );
 };

@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChatWindowHeader } from '../components/ChatWindowHeader';
 import { MessageBubble } from '../components/MessageBubble';
@@ -7,403 +6,427 @@ import { MessageInput } from '../components/MessageInput';
 import { PhotoPickerModal } from '../components/PhotoPickerModal';
 import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import { ChatGiftSelectorModal } from '../components/ChatGiftSelectorModal';
-import { BottomNavigation } from '../components/BottomNavigation';
-import { useMaleNavigation } from '../hooks/useMaleNavigation';
-import type { Message } from '../types/male.types';
-import type { Gift } from '../types/male.types';
+import { LevelUpModal } from '../components/LevelUpModal';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
+import { useVideoCall } from '../../../core/context/VideoCallContext';
+import chatService from '../../../core/services/chat.service';
+import socketService from '../../../core/services/socket.service';
+import type { Chat as ApiChat, Message as ApiMessage, IntimacyInfo } from '../../../core/types/chat.types';
 
-// Mock data - replace with actual API calls
-const mockChats: Record<string, { userName: string; userAvatar: string; isOnline: boolean; isVIP?: boolean }> = {
-  '1': {
-    userName: 'Sarah',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfQrM3r4ezmwgyoIV88DGCpYKeaWFJhaYKHR6YYLrahg3antsOEr-5EF9oOrsy3-oqtN5xgfiZ6PBuuX9-di-vLEv-uaa0ZV2Qp9Lr0t173O462hHEV_pbAj6QGvuPLxT1AJxoDXIYddABQfeB9v3Io_zZiqapOnlTWMhDCbkUINzeryEMZ2sNWJhrvS7TUpBDG_wLwdciPBdgc6EHVSi8NhEC9kOjsbfN4F2ui7ohyvvN74CNcm842wb3jEdP-VOz4kBSgCw4wDg',
-    isOnline: true,
-  },
-  '2': {
-    userName: 'Emily',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCLUSJJYAwx8tl_zGDnOiTXyUUZNGZvfSUhgCgsc5vA2u3832geBVry-vrxCLbywcPMNdDw9Pp8aQYpK6Of5m_eCNYG0p8DZ_zKmzCBISKf3HqDRE9LKIkflketnQjBg0ihzj9xMoUbFN0MewVDhhm62RT4P8ApfLpMqm1KF4cJSY8J3ofy8uvQLeu7ka7eCxUsjWF4-UjrzrD1786TFutJ9_LA2fBbGdcQt8H5YNPFmG4lNC_tEwPefXDp1ieMAWqV4GmL4cQser8',
-    isOnline: true,
-    isVIP: true,
-  },
-  '3': {
-    userName: 'Jessica',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBc0OstJEnLP2BH3T9hAadSkfqrmXq73qN9gbTMt7kfgPaQTpDMo6RBY0rGIlVRRYx9RNgGIuso4uSojA6-sMJxsbwokldCWi5vSTRo5Am8Pzgc73OW3MErmDu8gHuiQ0qQbM52r1B6IJMdIgiER50uXcyACMQ1f-e3CVduYEyDGFk_BIAtnlQer3BE077LFURJq4oRmImX1yG5_Q1OTgCEjnwV6A_EFuMSTBc85zvXe5_v2YpQ3mDh5t5vEzbNV0GqM0iE3aISpuE',
-    isOnline: false,
-  },
-  '4': {
-    userName: 'Ashley',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAB-CmPZF-6itCs73bDy6d7GPdjSSLQ5BxCtlxCNbSbWN1o8Ra5IyWqPqrPFb7JMKxwcdwoLwrpVhW6pUwdBVUtielfuJ1ANPoxjbxKB4BYDMPoTHdQj9_llaBjzRJyHW62shjHBCI48dPR_Ap4PrX86uM0dpREOPQBDPQelNeiVWQfVXozNXMd13pLZlYycVhc-AZ_tG1Jh-OxREt95AYusjhgmWilXunjaNQDMreXKlmS-cLXa21otf4YcTP3lsEeCReLz5GIZCQ',
-    isOnline: false,
-  },
-  '5': {
-    userName: 'Michelle',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA623yICWJGD3OhorZuTviTJ8-2TxVXoOfh-T6bz5uXPZvrrYj_Uxne_DmUz14lNt351yNswHP_Nw9R5dw9uUG1-UEKgZ0CIMOeBKsQ3pBupvWJPAw4vB3ONiEkVGL_ZVMcPwD8vitJCC_dk6qzadQYS7QtRNtcJkI5vd4d6zIRYwfbfPU-T-MyqgguxRusjEgVULoAWNJ_gt_EwbXVpEEa1lMlCyyLQHfHGFbiiR3-w-dFcfexzwhOZ41zg3qnIZ7X4cAKu6B5Q-g',
-    isOnline: false,
-  },
-  '6': {
-    userName: 'Kim',
-    userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBL9tBX9_xi0wB25MR8L7YJJDsVEF6KPFsMfAuJm0u_N13Fz34BFtXuYuQg1sn0kDy82IM3t76oh0cAz1wFbusN0SDc5mc2qFkHVgT3PU2jl_X84QVlSC0L8Drhu6gt9u8rxrH_-iM4ywj7KjZYrtx43m_UAnvakjq63btXAHTC_f95e1nPLyKF2kkdAtYrhqHXF74SWozDoaArCzfJxGX85Yajx2TpbFxPY5bqlwTWl70LXLV1XLV6pFkqsGg-AGpZB1veor46Ooc',
-    isOnline: true,
-  },
-};
-
-// Mock messages for each chat
-const getMockMessages = (chatId: string): Message[] => {
-  const chatInfo = mockChats[chatId];
-  if (!chatInfo) return [];
-
-  const baseMessages: Record<string, Message[]> = {
-    '1': [
-      {
-        id: '1-1',
-        chatId: '1',
-        senderId: 'other',
-        senderName: 'Sarah',
-        content: 'Hey! I saw you liked hiking too! 🏔️',
-        timestamp: new Date(Date.now() - 3600000),
-        type: 'text',
-        isSent: false,
-      },
-      {
-        id: '1-2',
-        chatId: '1',
-        senderId: 'me',
-        senderName: 'You',
-        content: 'Yes! I love hiking. Have you been to the mountains nearby?',
-        timestamp: new Date(Date.now() - 3300000),
-        type: 'text',
-        isSent: true,
-        readStatus: 'read',
-        cost: 20,
-      },
-      {
-        id: '1-3',
-        chatId: '1',
-        senderId: 'other',
-        senderName: 'Sarah',
-        content: 'Not yet, but I really want to go! Maybe we could plan a trip together?',
-        timestamp: new Date(Date.now() - 3000000),
-        type: 'text',
-        isSent: false,
-      },
-      {
-        id: '1-4',
-        chatId: '1',
-        senderId: 'me',
-        senderName: 'You',
-        content: 'That sounds amazing! When are you free?',
-        timestamp: new Date(Date.now() - 2700000),
-        type: 'text',
-        isSent: true,
-        readStatus: 'read',
-        cost: 20,
-      },
-    ],
-    '2': [
-      {
-        id: '2-1',
-        chatId: '2',
-        senderId: 'other',
-        senderName: 'Emily',
-        content: 'Hey there! 👋',
-        timestamp: new Date(Date.now() - 7200000),
-        type: 'text',
-        isSent: false,
-      },
-      {
-        id: '2-2',
-        chatId: '2',
-        senderId: 'me',
-        senderName: 'You',
-        content: 'Hi Emily! How are you?',
-        timestamp: new Date(Date.now() - 6900000),
-        type: 'text',
-        isSent: true,
-        readStatus: 'read',
-        cost: 20,
-      },
-    ],
-    '3': [
-      {
-        id: '3-1',
-        chatId: '3',
-        senderId: 'other',
-        senderName: 'Jessica',
-        content: "That sounds fun! Let's do it.",
-        timestamp: new Date(Date.now() - 86400000),
-        type: 'text',
-        isSent: false,
-      },
-    ],
-    '4': [
-      {
-        id: '4-1',
-        chatId: '4',
-        senderId: 'other',
-        senderName: 'Ashley',
-        content: 'Can you send me the details?',
-        timestamp: new Date(Date.now() - 86400000),
-        type: 'text',
-        isSent: false,
-      },
-    ],
-    '5': [
-      {
-        id: '5-1',
-        chatId: '5',
-        senderId: 'other',
-        senderName: 'Michelle',
-        content: 'Haha, totally! 😂',
-        timestamp: new Date(Date.now() - 172800000),
-        type: 'text',
-        isSent: false,
-      },
-    ],
-    '6': [
-      {
-        id: '6-1',
-        chatId: '6',
-        senderId: 'other',
-        senderName: 'Kim',
-        content: "I'm free next weekend if...",
-        timestamp: new Date(Date.now() - 259200000),
-        type: 'text',
-        isSent: false,
-      },
-    ],
-  };
-
-  return baseMessages[chatId] || [];
-};
+// Message cost constant
+const MESSAGE_COST = 50;
 
 export const ChatWindowPage = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
-  const { navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { coinBalance, updateBalance, user } = useGlobalState(); // Use global state
+  const { requestCall, isInCall, callPrice } = useVideoCall(); // Video call context
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [chatId]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [coinBalance] = useState(450);
-  const [availableGifts] = useState(5); // Free gifts from VIP
+  const [messages, setMessages] = useState<ApiMessage[]>([]);
+  const [chatInfo, setChatInfo] = useState<ApiChat | null>(null);
+  const [intimacy, setIntimacy] = useState<IntimacyInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Modals
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
   const [isGiftSelectorOpen, setIsGiftSelectorOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatInfo = chatId ? mockChats[chatId] : null;
+  const [levelUpInfo, setLevelUpInfo] = useState<IntimacyInfo | null>(null);
 
-  // Load messages for the current chat
+  // Typing indicator
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const currentUserId = user?._id || (user as any)?.id;
+
+  // Scroll to bottom
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Fetch chat info and messages
   useEffect(() => {
-    if (!chatId || !chatInfo) {
+    if (!chatId) {
       navigate('/male/chats');
       return;
     }
-    // Load messages for this chat
-    const chatMessages = getMockMessages(chatId);
-    setMessages(chatMessages);
-  }, [chatId, chatInfo, navigate]);
 
+    const init = async () => {
+      try {
+        setIsLoading(true);
+
+        // Get chat info by ID
+        const chat = await chatService.getChatById(chatId);
+        setChatInfo(chat);
+        setIntimacy(chat.intimacy);
+
+        // Get messages
+        const { messages: msgData } = await chatService.getChatMessages(chatId);
+        setMessages(msgData);
+
+        // Balance comes from global state (auto-synced)
+
+        // Join chat room
+        socketService.connect();
+        socketService.joinChat(chatId);
+
+        setError(null);
+      } catch (err: any) {
+        console.error('Failed to load chat:', err);
+        setError(err.response?.data?.message || 'Failed to load chat');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (chatId) {
+        socketService.leaveChat(chatId);
+      }
+    };
+  }, [chatId, navigate]);
+
+  // Socket event listeners
   useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSendMessage = (content: string) => {
-    if (!chatId) return;
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      chatId,
-      senderId: 'me',
-      senderName: 'You',
-      content,
-      timestamp: new Date(),
-      type: 'text',
-      isSent: true,
-      readStatus: 'sent',
-      cost: 20, // Cost per message for male users
+    // New message received
+    const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
+      if (data.chatId === chatId) {
+        setMessages(prev => [...prev, data.message]);
+        scrollToBottom();
+      }
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    // Balance update handled by GlobalStateContext
 
-    // Simulate response after 1 second
-    setTimeout(() => {
-      const responseMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        chatId,
-        senderId: 'other',
-        senderName: chatInfo.userName,
-        content: 'Thanks for your message! 😊',
-        timestamp: new Date(),
-        type: 'text',
-        isSent: false,
-      };
-      setMessages((prev) => [...prev, responseMessage]);
-    }, 1000);
-  };
-
-  const handleSendPhoto = () => {
-    setIsPhotoPickerOpen(true);
-  };
-
-  const handlePhotoSelect = (file: File) => {
-    if (!chatId) return;
-
-    // TODO: Upload photo and send message
-    // For now, just create a mock image message
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      chatId,
-      senderId: 'me',
-      senderName: 'You',
-      content: file.name,
-      timestamp: new Date(),
-      type: 'image',
-      isSent: true,
-      readStatus: 'sent',
-      cost: 20,
+    // Typing indicator
+    const handleTyping = (data: { chatId: string; userId: string; isTyping: boolean }) => {
+      if (data.chatId === chatId && data.userId !== currentUserId) {
+        setIsOtherTyping(data.isTyping);
+      }
     };
 
-    setMessages((prev) => [...prev, newMessage]);
-  };
+    // Level up event
+    const handleLevelUp = (data: { chatId: string; levelInfo: IntimacyInfo }) => {
+      if (data.chatId === chatId) {
+        setIntimacy(data.levelInfo);
+        setLevelUpInfo(data.levelInfo);
+      }
+    };
 
-  const handleSendGifts = (gifts: Gift[], note?: string) => {
-    if (!chatId || gifts.length === 0) return;
+    // User online/offline status updates
+    const handleUserOnline = (data: { userId: string }) => {
+      if (chatInfo && data.userId === chatInfo.otherUser._id) {
+        setChatInfo(prev => prev ? {
+          ...prev,
+          otherUser: { ...prev.otherUser, isOnline: true }
+        } : null);
+      }
+    };
 
-    // Calculate total cost (considering free gifts)
-    let totalCost = 0;
-    if (availableGifts > 0) {
-      const freeCount = Math.min(availableGifts, gifts.length);
-      const paidGifts = gifts.slice(freeCount);
-      totalCost = paidGifts.reduce((sum, gift) => sum + gift.cost, 0);
-    } else {
-      totalCost = gifts.reduce((sum, gift) => sum + gift.cost, 0);
+    const handleUserOffline = (data: { userId: string; lastSeen: string }) => {
+      if (chatInfo && data.userId === chatInfo.otherUser._id) {
+        setChatInfo(prev => prev ? {
+          ...prev,
+          otherUser: { ...prev.otherUser, isOnline: false, lastSeen: data.lastSeen }
+        } : null);
+      }
+    };
+
+    socketService.on('message:new', handleNewMessage);
+    socketService.on('chat:typing', handleTyping);
+    socketService.on('intimacy:levelup', handleLevelUp);
+    socketService.on('user:online', handleUserOnline);
+    socketService.on('user:offline', handleUserOffline);
+
+    return () => {
+      socketService.off('message:new', handleNewMessage);
+      socketService.off('chat:typing', handleTyping);
+      socketService.off('intimacy:levelup', handleLevelUp);
+      socketService.off('user:online', handleUserOnline);
+      socketService.off('user:offline', handleUserOffline);
+    };
+  }, [chatId, chatInfo, currentUserId, scrollToBottom]);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // Send text message
+  const handleSendMessage = async (content: string) => {
+    if (!chatId || isSending) return;
+
+    // Check balance
+    if (coinBalance < MESSAGE_COST) {
+      setError(`Insufficient coins. Need ${MESSAGE_COST} coins to send a message.`);
+      return;
     }
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      chatId,
-      senderId: 'me',
-      senderName: 'You',
-      content: `Sent ${gifts.length} gift${gifts.length > 1 ? 's' : ''}`,
-      timestamp: new Date(),
-      type: 'gift',
-      isSent: true,
-      readStatus: 'sent',
-      cost: totalCost,
-      gifts,
-      giftNote: note,
-    };
+    try {
+      setIsSending(true);
+      setError(null);
 
-    setMessages((prev) => [...prev, newMessage]);
+      const result = await chatService.sendMessage(chatId, content);
 
-    // Simulate response after 2 seconds
-    setTimeout(() => {
-      const responseMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        chatId,
-        senderId: 'other',
-        senderName: chatInfo?.userName || 'User',
-        content: `Thank you for the ${gifts.length > 1 ? 'gifts' : 'gift'}! ${gifts.map((g) => g.name).join(', ')} 🎁`,
-        timestamp: new Date(),
-        type: 'text',
-        isSent: false,
-      };
-      setMessages((prev) => [...prev, responseMessage]);
-    }, 2000);
-  };
+      // Update messages (socket will also broadcast, but this ensures immediate UI update)
+      setMessages(prev => [...prev, result.message]);
 
-  const handleMoreClick = () => {
-    setIsMoreOptionsOpen(true);
-  };
+      // Update balance via global state
+      if (result.newBalance !== undefined) {
+        updateBalance(result.newBalance);
+      }
 
-  const handleViewProfile = () => {
-    if (chatInfo?.userName) {
-      // Navigate to profile - would need userId from chatInfo
-      console.log('View profile for:', chatInfo.userName);
+      // Check for level up
+      if (result.levelUp) {
+        setLevelUpInfo(result.levelUp);
+        setIntimacy(result.intimacy);
+      } else if (result.intimacy) {
+        setIntimacy(result.intimacy);
+      }
+
+    } catch (err: any) {
+      console.error('Failed to send message:', err);
+      setError(err.response?.data?.message || 'Failed to send message');
+    } finally {
+      setIsSending(false);
     }
   };
 
-  const handleBlock = () => {
-    console.log('Block user');
-    // TODO: Implement block functionality
+  // Send gift
+  const handleSendGift = async (giftId: string) => {
+    if (!chatId || isSending) return;
+
+    try {
+      setIsSending(true);
+      setError(null);
+
+      const result = await chatService.sendGift(chatId, giftId);
+
+      // Update messages
+      setMessages(prev => [...prev, result.message]);
+
+      // Update balance via global state
+      if (result.newBalance !== undefined) {
+        updateBalance(result.newBalance);
+      }
+
+      // Check for level up
+      if (result.levelUp) {
+        setLevelUpInfo(result.levelUp);
+        setIntimacy(result.intimacy);
+      } else if (result.intimacy) {
+        setIntimacy(result.intimacy);
+      }
+
+      setIsGiftSelectorOpen(false);
+    } catch (err: any) {
+      console.error('Failed to send gift:', err);
+      setError(err.response?.data?.message || 'Failed to send gift');
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const handleReport = () => {
-    console.log('Report user');
-    // TODO: Implement report functionality
+  // Typing indicator
+  const handleTypingStart = () => {
+    if (chatId) {
+      socketService.sendTyping(chatId, true);
+    }
   };
 
-  const handleDelete = () => {
-    console.log('Delete chat');
-    navigate('/male/chats');
-    // TODO: Implement delete chat functionality
+  const handleTypingStop = () => {
+    if (chatId) {
+      socketService.sendTyping(chatId, false);
+    }
   };
 
-  if (!chatId || !chatInfo) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background-light dark:bg-background-dark">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!chatInfo) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-background-light dark:bg-background-dark p-4">
+        <p className="text-gray-500 dark:text-gray-400 mb-4">Chat not found</p>
+        <button
+          onClick={() => navigate('/male/chats')}
+          className="px-4 py-2 bg-primary text-white rounded-lg"
+        >
+          Go Back
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden pb-20">
-      {/* Header */}
+    <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden">
+      {/* Header with coin balance and intimacy */}
       <ChatWindowHeader
-        userName={chatInfo.userName}
-        userAvatar={chatInfo.userAvatar}
-        isOnline={chatInfo.isOnline}
-        isVIP={chatInfo.isVIP}
-        onMoreClick={handleMoreClick}
+        userName={chatInfo.otherUser.name}
+        userAvatar={chatInfo.otherUser.avatar || ''}
+        isOnline={chatInfo.otherUser.isOnline}
+        coinBalance={coinBalance}
+        intimacy={intimacy}
+        onMoreClick={() => setIsMoreOptionsOpen(true)}
+        onBackClick={() => navigate('/male/chats')}
+        showVideoCall={true}
+        onVideoCall={async () => {
+          if (isInCall) {
+            setError('You are already in a call');
+            return;
+          }
+          if (coinBalance < callPrice) {
+            setError(`Insufficient coins. Video call costs ${callPrice} coins.`);
+            return;
+          }
+          if (!chatInfo.otherUser.isOnline) {
+            setError('User is currently offline');
+            return;
+          }
+          try {
+            await requestCall(
+              chatInfo.otherUser._id,
+              chatInfo.otherUser.name,
+              chatInfo.otherUser.avatar || '',
+              chatId!,
+              user?.profile?.name || 'User',
+              user?.profile?.photos?.[0]?.url || ''
+            );
+          } catch (err: any) {
+            setError(err.message || 'Failed to start video call');
+          }
+        }}
       />
 
+      {/* Error Banner */}
+      {error && (
+        <div className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">✕</button>
+        </div>
+      )}
+
+      {/* Coin Cost Indicator */}
+      <div className="px-4 py-2 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 text-center">
+        <span className="text-xs text-gray-600 dark:text-gray-300">
+          💰 Each message costs <span className="font-bold text-primary">{MESSAGE_COST} coins</span>
+          {coinBalance < MESSAGE_COST && (
+            <span className="text-red-500 ml-2">
+              (Low balance! <button onClick={() => navigate('/male/buy-coins')} className="underline">Buy coins</button>)
+            </span>
+          )}
+        </span>
+      </div>
+
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-2 py-4">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+        {messages.length === 0 && (
+          <div className="text-center text-gray-400 dark:text-gray-500 py-8">
+            <p>No messages yet. Say hi!</p>
+          </div>
+        )}
+
+        {messages.map((message) => {
+          // Robust sender ID extraction
+          let senderId;
+          if (typeof message.senderId === 'string') {
+            senderId = message.senderId;
+          } else if (message.senderId) {
+            senderId = message.senderId._id || (message.senderId as any).id;
+          }
+
+          const isSent = String(senderId) === String(currentUserId);
+
+          const senderName = (typeof message.senderId === 'object' && message.senderId)
+            ? message.senderId.profile?.name
+            : 'User';
+
+          return (
+            <MessageBubble
+              key={message._id}
+              message={{
+                id: message._id,
+                chatId: message.chatId,
+                senderId: String(senderId),
+                senderName: senderName || 'User',
+                content: message.content,
+                timestamp: new Date(message.createdAt),
+                type: message.messageType === 'video_call' ? 'text' : message.messageType as any,
+                isSent,
+                readStatus: message.status === 'failed' ? 'sent' : message.status as any,
+                gifts: message.gift ? [message.gift] as any : undefined,
+              }}
+            />
+          );
+        })}
+
+        {/* Typing Indicator */}
+        {isOtherTyping && (
+          <div className="flex items-center gap-2 px-3 py-2">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="text-xs text-gray-400">{chatInfo.otherUser.name} is typing...</span>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
       <MessageInput
         onSendMessage={handleSendMessage}
-        onSendPhoto={handleSendPhoto}
+        onSendPhoto={() => setIsPhotoPickerOpen(true)}
         onSendGift={() => setIsGiftSelectorOpen(true)}
+        onTypingStart={handleTypingStart}
+        onTypingStop={handleTypingStop}
         placeholder="Type a message..."
-        coinCost={20}
-        disabled={coinBalance < 20}
+        coinCost={MESSAGE_COST}
+        disabled={coinBalance < MESSAGE_COST || isSending}
+        isSending={isSending}
       />
 
-      {/* Photo Picker Modal */}
+      {/* Modals */}
       <PhotoPickerModal
         isOpen={isPhotoPickerOpen}
         onClose={() => setIsPhotoPickerOpen(false)}
-        onPhotoSelect={handlePhotoSelect}
+        onPhotoSelect={() => { }}
       />
 
-      {/* More Options Modal */}
       <ChatMoreOptionsModal
         isOpen={isMoreOptionsOpen}
         onClose={() => setIsMoreOptionsOpen(false)}
-        onViewProfile={handleViewProfile}
-        onBlock={handleBlock}
-        onReport={handleReport}
-        onDelete={handleDelete}
-        userName={chatInfo?.userName}
+        onViewProfile={() => { }}
+        onBlock={() => { }}
+        onReport={() => { }}
+        onDelete={() => navigate('/male/chats')}
+        userName={chatInfo.otherUser.name}
       />
 
-      {/* Gift Selector Modal */}
       <ChatGiftSelectorModal
         isOpen={isGiftSelectorOpen}
         onClose={() => setIsGiftSelectorOpen(false)}
-        onSendGifts={handleSendGifts}
-        availableGifts={availableGifts}
+        onSendGift={handleSendGift}
         coinBalance={coinBalance}
       />
 
-      {/* Bottom Navigation */}
-      <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+      {/* Level Up Modal */}
+      <LevelUpModal
+        isOpen={!!levelUpInfo}
+        onClose={() => setLevelUpInfo(null)}
+        levelInfo={levelUpInfo}
+        userName={chatInfo.otherUser.name}
+      />
     </div>
   );
 };
-

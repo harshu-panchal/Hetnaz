@@ -1,328 +1,63 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
-import type { NearbyFemale, FilterType } from '../types/male.types';
+import userService, { DiscoverProfile } from '../../../core/services/user.service';
+import chatService from '../../../core/services/chat.service';
 
-// Mock data - replace with actual API calls
-const recommendedProfiles: NearbyFemale[] = [
-  {
-    id: '1',
-    name: 'Sarah',
-    age: 23,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNnKyZLNWCV7B-XwKgjd9-bbG9ZSq583oYGij7uKTYk2Ah_9nkpqgsGSDu-FUgux5QDiLCTw_y9JxTBhkZjWAOOReMhlK98A_84vIsKaxQ0IUzZqkJ7-wnAv67HRuUVltC2QQzOfbTk1-OdjqC7SWT4iG-MXs81ePZK3x1mYOHabRqp4eH7yIfiX3tH-YMXSs1uWS41vrxzPC8_MJHasLGiUWINfHYQ7KF2jfo0n_Yo6qBJKr_qMrOBUdimUVVJdY46GD7L0v-oL4',
-    distance: '1.2 km',
-    isOnline: true,
-    occupation: 'Student',
-    chatCost: 20,
-  },
-  {
-    id: '2',
-    name: 'Jessica',
-    age: 25,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDHxrviFMtsvG_Idvc-7NLJcibIA3HzpSimrSGtu5nkdVXQ0lR_v5vA3Ze5PcHiEZqXs444SJmue_gn-BAJpC_N4OBtiZ76IDvr9bLR_SxT5dQNp7j5WAWAzR9Cc6wdHAOpqLvxURxJbRcG1oN1Y1usF6uro9rSV6FLFxuNnpI_KIDdXzO8GH9BtmEm-Da4mrHV39aDrH-gGMTms5x6GJrf9pvOpfKnux5C1cD8_KgfRomNHp0HOgf-8TefyOTLXglCq3P1RsbOOf8',
-    distance: '3.5 km',
-    isOnline: false,
-    occupation: 'Designer',
-    chatCost: 20,
-  },
-  {
-    id: '3',
-    name: 'Emily',
-    age: 21,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBMwDNlS8xIMG2GPDOruau0I96EJW8UAfXypa6c3-bkakWGNwuNHv4bT_JxAS2tQQbwxDbRjkJCejmcZYfsqqtKJ-7OeHLwq5E9n5xOPyVwVLwv6bLTSaWBddBnCfSb85sZZW5ciF9ASv_TmzTFU3HcRlJPBSmBmvslJ_3dhEuuYLb5gfEYKw8ahTEUs9Nr49VBtnu-s1Y--7W9Kv1e7XebTvnXhrZ42e1cYEMDxGbgmAHw0fTnNAuBciEyspzTK1qCjMHkoxWkXPw',
-    distance: '500 m',
-    isOnline: true,
-    bio: 'New here 👋',
-    chatCost: 20,
-  },
-  {
-    id: '4',
-    name: 'Chloe',
-    age: 24,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA2mvDb9KljJsn2Es0tMin1X8x7oWZzzM3oSqicuGZv59l_xX94LRX0yvfZVhu_71b1kQMWDjj1vAMUId07GeEgPrRa5dVad2KZVCEmT750i0TFrgMCxSmG1irjUPlGTnq4UJQfCwJ2e33JcF1mxTovGHbxGYH9pMtpzypp4kcuNNapws-eKB5NidDoGSmpYJO3-tQ9hO0iTXnTq-GCL0qvtkWkQgkJAPwl7fwYiCH_RoXSRDVToXhkpx8YMuZo6YVcUzl7EKDGW0M',
-    distance: '5 km',
-    isOnline: false,
-    occupation: 'Model',
-    chatCost: 20,
-  },
-  {
-    id: '5',
-    name: 'Ava',
-    age: 22,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBJS0wNq7_DHk8VHFnFL9uBHN9_dgt046SyWzs9k_WQecLMOjUgs0OxGn5yAVpXGJ0trtwW2MkIXPiZcD3T9KtBy7uFn1ckM1xSYEg-85-HFtjhrUO3mJVkgOToIIDYn9TJ4gn9OBB1qSAqgVwuZeKvAcTXV-CIAm5MAIGjhy2TlmeWLnc-ew1SijQ6xHe5uTolQwSSJ0NoJDt6IsYsLQpvfql_VV4DiR0WsPreKJS-mkw9Z2-VygM5pbGasq81ij_Otu1K-sFC33E',
-    distance: '8 km',
-    isOnline: true,
-    bio: 'Looking for friends',
-    chatCost: 20,
-  },
-  {
-    id: '6',
-    name: 'Mia',
-    age: 20,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBpxGBSL7DN3RZTDICRQvq0bH7dVoCLYq63lu3YCKiKDUE8PJLHpY_WX1U274YFz9O6Duw9sn7jGmiuIJMUK3F_c8li9Fo4dXiPW3-p6iGcIrw3O6qX79XjjjJvj6PQ1Y8294LjVroByfHmKpyhfpskyXTL1Rk_ivSgEuwxMWxy2jRwsyairF-hkeYGQmdclif4z8Jzbgp7V8jRZYnrWGWdGXnxQWkJPf2DXWpR1XeD5jWTLGeydgJcOpqlfrdQch5-ee8S5FsLkZE',
-    distance: '12 km',
-    isOnline: false,
-    occupation: 'Traveler',
-    chatCost: 20,
-  },
-  {
-    id: '7',
-    name: 'Ananya',
-    age: 23,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '6.2 km',
-    isOnline: true,
-    bio: 'Foodie & runner',
-    chatCost: 20,
-  },
-  {
-    id: '8',
-    name: 'Shreya',
-    age: 24,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '7.5 km',
-    isOnline: true,
-    occupation: 'Engineer',
-    chatCost: 20,
-  },
-];
-
-const nearbyProfiles: NearbyFemale[] = [
-  {
-    id: 'n1',
-    name: 'Emily',
-    age: 21,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '500 m',
-    isOnline: true,
-    bio: 'New here 👋',
-    chatCost: 20,
-  },
-  {
-    id: 'n2',
-    name: 'Priya',
-    age: 20,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '1.2 km',
-    isOnline: true,
-    occupation: 'Student',
-    chatCost: 20,
-  },
-  {
-    id: 'n3',
-    name: 'Chloe',
-    age: 24,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '2.5 km',
-    isOnline: false,
-    occupation: 'Model',
-    chatCost: 20,
-  },
-  {
-    id: 'n4',
-    name: 'Isha',
-    age: 22,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '3.1 km',
-    isOnline: true,
-    bio: 'Coffee lover ☕',
-    chatCost: 20,
-  },
-  {
-    id: 'n5',
-    name: 'Riya',
-    age: 23,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '4 km',
-    isOnline: false,
-    occupation: 'Photographer',
-    chatCost: 20,
-  },
-  {
-    id: 'n6',
-    name: 'Sana',
-    age: 25,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '4.8 km',
-    isOnline: true,
-    occupation: 'Content Creator',
-    chatCost: 20,
-  },
-  {
-    id: 'n7',
-    name: 'Diya',
-    age: 24,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '5.1 km',
-    isOnline: false,
-    bio: 'Yoga & books',
-    chatCost: 20,
-  },
-  {
-    id: 'n8',
-    name: 'Zara',
-    age: 22,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '5.9 km',
-    isOnline: true,
-    occupation: 'Student',
-    chatCost: 20,
-  },
-];
-
-const newProfiles: NearbyFemale[] = [
-  {
-    id: 'new1',
-    name: 'Meera',
-    age: 22,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '3 km',
-    isOnline: true,
-    bio: 'Just joined! ✨',
-    chatCost: 20,
-  },
-  {
-    id: 'new2',
-    name: 'Aisha',
-    age: 23,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '4 km',
-    isOnline: false,
-    occupation: 'Artist',
-    chatCost: 20,
-  },
-  {
-    id: 'new3',
-    name: 'Jia',
-    age: 21,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '2.2 km',
-    isOnline: true,
-    bio: 'Explorer | Reader',
-    chatCost: 20,
-  },
-  {
-    id: 'new4',
-    name: 'Mitali',
-    age: 24,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '3.8 km',
-    isOnline: true,
-    occupation: 'Designer',
-    chatCost: 20,
-  },
-  {
-    id: 'new5',
-    name: 'Tara',
-    age: 22,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '2.9 km',
-    isOnline: false,
-    bio: 'Coffee + art',
-    chatCost: 20,
-  },
-  {
-    id: 'new6',
-    name: 'Kritika',
-    age: 23,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '3.3 km',
-    isOnline: true,
-    occupation: 'Analyst',
-    chatCost: 20,
-  },
-];
-
-const hotProfiles: NearbyFemale[] = [
-  {
-    id: 'hot1',
-    name: 'Nandni',
-    age: 24,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '1.3 km',
-    isOnline: true,
-    occupation: 'VIP',
-    chatCost: 20,
-  },
-  {
-    id: 'hot2',
-    name: 'Nancy',
-    age: 21,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '2 km',
-    isOnline: true,
-    occupation: 'VIP',
-    chatCost: 20,
-  },
-  {
-    id: 'hot3',
-    name: 'Pooja',
-    age: 22,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '2.8 km',
-    isOnline: true,
-    bio: 'Verified ⭐',
-    chatCost: 20,
-  },
-  {
-    id: 'hot4',
-    name: 'Anu',
-    age: 23,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '3.2 km',
-    isOnline: false,
-    occupation: 'Model',
-    chatCost: 20,
-  },
-  {
-    id: 'hot5',
-    name: 'Avni',
-    age: 24,
-    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=400&q=80',
-    distance: '3.9 km',
-    isOnline: true,
-    occupation: 'VIP',
-    chatCost: 20,
-  },
-  {
-    id: 'hot6',
-    name: 'Ritu',
-    age: 25,
-    avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    distance: '4.1 km',
-    isOnline: true,
-    bio: 'Top picks today',
-    chatCost: 20,
-  },
-];
+type FilterType = 'all' | 'nearby' | 'new' | 'popular';
 
 export const NearbyFemalesPage = () => {
   const navigate = useNavigate();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
 
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sendingHiTo, setSendingHiTo] = useState<string | null>(null);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const fetchProfiles = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-  const filteredProfiles = useMemo(() => {
-    switch (activeFilter) {
-      case 'nearby':
-        return nearbyProfiles;
-      case 'new':
-        return newProfiles;
-      case 'popular':
-        return hotProfiles;
-      case 'all':
-      default:
-        return recommendedProfiles;
+      // Map filter to API parameter
+      let apiFilter = 'all';
+      if (activeFilter === 'nearby') apiFilter = 'online'; // Use online as proxy for nearby
+      else if (activeFilter === 'new') apiFilter = 'new';
+      else if (activeFilter === 'popular') apiFilter = 'popular';
+
+      const data = await userService.discoverFemales(apiFilter);
+      setProfiles(data.profiles || []);
+    } catch (err: any) {
+      console.error('Failed to fetch profiles:', err);
+      setError(err.response?.data?.message || 'Failed to load profiles');
+    } finally {
+      setIsLoading(false);
     }
   }, [activeFilter]);
 
-  const handleChatClick = (profileId: string) => {
-    navigate(`/male/chat/${profileId}`);
+  useEffect(() => {
+    fetchProfiles();
+  }, [fetchProfiles]);
+
+  const handleSendHi = async (profileId: string) => {
+    try {
+      setSendingHiTo(profileId);
+      const result = await chatService.sendHiMessage(profileId);
+      // Navigate to the chat
+      navigate(`/male/chat/${result.chatId}`);
+    } catch (err: any) {
+      console.error('Failed to send Hi:', err);
+      alert(err.response?.data?.message || 'Failed to send Hi message');
+    } finally {
+      setSendingHiTo(null);
+    }
   };
 
   const handleProfileClick = (profileId: string) => {
@@ -330,7 +65,7 @@ export const NearbyFemalesPage = () => {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white flex flex-col">
+    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white flex flex-col min-h-screen">
       {/* Tabs / Filters */}
       <div className="sticky top-0 z-30 bg-gradient-to-r from-pink-50/95 via-rose-50/95 to-pink-50/95 dark:from-[#1a0f14]/95 dark:via-[#2d1a24]/95 dark:to-[#1a0f14]/95 backdrop-blur-md border-b border-pink-200/40 dark:border-pink-900/30 px-3 py-2.5">
         <div className="flex items-center justify-between">
@@ -343,9 +78,9 @@ export const NearbyFemalesPage = () => {
             </button>
             <button
               className={`pb-1 ${activeFilter === 'nearby' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
-              onClick={() => setActiveFilter('nearby' as FilterType)}
+              onClick={() => setActiveFilter('nearby')}
             >
-              Nearby
+              Online
             </button>
             <button
               className={`pb-1 ${activeFilter === 'new' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
@@ -357,32 +92,62 @@ export const NearbyFemalesPage = () => {
               className={`pb-1 ${activeFilter === 'popular' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
               onClick={() => setActiveFilter('popular')}
             >
-              Hot
+              Popular
             </button>
           </div>
-          <div className="w-12" />
+          <button onClick={fetchProfiles} className="text-primary p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* Main Content: Profile List */}
-      <main className="p-3 space-y-2 pb-24">
-        {filteredProfiles.map((profile) => (
+      {/* Main Content */}
+      <main className="flex-1 p-3 space-y-2 pb-24">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl">
+            {error}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !error && profiles.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <span className="text-6xl mb-4">🔍</span>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No profiles found</h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              No approved female profiles are available right now. Check back later!
+            </p>
+          </div>
+        )}
+
+        {/* Profile List */}
+        {!isLoading && !error && profiles.map((profile) => (
           <div
             key={profile.id}
             className="bg-white dark:bg-[#2d1a24] rounded-2xl shadow-sm border border-pink-100/60 dark:border-pink-900/30 px-3 py-2.5 flex items-center gap-3"
           >
             <div className="relative">
               <img
-                src={profile.avatar}
+                src={profile.avatar || 'https://via.placeholder.com/48?text=?'}
                 alt={profile.name}
-                className="h-12 w-12 rounded-xl object-cover border border-pink-100 dark:border-pink-800"
+                className="h-12 w-12 rounded-xl object-cover border border-pink-100 dark:border-pink-800 cursor-pointer"
                 onClick={() => handleProfileClick(profile.id)}
               />
               {profile.isOnline && (
                 <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-400 ring-2 ring-white dark:ring-[#2d1a24]" />
               )}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0" onClick={() => handleProfileClick(profile.id)}>
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold truncate">{profile.name}</p>
                 {profile.occupation && (
@@ -392,7 +157,7 @@ export const NearbyFemalesPage = () => {
                 )}
               </div>
               <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
-                <span>{profile.distance}</span>
+                {profile.location && <span>{profile.location}</span>}
                 {profile.age && <span>• {profile.age} yrs</span>}
               </div>
               {profile.bio && (
@@ -402,14 +167,20 @@ export const NearbyFemalesPage = () => {
               )}
             </div>
             <button
-              onClick={() => handleChatClick(profile.id)}
-              className="px-3 py-2 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-primary to-rose-500 shadow-md active:scale-95 transition-transform"
+              onClick={() => handleSendHi(profile.id)}
+              disabled={sendingHiTo === profile.id}
+              className="px-3 py-2 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-primary to-rose-500 shadow-md active:scale-95 transition-transform disabled:opacity-50"
             >
-              Hi
+              {sendingHiTo === profile.id ? (
+                <span className="flex items-center gap-1">
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </span>
+              ) : (
+                'Hi'
+              )}
             </button>
           </div>
         ))}
-
       </main>
 
       {/* Bottom Navigation Bar */}
@@ -417,4 +188,3 @@ export const NearbyFemalesPage = () => {
     </div>
   );
 };
-

@@ -1,63 +1,67 @@
+/**
+ * Socket Context - Provides Socket.IO connection across the app
+ * @purpose: Manage socket connection lifecycle and provide real-time updates
+ */
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Socket } from 'socket.io-client';
+import { createContext, useContext, useEffect, ReactNode } from 'react';
+import socketService from '../services/socket.service';
 import { useAuth } from './AuthContext';
-import { initializeSocket, disconnectSocket } from '../socket/client';
 
 interface SocketContextType {
-    socket: Socket | null;
     isConnected: boolean;
+    joinChat: (chatId: string) => void;
+    leaveChat: (chatId: string) => void;
+    sendTyping: (chatId: string, isTyping: boolean) => void;
+    requestBalance: () => void;
+    on: (event: string, callback: Function) => void;
+    off: (event: string, callback: Function) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
-export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface SocketProviderProps {
+    children: ReactNode;
+}
+
+export const SocketProvider = ({ children }: SocketProviderProps) => {
     const { isAuthenticated } = useAuth();
-    const [socket, setSocket] = useState<Socket | null>(null);
-    const [isConnected, setIsConnected] = useState<boolean>(false);
 
+    // Connect/disconnect based on auth status
     useEffect(() => {
-        let socketInstance: Socket | null = null;
-
         if (isAuthenticated) {
-            // Initialize connection
-            socketInstance = initializeSocket();
-            setSocket(socketInstance);
-
-            // Listen for connection events
-            const onConnect = () => setIsConnected(true);
-            const onDisconnect = () => setIsConnected(false);
-
-            socketInstance.on('connect', onConnect);
-            socketInstance.on('disconnect', onDisconnect);
-
-            // Check initial state
-            if (socketInstance.connected) setIsConnected(true);
-
-            return () => {
-                // Cleanup listeners
-                socketInstance?.off('connect', onConnect);
-                socketInstance?.off('disconnect', onDisconnect);
-            };
+            socketService.connect();
         } else {
-            // Cleanup connection on logout
-            disconnectSocket();
-            setSocket(null);
-            setIsConnected(false);
+            socketService.disconnect();
         }
+
+        return () => {
+            socketService.disconnect();
+        };
     }, [isAuthenticated]);
 
+    const value: SocketContextType = {
+        isConnected: socketService.isConnected(),
+        joinChat: (chatId: string) => socketService.joinChat(chatId),
+        leaveChat: (chatId: string) => socketService.leaveChat(chatId),
+        sendTyping: (chatId: string, isTyping: boolean) => socketService.sendTyping(chatId, isTyping),
+        requestBalance: () => socketService.requestBalance(),
+        on: (event: string, callback: Function) => socketService.on(event, callback),
+        off: (event: string, callback: Function) => socketService.off(event, callback),
+    };
+
     return (
-        <SocketContext.Provider value={{ socket, isConnected }}>
+        <SocketContext.Provider value={value}>
             {children}
         </SocketContext.Provider>
     );
 };
 
-export const useSocket = () => {
+export const useSocket = (): SocketContextType => {
     const context = useContext(SocketContext);
     if (context === undefined) {
         throw new Error('useSocket must be used within a SocketProvider');
     }
     return context;
 };
+
+export default SocketContext;

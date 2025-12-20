@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MaterialSymbol } from '../types/material-symbol';
 import { AttachmentMenu } from './AttachmentMenu';
 
@@ -6,29 +6,39 @@ interface MessageInputProps {
   onSendMessage: (message: string) => void;
   onSendPhoto?: () => void;
   onSendGift?: () => void;
+  onTypingStart?: () => void;
+  onTypingStop?: () => void;
   placeholder?: string;
   coinCost?: number;
   disabled?: boolean;
+  isSending?: boolean;
 }
 
 export const MessageInput = ({
   onSendMessage,
   onSendPhoto,
   onSendGift,
+  onTypingStart,
+  onTypingStop,
   placeholder = 'Type a message...',
   coinCost,
   disabled = false,
+  isSending = false,
 }: MessageInputProps) => {
   const [message, setMessage] = useState('');
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSend = () => {
-    if (message.trim() && !disabled) {
+    if (message.trim() && !disabled && !isSending) {
       onSendMessage(message.trim());
       setMessage('');
       inputRef.current?.focus();
+      if (onTypingStop) {
+        onTypingStop();
+      }
     }
   };
 
@@ -38,6 +48,36 @@ export const MessageInput = ({
       handleSend();
     }
   };
+
+  // Handle typing indicator
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+
+    // Start typing indicator
+    if (value && onTypingStart) {
+      onTypingStart();
+    }
+
+    // Stop typing after 2 seconds of inactivity
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      if (onTypingStop) {
+        onTypingStop();
+      }
+    }, 2000);
+  }, [onTypingStart, onTypingStop]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -85,7 +125,7 @@ export const MessageInput = ({
           <div className="relative shrink-0" ref={menuRef}>
             <button
               onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-              disabled={disabled}
+              disabled={disabled || isSending}
               className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95 disabled:opacity-50"
               aria-label="Attachments"
             >
@@ -105,16 +145,16 @@ export const MessageInput = ({
             ref={inputRef}
             type="text"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            disabled={disabled}
-            className="w-full h-10 px-4 pr-12 bg-white dark:bg-[#2f151e] rounded-full border border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#cc8ea3]/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+            placeholder={disabled ? 'Insufficient coins...' : placeholder}
+            disabled={disabled || isSending}
+            className="w-full h-10 px-4 pr-16 bg-white dark:bg-[#2f151e] rounded-full border border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#cc8ea3]/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800"
           />
           {coinCost && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              <MaterialSymbol name="monetization_on" size={14} className="text-gold" />
-              <span className="text-[10px] font-medium text-gold">{coinCost}</span>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/40 px-2 py-0.5 rounded-full">
+              <span className="text-lg">🪙</span>
+              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">{coinCost}</span>
             </div>
           )}
         </div>
@@ -122,14 +162,24 @@ export const MessageInput = ({
         {/* Send Button */}
         <button
           onClick={handleSend}
-          disabled={!message.trim() || disabled}
+          disabled={!message.trim() || disabled || isSending}
           className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white hover:bg-yellow-400 transition-colors active:scale-95 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Send message"
         >
-          <MaterialSymbol name="send" size={20} />
+          {isSending ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <MaterialSymbol name="send" size={20} />
+          )}
         </button>
       </div>
+
+      {/* Low balance warning */}
+      {disabled && (
+        <p className="text-xs text-red-500 text-center mt-2">
+          Not enough coins. <span className="underline cursor-pointer">Buy more coins</span>
+        </p>
+      )}
     </div>
   );
 };
-

@@ -59,6 +59,17 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // Video Call Fields (for paid video calling feature)
+    isOnCall: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    lockedCoins: {
+      type: Number,
+      default: 0,
+      min: [0, 'Locked coins cannot be negative'],
+    },
 
     // Wallet Fields (Sujal - Wallet Domain)
     coinBalance: {
@@ -168,6 +179,10 @@ userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ 'profile.location.coordinates': '2dsphere' }); // For geospatial queries
 userSchema.index({ isOnline: 1, lastSeen: -1 });
 userSchema.index({ coinBalance: -1 });
+// Compound index for discover females query (approved females sorted by lastSeen)
+userSchema.index({ role: 1, approvalStatus: 1, isBlocked: 1, lastSeen: -1 });
+userSchema.index({ role: 1, approvalStatus: 1, isBlocked: 1, createdAt: -1 });
+userSchema.index({ role: 1, approvalStatus: 1, isBlocked: 1, isOnline: 1 });
 
 // Virtual: Full name
 userSchema.virtual('fullName').get(function () {

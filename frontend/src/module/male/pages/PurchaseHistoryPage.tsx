@@ -1,59 +1,14 @@
-// @ts-nocheck
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CoinPurchaseHeader } from '../components/CoinPurchaseHeader';
 import { SegmentedControls } from '../components/SegmentedControls';
 import { TransactionItem } from '../components/TransactionItem';
-import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import walletService from '../../../core/services/wallet.service';
 import type { Transaction } from '../types/male.types';
-
-// Mock data - replace with actual API calls
-const mockPurchaseHistory: Transaction[] = [
-  {
-    id: '1',
-    type: 'purchase',
-    title: 'Gold Plan - 600 Coins',
-    timestamp: 'Today, 10:23 AM',
-    amount: 600,
-    isPositive: true,
-  },
-  {
-    id: '2',
-    type: 'purchase',
-    title: 'Silver Plan - 330 Coins',
-    timestamp: 'Yesterday, 8:45 PM',
-    amount: 330,
-    isPositive: true,
-  },
-  {
-    id: '3',
-    type: 'purchase',
-    title: 'Platinum Plan - 1500 Coins',
-    timestamp: '3 days ago, 2:15 PM',
-    amount: 1500,
-    isPositive: true,
-  },
-  {
-    id: '4',
-    type: 'purchase',
-    title: 'Basic Plan - 100 Coins',
-    timestamp: '1 week ago, 11:30 AM',
-    amount: 100,
-    isPositive: true,
-  },
-  {
-    id: '5',
-    type: 'purchase',
-    title: 'Gold Plan - 600 Coins',
-    timestamp: '2 weeks ago, 4:20 PM',
-    amount: 600,
-    isPositive: true,
-  },
-];
 
 const filterOptions = [
   { id: 'all', label: 'All' },
@@ -61,33 +16,87 @@ const filterOptions = [
   { id: 'this_month', label: 'This Month' },
 ];
 
+// Helper to format timestamp
+const formatTransactionTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return `Today, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  } else if (diffDays === 1) {
+    return `Yesterday, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+};
+
 export const PurchaseHistoryPage = () => {
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  const [purchaseHistory, setPurchaseHistory] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('all');
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchPurchaseHistory();
+  }, []);
+
+  const fetchPurchaseHistory = async () => {
+    try {
+      setIsLoading(true);
+      // Fetch only purchase type transactions
+      const data = await walletService.getMyTransactions({ type: 'purchase', limit: 20 });
+
+      // Transform backend transactions to frontend format
+      const formattedTransactions: Transaction[] = (data.transactions || []).map((t: any) => {
+        // Get plan name from coinPlanId if populated
+        const planName = t.coinPlanId?.name || t.coinPlanId?.tier || '';
+        const title = planName
+          ? `Purchase of ${t.amountCoins || 0} coins (${planName})`
+          : t.description || `${t.amountCoins || 0} Coins Purchased`;
+
+        return {
+          id: t._id,
+          type: 'purchase',
+          title,
+          timestamp: formatTransactionTime(t.createdAt),
+          amount: t.amountCoins || 0, // Backend uses amountCoins, not amount
+          isPositive: true,
+        };
+      });
+
+      setPurchaseHistory(formattedTransactions);
+    } catch (err) {
+      console.error('Failed to fetch purchase history:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredHistory = useMemo(() => {
-    let filtered = mockPurchaseHistory;
+    let filtered = purchaseHistory;
 
     switch (selectedFilter) {
       case 'recent':
-        // Show last 7 days
+        // Show last 3
         filtered = filtered.slice(0, 3);
         break;
       case 'this_month':
-        // Show this month (mock: first 4)
-        filtered = filtered.slice(0, 4);
+        // Show this month (limit to 10)
+        filtered = filtered.slice(0, 10);
         break;
       default:
         break;
     }
 
     return filtered;
-  }, [selectedFilter]);
+  }, [selectedFilter, purchaseHistory]);
 
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
@@ -125,7 +134,11 @@ export const PurchaseHistoryPage = () => {
 
         {/* Transaction List */}
         <div className="flex flex-col gap-2">
-          {filteredHistory.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredHistory.length > 0 ? (
             filteredHistory.map((transaction) => (
               <TransactionItem
                 key={transaction.id}
@@ -147,6 +160,12 @@ export const PurchaseHistoryPage = () => {
               <p className="text-gray-500 dark:text-[#cc8ea3] text-center">
                 No purchase history found
               </p>
+              <button
+                onClick={() => navigate('/male/buy-coins')}
+                className="mt-4 px-6 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Buy Coins
+              </button>
             </div>
           )}
         </div>
@@ -154,6 +173,3 @@ export const PurchaseHistoryPage = () => {
     </div>
   );
 };
-
-
-
