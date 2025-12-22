@@ -1,14 +1,13 @@
 // @ts-nocheck
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
-import { GoogleMapsAutocomplete } from '../../../shared/components/GoogleMapsAutocomplete';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
 import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
-
+import { EditProfileModal } from '../components/EditProfileModal';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -17,15 +16,14 @@ export const MyProfilePage = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Local display state (synced with user)
   const [name, setName] = useState(user?.name || 'Anonymous');
   const [age, setAge] = useState(24);
   const [location, setLocation] = useState('New York, USA');
-  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
-  const [bio, setBio] = useState('Love traveling and meeting new people! 🌍');
-  const [interests, setInterests] = useState(['Travel', 'Photography', 'Music', 'Fitness']);
+
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const [allowMessagesFrom, setAllowMessagesFrom] = useState<'everyone' | 'verified'>('everyone');
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -51,8 +49,6 @@ export const MyProfilePage = () => {
       setName(user.name || 'Anonymous');
       setAge(user.age || 24);
       setLocation(user.location || user.city || 'Unknown Location');
-      setBio(user.bio || 'Love traveling and meeting new people! 🌍');
-      setInterests(user.interests && user.interests.length > 0 ? user.interests : ['Travel', 'Photography', 'Music', 'Fitness']);
 
       if (user.photos && user.photos.length > 0) {
         setPhotos(user.photos);
@@ -63,84 +59,6 @@ export const MyProfilePage = () => {
       }
     }
   }, [user]);
-
-
-  const handleSave = async () => {
-    try {
-      const payload: any = {
-        name,
-        age,
-        city: location,
-        bio,
-        interests,
-        photos
-      };
-
-      // Add coordinates if available
-      if (coordinates) {
-        payload.latitude = coordinates.lat;
-        payload.longitude = coordinates.lng;
-      }
-
-      const response = await axios.patch(`${API_URL}/users/me`, payload, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('matchmint_auth_token')}` }
-      });
-
-      updateUser({
-        name,
-        age,
-        city: location,
-        location,
-        bio,
-        interests,
-        photos,
-        avatarUrl: photos.length > 0 ? photos[0] : ''
-      });
-
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update profile', error);
-      alert('Failed to update profile');
-    }
-  };
-
-  const handlePhotoUpload = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const result = event.target?.result as string;
-          if (result) {
-            setPhotos((prev) => [...prev, result]);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleDeletePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSetProfilePhoto = (index: number) => {
-    const newPhotos = [...photos];
-    const [selectedPhoto] = newPhotos.splice(index, 1);
-    newPhotos.unshift(selectedPhoto);
-    setPhotos(newPhotos);
-  };
 
   return (
     <div className="flex flex-col bg-background-light dark:bg-background-dark min-h-screen pb-20">
@@ -155,37 +73,30 @@ export const MyProfilePage = () => {
         onItemClick={handleNavigationClick}
       />
 
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
+
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-white/5">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between px-4 py-2 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-white/5">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
+            className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
           >
-            <MaterialSymbol name="arrow_back" />
+            <MaterialSymbol name="arrow_back" size={20} />
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">My Profile</h1>
         </div>
-        {isEditing ? (
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-primary text-slate-900 font-bold rounded-lg hover:bg-yellow-400 transition-colors"
-          >
-            Save
-          </button>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="px-4 py-2 bg-gray-200 dark:bg-[#342d18] text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors"
-          >
-            Edit
-          </button>
-        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 min-h-0">
-        {/* Profile Header Card */}
-        <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/5 dark:to-transparent rounded-2xl p-6 border border-primary/20">
+        {/* Profile Header Card - Clickable */}
+        <div
+          onClick={() => setIsEditModalOpen(true)}
+          className="bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/5 dark:to-transparent rounded-2xl p-6 border border-primary/20 cursor-pointer active:scale-[0.98] transition-all hover:bg-primary/5 dark:hover:bg-[#342d18]/50"
+        >
           <div className="flex flex-col items-center">
             <div className="relative mb-4">
               <div
@@ -195,20 +106,15 @@ export const MyProfilePage = () => {
                   backgroundColor: photos.length === 0 ? '#e5e7eb' : undefined,
                 }}
               />
-              {isEditing && (
-                <button
-                  onClick={handlePhotoUpload}
-                  className="absolute bottom-0 right-0 flex items-center justify-center h-10 w-10 rounded-full bg-primary text-slate-900 border-2 border-white dark:border-[#342d18] hover:bg-yellow-400 transition-colors shadow-lg"
-                >
-                  <MaterialSymbol name="camera_alt" size={20} />
-                </button>
-              )}
+              <div className="absolute bottom-1 right-1 bg-gray-900/80 p-1.5 rounded-full text-white">
+                <MaterialSymbol name="edit" size={14} />
+              </div>
               <div className="absolute top-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 border-2 border-white dark:border-[#342d18]">
                 <div className="h-3 w-3 rounded-full bg-white" />
               </div>
             </div>
 
-            <div className="text-center mb-4">
+            <div className="text-center mb-0">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{name}</h2>
                 <MaterialSymbol name="verified" className="text-blue-500" size={20} />
@@ -219,24 +125,19 @@ export const MyProfilePage = () => {
                 <p className="text-sm text-gray-600 dark:text-[#cbbc90]">{location}</p>
               </div>
             </div>
+          </div>
+        </div>
 
-            {isEditing && (
-              <button
-                onClick={handlePhotoUpload}
-                className="px-4 py-2 bg-white dark:bg-[#342d18] text-gray-700 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-[#4b202e] transition-colors text-sm font-medium shadow-sm"
-              >
-                Change Profile Photo
-              </button>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-            />
+        {/* Verification Status */}
+        <div className="rounded-xl px-6 py-4 bg-green-50 dark:bg-green-900/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <MaterialSymbol name="verified" className="text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Profile Verified</p>
+              <p className="text-xs text-gray-600 dark:text-[#cbbc90]">Your profile has been verified by our team</p>
+            </div>
           </div>
         </div>
 
@@ -289,20 +190,11 @@ export const MyProfilePage = () => {
           </div>
         </div>
 
-        {/* Photo Gallery */}
+        {/* Photo Gallery - Read Only */}
         {photos.length > 0 && (
           <div className="bg-white dark:bg-[#342d18] rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Photos</h3>
-              {isEditing && (
-                <button
-                  onClick={handlePhotoUpload}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-primary text-slate-900 text-sm font-bold rounded-lg hover:bg-yellow-400 transition-colors"
-                >
-                  <MaterialSymbol name="add" size={18} />
-                  Add Photos
-                </button>
-              )}
             </div>
             <div className="grid grid-cols-3 gap-3">
               {photos.map((photo, index) => (
@@ -317,178 +209,11 @@ export const MyProfilePage = () => {
                       Profile
                     </div>
                   )}
-                  {isEditing && (
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      {index !== 0 && (
-                        <button
-                          onClick={() => handleSetProfilePhoto(index)}
-                          className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                          title="Set as profile photo"
-                        >
-                          <MaterialSymbol name="star" size={20} className="text-primary" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeletePhoto(index)}
-                        className="p-2 bg-red-500/90 rounded-full hover:bg-red-600 transition-colors"
-                        title="Delete photo"
-                      >
-                        <MaterialSymbol name="delete" size={20} className="text-white" />
-                      </button>
-                    </div>
-                  )}
                 </div>
               ))}
-              {isEditing && photos.length < 9 && (
-                <button
-                  onClick={handlePhotoUpload}
-                  className="aspect-square rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center hover:border-primary dark:hover:border-primary transition-colors"
-                >
-                  <MaterialSymbol name="add" size={32} className="text-gray-400 dark:text-gray-500 mb-1" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Add Photo</span>
-                </button>
-              )}
             </div>
-            {photos.length === 0 && (
-              <div className="text-center py-8">
-                <MaterialSymbol name="photo_library" size={48} className="text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500 dark:text-[#cbbc90] text-sm">No photos yet</p>
-                {isEditing && (
-                  <button
-                    onClick={handlePhotoUpload}
-                    className="mt-4 px-4 py-2 bg-primary text-slate-900 font-bold rounded-lg hover:bg-yellow-400 transition-colors text-sm"
-                  >
-                    Add Your First Photo
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         )}
-
-        {/* Profile Info */}
-        <div className="bg-white dark:bg-[#342d18] rounded-xl p-6 shadow-sm space-y-5">
-          <div className="flex items-center gap-2 mb-4">
-            <MaterialSymbol name="person" className="text-primary" />
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">About Me</h3>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-2">
-              Name
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            ) : (
-              <p className="text-gray-900 dark:text-white font-medium">{name}</p>
-            )}
-          </div>
-
-          {isEditing && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-2">
-                Age
-              </label>
-              <input
-                type="number"
-                value={age}
-                onChange={(e) => setAge(parseInt(e.target.value) || 0)}
-                min={18}
-                max={100}
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-          )}
-
-          {isEditing && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-2">
-                Location
-              </label>
-              <GoogleMapsAutocomplete
-                value={location}
-                onChange={(value, coords) => {
-                  setLocation(value);
-                  if (coords) setCoordinates(coords);
-                }}
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Enter your location"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-2">
-              Bio
-            </label>
-            {isEditing ? (
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={4}
-                placeholder="Tell others about yourself..."
-                className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            ) : (
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{bio}</p>
-            )}
-          </div>
-
-          {/* Interests */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-3">
-              Interests
-            </label>
-            {isEditing ? (
-              <div className="flex flex-wrap gap-2">
-                {interests.map((interest, index) => (
-                  <div key={index} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 rounded-full">
-                    <input
-                      type="text"
-                      value={interest}
-                      onChange={(e) => {
-                        const newInterests = [...interests];
-                        newInterests[index] = e.target.value;
-                        setInterests(newInterests);
-                      }}
-                      className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-white w-24"
-                    />
-                    <button
-                      onClick={() => setInterests(interests.filter((_, i) => i !== index))}
-                      className="text-gray-500 hover:text-red-500"
-                    >
-                      <MaterialSymbol name="close" size={16} />
-                    </button>
-                  </div>
-                ))}
-                {interests.length < 6 && (
-                  <button
-                    onClick={() => setInterests([...interests, ''])}
-                    className="px-3 py-1.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-full text-sm text-gray-500 dark:text-gray-400 hover:border-primary dark:hover:border-primary transition-colors"
-                  >
-                    + Add
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {interests.map((interest, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1.5 bg-primary/10 dark:bg-primary/20 rounded-full text-sm font-medium text-gray-900 dark:text-white"
-                  >
-                    {interest}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* Activity Summary */}
         <div className="bg-white dark:bg-[#342d18] rounded-xl p-6 shadow-sm">
@@ -676,19 +401,6 @@ export const MyProfilePage = () => {
                 </button>
               </div>
             </div>
-
-            {/* Verification Status */}
-            <div className="px-6 py-4 bg-green-50 dark:bg-green-900/10">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                  <MaterialSymbol name="verified" className="text-green-600 dark:text-green-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Profile Verified</p>
-                  <p className="text-xs text-gray-600 dark:text-[#cbbc90]">Your profile has been verified by our team</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -697,4 +409,3 @@ export const MyProfilePage = () => {
     </div>
   );
 };
-

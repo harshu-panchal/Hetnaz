@@ -123,7 +123,7 @@ export const OtpVerificationPage = () => {
                 } else if (user.role === 'admin') {
                     navigate('/admin/dashboard');
                 } else {
-                    navigate('/male/dashboard');
+                    navigate('/male/discover');
                 }
             }
         } catch (err: any) {

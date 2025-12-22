@@ -151,12 +151,7 @@ export const MessageInput = ({
             disabled={disabled || isSending}
             className="w-full h-10 px-4 pr-16 bg-white dark:bg-[#2f151e] rounded-full border border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#cc8ea3]/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800"
           />
-          {coinCost && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/40 px-2 py-0.5 rounded-full">
-              <span className="text-lg">🪙</span>
-              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">{coinCost}</span>
-            </div>
-          )}
+
         </div>
 
         {/* Send Button */}

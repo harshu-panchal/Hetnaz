@@ -12,13 +12,7 @@ export const ChatListHeader = ({ coinBalance, onEditClick }: ChatListHeaderProps
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Chats</h1>
       </div>
       <div className="flex items-center gap-3">
-        {/* Coin Balance Indicator */}
-        <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1.5 rounded-full border border-yellow-200 dark:border-yellow-700/50">
-          <MaterialSymbol name="monetization_on" filled size={18} className="text-yellow-600 dark:text-gold" />
-          <span className="text-xs font-bold text-yellow-800 dark:text-gold">
-            {(coinBalance || 0).toLocaleString()}
-          </span>
-        </div>
+
         {/* Action Button */}
         <button
           onClick={onEditClick}

@@ -9,6 +9,7 @@ export interface ChatUser {
     avatar: string | null;
     isOnline: boolean;
     lastSeen: Date | string;
+    isVerified?: boolean;
 }
 
 export interface Message {

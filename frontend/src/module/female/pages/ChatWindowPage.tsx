@@ -8,6 +8,7 @@ import { PhotoPickerModal } from '../components/PhotoPickerModal';
 import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import chatService from '../../../core/services/chat.service';
 import socketService from '../../../core/services/socket.service';
 import type { Chat as ApiChat, Message as ApiMessage } from '../../../core/types/chat.types';
@@ -16,6 +17,7 @@ export const ChatWindowPage = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
   const { navigationItems, handleNavigationClick } = useFemaleNavigation();
+  const { coinBalance } = useGlobalState();
 
   const [messages, setMessages] = useState<ApiMessage[]>([]);
   const [chatInfo, setChatInfo] = useState<ApiChat | null>(null);
@@ -187,6 +189,7 @@ export const ChatWindowPage = () => {
         userAvatar={chatInfo.otherUser.avatar || ''}
         isOnline={chatInfo.otherUser.isOnline}
         onMoreClick={handleMoreClick}
+        coinBalance={coinBalance}
       />
 
       {/* Error Banner */}

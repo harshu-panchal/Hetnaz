@@ -113,7 +113,7 @@ const mockDashboardData = {
 
 export const MyProfilePage = () => {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   useEffect(() => {
@@ -124,6 +124,7 @@ export const MyProfilePage = () => {
   const [allowMessagesFrom, setAllowMessagesFrom] = useState<'everyone' | 'verified'>('everyone');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -189,15 +190,15 @@ export const MyProfilePage = () => {
       {/* Profile Header Section */}
       <div className="flex p-4 pt-4 @container">
         <div className="flex w-full flex-col gap-4">
-              <ProfileHeader
-                user={{
-                  name: profile.name,
-                  avatar: profile.avatar,
-                  isPremium: false,
-                  isOnline: true,
-                }}
-                onArrowClick={() => navigate('/male/my-profile/profile')}
-              />
+          <ProfileHeader
+            user={{
+              name: profile.name,
+              avatar: profile.avatar,
+              isPremium: false,
+              isOnline: true,
+            }}
+            onArrowClick={() => navigate('/male/my-profile/profile')}
+          />
           {/* Wallet & Top Up Block */}
           <WalletBalance
             balance={mockDashboardData.wallet.balance}
@@ -308,118 +309,145 @@ export const MyProfilePage = () => {
 
         {/* Profile Settings */}
         <div className="bg-white dark:bg-[#342d18] rounded-2xl p-4 shadow-sm space-y-4">
-            <h3 className="font-semibold mb-3">Profile Settings</h3>
+          <h3 className="font-semibold mb-3">Profile Settings</h3>
 
-            {/* Privacy Settings */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Privacy</h4>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MaterialSymbol name="visibility" size={20} className="text-gray-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Show Online Status</span>
-                </div>
-                <button
-                  onClick={() => setShowOnlineStatus(!showOnlineStatus)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${showOnlineStatus ? 'bg-primary' : 'bg-gray-300'
-                    }`}
-                >
-                  <div
-                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${showOnlineStatus ? 'translate-x-6' : ''
-                      }`}
-                  />
-                </button>
+          {/* Privacy Settings */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Privacy</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="visibility" size={20} className="text-gray-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Show Online Status</span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MaterialSymbol name="chat" size={20} className="text-gray-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Who Can Message Me</span>
-                </div>
-                <select
-                  value={allowMessagesFrom}
-                  onChange={(e) => setAllowMessagesFrom(e.target.value as 'everyone' | 'verified')}
-                  className="px-3 py-1 bg-gray-100 dark:bg-[#2f151e] border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
-                >
-                  <option value="everyone">Everyone</option>
-                  <option value="verified">Verified Only</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Notification Settings */}
-            <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</h4>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MaterialSymbol name="email" size={20} className="text-gray-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
-                </div>
-                <button
-                  onClick={() => setEmailNotifications(!emailNotifications)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${emailNotifications ? 'bg-primary' : 'bg-gray-300'
-                    }`}
-                >
-                  <div
-                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${emailNotifications ? 'translate-x-6' : ''
-                      }`}
-                  />
-                </button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MaterialSymbol name="notifications" size={20} className="text-gray-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Push Notifications</span>
-                </div>
-                <button
-                  onClick={() => setPushNotifications(!pushNotifications)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${pushNotifications ? 'bg-primary' : 'bg-gray-300'
-                    }`}
-                >
-                  <div
-                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${pushNotifications ? 'translate-x-6' : ''
-                      }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* Account Settings */}
-            <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-700">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Account</h4>
               <button
-                onClick={() => navigate('/male/badges')}
-                className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors"
+                onClick={() => setShowOnlineStatus(!showOnlineStatus)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${showOnlineStatus ? 'bg-primary' : 'bg-gray-300'
+                  }`}
               >
-                <div className="flex items-center gap-2">
-                  <MaterialSymbol name="workspace_premium" size={20} className="text-primary" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">View Badges</span>
-                </div>
-                <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
+                <div
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${showOnlineStatus ? 'translate-x-6' : ''
+                    }`}
+                />
               </button>
-              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors">
-                <div className="flex items-center gap-2">
-                  <MaterialSymbol name="lock" size={20} className="text-gray-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Change Password</span>
-                </div>
-                <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="chat" size={20} className="text-gray-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Who Can Message Me</span>
+              </div>
+              <select
+                value={allowMessagesFrom}
+                onChange={(e) => setAllowMessagesFrom(e.target.value as 'everyone' | 'verified')}
+                className="px-3 py-1 bg-gray-100 dark:bg-[#2f151e] border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+              >
+                <option value="everyone">Everyone</option>
+                <option value="verified">Verified Only</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Notification Settings */}
+          <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Notifications</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="email" size={20} className="text-gray-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
+              </div>
+              <button
+                onClick={() => setEmailNotifications(!emailNotifications)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${emailNotifications ? 'bg-primary' : 'bg-gray-300'
+                  }`}
+              >
+                <div
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${emailNotifications ? 'translate-x-6' : ''
+                    }`}
+                />
               </button>
-              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors">
-                <div className="flex items-center gap-2">
-                  <MaterialSymbol name="delete" size={20} className="text-red-500" />
-                  <span className="text-sm text-red-500">Delete Account</span>
-                </div>
-                <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="notifications" size={20} className="text-gray-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Push Notifications</span>
+              </div>
+              <button
+                onClick={() => setPushNotifications(!pushNotifications)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${pushNotifications ? 'bg-primary' : 'bg-gray-300'
+                  }`}
+              >
+                <div
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${pushNotifications ? 'translate-x-6' : ''
+                    }`}
+                />
               </button>
             </div>
           </div>
 
-
-
-
-
+          {/* Account Settings */}
+          <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Account</h4>
+            <button
+              onClick={() => navigate('/male/badges')}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="workspace_premium" size={20} className="text-primary" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">View Badges</span>
+              </div>
+              <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
+            </button>
+            <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors">
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="delete" size={20} className="text-red-500" />
+                <span className="text-sm text-red-500">Delete Account</span>
+              </div>
+              <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
+            </button>
+            <button
+              onClick={() => setShowLogoutModal(true)}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="logout" size={20} className="text-gray-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Logout</span>
+              </div>
+              <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
+            </button>
+          </div>
+        </div>
       </main>
 
       {/* Bottom Navigation Bar */}
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#2d1a24] rounded-2xl shadow-xl w-full max-w-sm p-6 transform transition-all scale-100">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">Logout?</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
+              Are you sure you want to log out of your account?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-[#3d2530] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                className="flex-1 px-4 py-2 rounded-xl bg-primary text-white font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

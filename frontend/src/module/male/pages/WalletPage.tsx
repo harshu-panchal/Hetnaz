@@ -15,7 +15,6 @@ import type { Transaction } from '../types/male.types';
 const filterOptions = [
   { id: 'all', label: 'All' },
   { id: 'purchased', label: 'Purchased' },
-  { id: 'spent', label: 'Spent' },
 ];
 
 // Helper to format timestamp
@@ -62,7 +61,7 @@ export const WalletPage = () => {
         // Transform backend transactions to frontend format
         // Filter out message_spent transactions (user doesn't want these)
         const formattedTransactions: Transaction[] = (data.transactions || [])
-          .filter((t: any) => !['message_spent', 'message_earned'].includes(t.type))
+          .filter((t: any) => t.direction === 'credit')
           .slice(0, 5)
           .map((t: any) => ({
             id: t._id,

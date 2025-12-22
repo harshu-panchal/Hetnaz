@@ -273,6 +273,7 @@ export const ChatWindowPage = () => {
         userName={chatInfo.otherUser.name}
         userAvatar={chatInfo.otherUser.avatar || ''}
         isOnline={chatInfo.otherUser.isOnline}
+        isVerified={chatInfo.otherUser.isVerified}
         coinBalance={coinBalance}
         intimacy={intimacy}
         onMoreClick={() => setIsMoreOptionsOpen(true)}
@@ -314,17 +315,7 @@ export const ChatWindowPage = () => {
         </div>
       )}
 
-      {/* Coin Cost Indicator */}
-      <div className="px-4 py-2 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 text-center">
-        <span className="text-xs text-gray-600 dark:text-gray-300">
-          💰 Each message costs <span className="font-bold text-primary">{MESSAGE_COST} coins</span>
-          {coinBalance < MESSAGE_COST && (
-            <span className="text-red-500 ml-2">
-              (Low balance! <button onClick={() => navigate('/male/buy-coins')} className="underline">Buy coins</button>)
-            </span>
-          )}
-        </span>
-      </div>
+
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">

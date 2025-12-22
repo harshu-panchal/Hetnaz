@@ -85,42 +85,57 @@ function App() {
                 <Route path="/onboarding/interests" element={<InterestsPage />} />
 
                 {/* Male Routes */}
-                <Route path="/male/dashboard" element={<MaleDashboard />} />
-                <Route path="/male/discover" element={<NearbyFemalesPage />} />
-                <Route path="/male/chats" element={<MaleChatListPage />} />
-                <Route path="/male/chat/:chatId" element={<MaleChatWindowPage />} />
-                <Route path="/male/wallet" element={<WalletPage />} />
-                <Route path="/male/buy-coins" element={<CoinPurchasePage />} />
-                <Route path="/male/profile/:profileId" element={<UserProfilePage />} />
-                <Route path="/male/notifications" element={<MaleNotificationsPage />} />
-                <Route path="/male/purchase-history" element={<PurchaseHistoryPage />} />
-                <Route path="/male/payment/:planId" element={<PaymentPage />} />
-                <Route path="/male/my-profile" element={<MaleMyProfilePage />} />
-                <Route path="/male/my-profile/profile" element={<MaleProfileEditPage />} />
-                <Route path="/male/gifts" element={<GiftsPage />} />
-                <Route path="/male/badges" element={<BadgesPage />} />
+                {/* Male Routes */}
+                <Route element={<ProtectedRoute allowedRoles={['male']} />}>
+                  <Route path="/male/dashboard" element={<MaleDashboard />} />
+                  <Route path="/male/discover" element={<NearbyFemalesPage />} />
+                  <Route path="/male/chats" element={<MaleChatListPage />} />
+                  <Route path="/male/chat/:chatId" element={<MaleChatWindowPage />} />
+                  <Route path="/male/wallet" element={<WalletPage />} />
+                  <Route path="/male/buy-coins" element={<CoinPurchasePage />} />
+                  <Route path="/male/profile/:profileId" element={<UserProfilePage />} />
+                  <Route path="/male/notifications" element={<MaleNotificationsPage />} />
+                  <Route path="/male/purchase-history" element={<PurchaseHistoryPage />} />
+                  <Route path="/male/payment/:planId" element={<PaymentPage />} />
+                  <Route path="/male/my-profile" element={<MaleMyProfilePage />} />
+                  <Route path="/male/my-profile/profile" element={<MaleProfileEditPage />} />
+                  <Route path="/male/gifts" element={<GiftsPage />} />
+                  <Route path="/male/badges" element={<BadgesPage />} />
+                </Route>
 
                 {/* Female Routes */}
-                <Route path="/female/dashboard" element={<FemaleDashboard />} />
-                <Route path="/female/chats" element={<FemaleChatListPage />} />
-                <Route path="/female/chat/:chatId" element={<FemaleChatWindowPage />} />
-                <Route path="/female/earnings" element={<EarningsPage />} />
-                <Route path="/female/withdrawal" element={<WithdrawalPage />} />
-                <Route path="/female/auto-messages" element={<AutoMessageTemplatesPage />} />
-                <Route path="/female/my-profile" element={<FemaleMyProfilePage />} />
-                <Route path="/female/notifications" element={<FemaleNotificationsPage />} />
-                <Route path="/female/profile/:profileId" element={<FemaleUserProfilePage />} />
-                <Route path="/female/trade-gifts" element={<GiftTradingPage />} />
-                <Route path="/female/trade-gifts/flow" element={<GiftTradeFlowPage />} />
+                <Route element={<ProtectedRoute allowedRoles={['female']} />}>
+                  <Route path="/female/dashboard" element={<FemaleDashboard />} />
+                  <Route path="/female/chats" element={<FemaleChatListPage />} />
+                  <Route path="/female/chat/:chatId" element={<FemaleChatWindowPage />} />
+                  <Route path="/female/earnings" element={<EarningsPage />} />
+                  <Route path="/female/withdrawal" element={<WithdrawalPage />} />
+                  <Route path="/female/auto-messages" element={<AutoMessageTemplatesPage />} />
+                  <Route path="/female/my-profile" element={<FemaleMyProfilePage />} />
+                  <Route path="/female/notifications" element={<FemaleNotificationsPage />} />
+                  <Route path="/female/profile/:profileId" element={<FemaleUserProfilePage />} />
+                  <Route path="/female/trade-gifts" element={<GiftTradingPage />} />
+                  <Route path="/female/trade-gifts/flow" element={<GiftTradeFlowPage />} />
+                </Route>
 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />
+
 
                 <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
                   <Route path="/admin/users" element={<UsersManagementPage />} />
                   <Route path="/admin/users/:userId" element={<UserDetailPage />} />
                   <Route path="/admin/female-approval" element={<FemaleApprovalPage />} />
+                  <Route path="/admin/female-approval/:userId" element={<FemaleApprovalDetailPage />} />
+                  <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
+                  <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
+                  <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
+                  <Route path="/admin/coin-economy" element={<CoinEconomyPage />} />
+                  <Route path="/admin/transactions" element={<TransactionsPage />} />
+                  <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
+                  <Route path="/admin/settings" element={<SettingsPage />} />
+                </Route>
                   <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
                   <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
                   <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />

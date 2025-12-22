@@ -29,7 +29,7 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
         // Role mismatch - redirect to their dashboard or unauthorized
         if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
         if (user.role === 'female') return <Navigate to="/female/dashboard" replace />;
-        return <Navigate to="/male/dashboard" replace />;
+        return <Navigate to="/male/discover" replace />;
     }
 
     return <Outlet />;

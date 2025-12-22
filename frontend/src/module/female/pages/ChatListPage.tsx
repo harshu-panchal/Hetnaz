@@ -4,9 +4,10 @@ import { ChatListHeader } from '../components/ChatListHeader';
 import { SearchBar } from '../components/SearchBar';
 import { ChatListItem } from '../components/ChatListItem';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
-import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
+
 import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import chatService from '../../../core/services/chat.service';
 import socketService from '../../../core/services/socket.service';
 import type { Chat as ApiChat } from '../../../core/types/chat.types';
@@ -14,6 +15,7 @@ import type { Chat as ApiChat } from '../../../core/types/chat.types';
 export const ChatListPage = () => {
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
+  const { coinBalance } = useGlobalState();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [chats, setChats] = useState<ApiChat[]>([]);
@@ -85,8 +87,7 @@ export const ChatListPage = () => {
 
   return (
     <div className="flex flex-col bg-background-light dark:bg-background-dark min-h-screen pb-20">
-      {/* Top Navbar */}
-      <FemaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
 
       {/* Sidebar */}
       <FemaleSidebar
@@ -96,7 +97,7 @@ export const ChatListPage = () => {
         onItemClick={handleNavigationClick}
       />
 
-      <ChatListHeader />
+      <ChatListHeader coinBalance={coinBalance} />
       <SearchBar onSearch={setSearchQuery} placeholder="Search chats..." />
 
       <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">

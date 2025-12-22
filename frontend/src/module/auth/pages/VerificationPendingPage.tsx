@@ -24,7 +24,7 @@ export const VerificationPendingPage = () => {
     useEffect(() => {
         if (user && user.approvalStatus === 'approved') {
             if (user.role === 'female') navigate('/female/dashboard');
-            else navigate('/male/dashboard');
+            else navigate('/male/discover');
         }
     }, [user, navigate]);
 
