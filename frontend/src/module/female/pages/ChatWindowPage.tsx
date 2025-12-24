@@ -143,7 +143,27 @@ export const ChatWindowPage = () => {
     const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
       if (data.chatId === chatId) {
         setMessages(prev => {
+          // 1. Permanent ID check
           if (prev.some(m => m._id === data.message._id)) return prev;
+
+          // 2. Deduplicate for sender (Optimistic UI)
+          const senderIdVal = typeof data.message.senderId === 'object'
+            ? (data.message.senderId as any)._id || (data.message.senderId as any).id
+            : data.message.senderId;
+
+          const isSender = String(senderIdVal) === String(currentUserId);
+
+          if (isSender) {
+            const optimisticMsg = prev.find(m =>
+              String(m._id).startsWith('temp_') &&
+              m.content === data.message.content
+            );
+
+            if (optimisticMsg) {
+              return prev.map(m => m._id === optimisticMsg._id ? data.message : m);
+            }
+          }
+
           return [...prev, data.message];
         });
         scrollToBottom();

@@ -155,7 +155,31 @@ export const ChatWindowPage = () => {
     const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
       if (data.chatId === chatId) {
         setMessages(prev => {
+          // 1. Permanent ID check - if real ID already exists, ignore
           if (prev.some(m => m._id === data.message._id)) return prev;
+
+          // 2. Identify and Deduplicate Optimistic messages for the Sender
+          const senderIdVal = typeof data.message.senderId === 'object'
+            ? (data.message.senderId as any)._id || (data.message.senderId as any).id
+            : data.message.senderId;
+
+          const isSender = String(senderIdVal) === String(currentUserId);
+
+          if (isSender) {
+            // Find if there is a temp message with matching content
+            const optimisticMsg = prev.find(m =>
+              String(m._id).startsWith('temp_') &&
+              m.content === data.message.content
+            );
+
+            if (optimisticMsg) {
+              // Replace the temp message with the real one from socket
+              // This handles the case where socket arrives before API response
+              return prev.map(m => m._id === optimisticMsg._id ? data.message : m);
+            }
+          }
+
+          // 3. Normal addition for others or messages not yet optimistically rendered
           return [...prev, data.message];
         });
         scrollToBottom();
