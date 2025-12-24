@@ -5,7 +5,7 @@ interface ChatListHeaderProps {
   onEditClick?: () => void;
 }
 
-export const ChatListHeader = ({ coinBalance, onEditClick }: ChatListHeaderProps) => {
+export const ChatListHeader = ({ onEditClick }: ChatListHeaderProps) => {
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-background-light dark:bg-background-dark z-10">
       <div>

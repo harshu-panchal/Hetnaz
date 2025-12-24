@@ -28,7 +28,7 @@ export const ChatWindowHeader = ({
   isOnline,
   isVIP,
   isVerified,
-  coinBalance,
+
   intimacy,
   onMoreClick,
   onBackClick,

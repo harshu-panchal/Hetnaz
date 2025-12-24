@@ -36,7 +36,6 @@ export const GoogleMapsAutocomplete = ({
     placeholder = 'Enter location',
     className = '',
     disabled = false,
-    error,
     id = 'location-input',
 }: GoogleMapsAutocompleteProps) => {
     const inputRef = useRef<HTMLInputElement>(null);

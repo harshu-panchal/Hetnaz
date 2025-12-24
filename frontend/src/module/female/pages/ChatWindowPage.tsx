@@ -18,7 +18,7 @@ export const ChatWindowPage = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
   const { navigationItems, handleNavigationClick } = useFemaleNavigation();
-  const { coinBalance, chatCache, saveToChatCache } = useGlobalState();
+  const { chatCache, saveToChatCache } = useGlobalState();
 
   const [messages, setMessages] = useState<ApiMessage[]>(() => {
     return (chatId && chatCache[chatId]) ? chatCache[chatId] : [];
@@ -312,7 +312,7 @@ export const ChatWindowPage = () => {
 
         {messages.map((message) => {
           // Robust sender ID extraction
-          let senderId;
+          let senderId: string | undefined;
           if (typeof message.senderId === 'string') {
             senderId = message.senderId;
           } else if (message.senderId) {

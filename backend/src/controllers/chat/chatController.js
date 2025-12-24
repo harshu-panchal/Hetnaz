@@ -63,17 +63,12 @@ export const getMyChatList = async (req, res, next) => {
             return {
                 _id: chat._id,
                 otherUser: {
-                    _id: otherParticipant.userId._id,
-                    name: otherParticipant.userId.profile?.name || `User ${otherParticipant.userId.phoneNumber}`,
-                    avatar: otherParticipant.userId.profile?.photos?.[0]?.url || null,
-                    isOnline: otherParticipant.userId.isOnline,
-                    lastSeen: otherParticipant.userId.lastSeen,
-                    isVerified: otherParticipant.userId.isVerified,
                     _id: otherUserDoc._id,
                     name: name,
                     avatar: otherUserDoc.profile?.photos?.[0]?.url || null,
                     isOnline: otherUserDoc.isOnline,
                     lastSeen: otherUserDoc.lastSeen,
+                    isVerified: otherUserDoc.isVerified,
                 },
                 lastMessage: chat.lastMessage,
                 lastMessageAt: chat.lastMessageAt,

@@ -34,7 +34,7 @@ export interface Chat {
   hasUnread: boolean;
   unreadCount?: number;
   isVIP?: boolean;
-  messageType?: 'text' | 'image' | 'photo';
+  messageType?: 'text' | 'image' | 'photo' | 'gift';
   readStatus?: 'sent' | 'delivered' | 'read';
 }
 

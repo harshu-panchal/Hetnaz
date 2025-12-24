@@ -21,7 +21,7 @@ export const MessageInput = ({
   onTypingStart,
   onTypingStop,
   placeholder = 'Type a message...',
-  coinCost,
+
   disabled = false,
   isSending = false,
 }: MessageInputProps) => {
@@ -29,7 +29,7 @@ export const MessageInput = ({
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSend = () => {
     if (message.trim() && !disabled && !isSending) {

@@ -36,7 +36,7 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
     const handleSave = async () => {
         try {
             setIsLoading(true);
-            const response = await axios.patch(`${API_URL}/users/me`, {
+            await axios.patch(`${API_URL}/users/me`, {
                 name,
                 age,
                 city: location,

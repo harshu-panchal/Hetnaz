@@ -35,7 +35,7 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
     console.log('📞📞📞 VideoCallProvider RENDERING');
     const [callState, setCallState] = useState<CallState>(videoCallService.getState());
     const [remainingTime, setRemainingTime] = useState(VIDEO_CALL_DURATION);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Initialize socket listeners on mount
     useEffect(() => {

@@ -17,13 +17,7 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
-    const handleLocationChange = (value: string, coords?: { lat: number; lng: number }) => {
-        setLocation(value);
-        if (coords) {
-            setCoordinates(coords);
-        }
-        if (error) setError('');
-    };
+
 
     const handleUseMyLocation = () => {
         if (!navigator.geolocation) {
