@@ -78,7 +78,11 @@ export const MaleDashboard = () => {
   };
 
   useEffect(() => {
-    if (user && (!user.location || user.location.trim() === '')) {
+    // Check if user needs to set location
+    // Show prompt if location is empty OR if coordinates are not set
+    const hasLocation = user?.location && user.location.trim() !== '';
+    const hasCoordinates = user?.latitude && user?.longitude && user.latitude !== 0 && user.longitude !== 0;
+    if (user && (!hasLocation || !hasCoordinates)) {
       setShowLocationPrompt(true);
     }
   }, [user]);

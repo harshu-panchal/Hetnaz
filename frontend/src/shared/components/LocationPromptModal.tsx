@@ -100,18 +100,10 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
                 city: location.trim()
             };
 
-            // Add coordinates if available
+            // Add coordinates if available - backend will store in GeoJSON format
             if (coordinates) {
                 payload.latitude = coordinates.lat;
                 payload.longitude = coordinates.lng;
-
-                // Also nest in profile for backend consistency if it expects it
-                payload.profile = {
-                    location: {
-                        city: location.trim(),
-                        coordinates: [coordinates.lng, coordinates.lat]
-                    }
-                };
             }
 
             await axios.patch(

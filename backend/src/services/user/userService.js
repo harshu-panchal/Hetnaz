@@ -64,26 +64,35 @@ export const updateUserProfile = async (userId, data) => {
     if (data.age) user.profile.age = data.age;
     if (data.occupation) user.profile.occupation = data.occupation;
 
-    if (data.city || data.location) {
-        if (!user.profile.location) user.profile.location = {};
-        if (data.city) user.profile.location.city = data.city;
-        if (data.location) user.profile.locationString = data.location;
-    }
-
-    // Handle coordinates from Google Maps Autocomplete
-    if (data.latitude && data.longitude) {
-        user.profile.latitude = data.latitude;
-        user.profile.longitude = data.longitude;
-
-        // Also update GeoJSON format for potential MongoDB geospatial queries
-        if (!user.profile.location) user.profile.location = {};
-        if (!user.profile.location.coordinates) {
-            user.profile.location.coordinates = {
-                type: 'Point',
-                coordinates: [0, 0]
+    // Handle location updates - consolidated into profile.location
+    if (data.city || data.location || data.latitude || data.longitude) {
+        if (!user.profile.location) {
+            user.profile.location = {
+                city: '',
+                coordinates: {
+                    type: 'Point',
+                    coordinates: [0, 0]
+                }
             };
         }
-        user.profile.location.coordinates.coordinates = [data.longitude, data.latitude]; // [lng, lat]
+
+        // Update city from either 'city' or 'location' field
+        if (data.city) {
+            user.profile.location.city = data.city;
+        } else if (data.location) {
+            user.profile.location.city = data.location;
+        }
+
+        // Handle coordinates from Google Maps Autocomplete
+        if (data.latitude && data.longitude) {
+            if (!user.profile.location.coordinates) {
+                user.profile.location.coordinates = {
+                    type: 'Point',
+                    coordinates: [0, 0]
+                };
+            }
+            user.profile.location.coordinates.coordinates = [data.longitude, data.latitude]; // [lng, lat] for GeoJSON
+        }
     }
 
     if (data.interests) {

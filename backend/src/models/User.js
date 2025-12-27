@@ -129,27 +129,12 @@ const userSchema = new mongoose.Schema(
           },
         },
       ],
-      // Simple location fields for easy access (added for Google Maps integration)
-      locationString: {
-        type: String,
-        trim: true,
-        // e.g., "Mumbai, Maharashtra"
-      },
-      latitude: {
-        type: Number,
-        min: [-90, 'Latitude must be between -90 and 90'],
-        max: [90, 'Latitude must be between -90 and 90'],
-      },
-      longitude: {
-        type: Number,
-        min: [-180, 'Longitude must be between -180 and 180'],
-        max: [180, 'Longitude must be between -180 and 180'],
-      },
-      // Existing GeoJSON structure (keep for MongoDB geospatial queries)
+      // Consolidated location structure (GeoJSON for MongoDB geospatial queries)
       location: {
         city: String,
         state: String,
         country: String,
+        // GeoJSON Point for geospatial queries
         coordinates: {
           type: {
             type: String,

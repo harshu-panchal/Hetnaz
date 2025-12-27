@@ -139,7 +139,7 @@ export const mapUserToProfile = (user: any): UserProfile => {
     age: user.profile?.age,
     bio: user.profile?.bio,
     city: user.profile?.location?.city || user.city,
-    location: user.profile?.location ? `${user.profile.location.city || ''}, ${user.profile.location.country || ''}`.replace(/^, |, $/g, '') : (user.location || user.city),
+    location: user.profile?.location?.city || user.location || user.city,
     interests: user.profile?.interests || [],
     occupation: user.profile?.occupation,
     isVerified: user.isVerified,
@@ -147,8 +147,9 @@ export const mapUserToProfile = (user: any): UserProfile => {
     rejectionReason: user.rejectionReason,
     coinBalance: user.coinBalance,
     memberTier: user.memberTier,
-    latitude: user.profile?.location?.coordinates?.[1] || user.latitude,
-    longitude: user.profile?.location?.coordinates?.[0] || user.longitude,
+    // Extract coordinates from GeoJSON structure [lng, lat]
+    latitude: user.profile?.location?.coordinates?.coordinates?.[1] || 0,
+    longitude: user.profile?.location?.coordinates?.coordinates?.[0] || 0,
     badges: user.badges || user.profile?.badges || [],
   };
 };

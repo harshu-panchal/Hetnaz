@@ -56,7 +56,10 @@ const FemaleDashboardContent = () => {
     }
 
     // Check if user needs to set location (only for approved females)
-    if (user && user.role === 'female' && user.approvalStatus === 'approved' && (!user.location || user.location.trim() === '')) {
+    // Show prompt if location is empty OR if coordinates are not set
+    const hasLocation = user?.location && user.location.trim() !== '';
+    const hasCoordinates = user?.latitude && user?.longitude && user.latitude !== 0 && user.longitude !== 0;
+    if (user && user.role === 'female' && user.approvalStatus === 'approved' && (!hasLocation || !hasCoordinates)) {
       setShowLocationPrompt(true);
     }
   }, [user, navigate]);

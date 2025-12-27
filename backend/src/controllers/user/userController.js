@@ -1,6 +1,6 @@
 import * as userService from '../../services/user/userService.js';
 import User from '../../models/User.js';
-import { calculateDistance, formatDistance, areCoordinatesValid } from '../../utils/distanceCalculator.js';
+import { calculateDistance, formatDistance } from '../../utils/distanceCalculator.js';
 
 export const resubmitVerification = async (req, res, next) => {
     try {
@@ -97,25 +97,30 @@ export const discoverFemales = async (req, res, next) => {
         // Include coordinates for distance calculation (but DON'T send to frontend)
         // Also select original name and bio as fallbacks
         const users = await User.find(query)
-            .select(`profile.name profile.bio ${nameField} ${bioField} profile.age profile.photos profile.occupation profile.location.city profile.latitude profile.longitude isOnline lastSeen createdAt`)
+            .select(`profile.name profile.bio ${nameField} ${bioField} profile.age profile.photos profile.occupation profile.location isOnline lastSeen createdAt`)
             .sort(sortOption)
             .skip(skip)
             .limit(parseInt(limit))
             .lean();
 
-        // Get current user's coordinates for distance calculation
-        const currentUser = await User.findById(req.user.id).select('profile.latitude profile.longitude').lean();
-        const hasCurrentUserCoords = areCoordinatesValid(currentUser?.profile?.latitude, currentUser?.profile?.longitude);
+        // Get current user's coordinates for distance calculation (GeoJSON format)
+        const currentUser = await User.findById(req.user.id).select('profile.location.coordinates').lean();
+        const currentUserCoords = currentUser?.profile?.location?.coordinates?.coordinates;
+        const hasCurrentUserCoords = currentUserCoords && currentUserCoords[0] !== 0 && currentUserCoords[1] !== 0;
 
         // Transform for frontend
         const profiles = users.map(user => {
             let distanceFormatted = 'Location not set';
 
+            // Get user coordinates from GeoJSON format [lng, lat]
+            const userCoords = user.profile?.location?.coordinates?.coordinates;
+            const hasUserCoords = userCoords && userCoords[0] !== 0 && userCoords[1] !== 0;
+
             // Calculate distance if both users have coordinates
-            if (hasCurrentUserCoords && areCoordinatesValid(user.profile?.latitude, user.profile?.longitude)) {
+            if (hasCurrentUserCoords && hasUserCoords) {
                 const distanceKm = calculateDistance(
-                    { lat: currentUser.profile.latitude, lng: currentUser.profile.longitude },
-                    { lat: user.profile.latitude, lng: user.profile.longitude }
+                    { lat: currentUserCoords[1], lng: currentUserCoords[0] },
+                    { lat: userCoords[1], lng: userCoords[0] }
                 );
                 distanceFormatted = formatDistance(distanceKm);
             }
@@ -191,20 +196,25 @@ export const getUserById = async (req, res, next) => {
         }
 
         // Get current user's coordinates for distance calculation
-        const currentUser = await User.findById(req.user.id).select('profile.latitude profile.longitude role').lean();
-        const hasCurrentUserCoords = areCoordinatesValid(currentUser?.profile?.latitude, currentUser?.profile?.longitude);
+        const currentUser = await User.findById(req.user.id).select('profile.location role').lean();
+        const currentUserCoords = currentUser?.profile?.location?.coordinates?.coordinates;
+        const hasCurrentUserCoords = currentUserCoords && currentUserCoords[0] !== 0 && currentUserCoords[1] !== 0;
 
         let distanceFormatted = 'Location not set';
         let exactLocation = null;
 
+        // Get target user's coordinates from GeoJSON format
+        const targetUserCoords = user.profile?.location?.coordinates?.coordinates;
+        const hasTargetUserCoords = targetUserCoords && targetUserCoords[0] !== 0 && targetUserCoords[1] !== 0;
+
         // Admins see exact location (for verification purposes)
         if (currentUser?.role === 'admin') {
-            exactLocation = user.profile?.locationString || user.profile?.location?.city || null;
-        } else if (hasCurrentUserCoords && areCoordinatesValid(user.profile?.latitude, user.profile?.longitude)) {
-            // Regular users see distance
+            exactLocation = user.profile?.location?.city || null;
+        } else if (hasCurrentUserCoords && hasTargetUserCoords) {
+            // Regular users see distance - GeoJSON is [lng, lat]
             const distanceKm = calculateDistance(
-                { lat: currentUser.profile.latitude, lng: currentUser.profile.longitude },
-                { lat: user.profile.latitude, lng: user.profile.longitude }
+                { lat: currentUserCoords[1], lng: currentUserCoords[0] },
+                { lat: targetUserCoords[1], lng: targetUserCoords[0] }
             );
             distanceFormatted = formatDistance(distanceKm);
         }
