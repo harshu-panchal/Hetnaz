@@ -8,6 +8,7 @@ import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import type { AutoMessageTemplate } from '../types/female.types';
 import autoMessageService from '../../../core/services/autoMessage.service';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 export const AutoMessageTemplatesPage = () => {
   const { t } = useTranslation();
