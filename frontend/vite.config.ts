@@ -52,9 +52,10 @@ export default defineConfig({
     // Target modern browsers for smaller bundle
     target: 'es2020',
   },
-  // Remove console in production via esbuild
+  // Keep console logs for debugging (remove this later for production)
   esbuild: {
-    drop: ['console', 'debugger'],
+    // drop: ['console', 'debugger'], // Temporarily disabled for video call debugging
+    drop: ['debugger'],
   },
   server: {
     port: 5174,
