@@ -134,6 +134,7 @@ export const MyProfilePage = () => {
               avatar: profile.avatar,
               isPremium: false,
               isOnline: true,
+              memberTier: user?.memberTier || 'basic',
             }}
             onEditClick={() => navigate('/male/my-profile/profile')}
           />

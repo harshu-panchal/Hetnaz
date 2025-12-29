@@ -82,6 +82,34 @@ const userSchema = new mongoose.Schema(
       enum: ['basic', 'silver', 'gold', 'platinum'],
       default: 'basic',
     },
+    memberTierUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+    // Badges earned through various activities
+    badges: [{
+      id: {
+        type: String,
+        required: true,
+      },
+      name: {
+        type: String,
+        required: true,
+      },
+      icon: {
+        type: String,
+        default: 'workspace_premium',
+      },
+      category: {
+        type: String,
+        enum: ['membership', 'achievement', 'special', 'limited', 'vip'],
+        default: 'achievement',
+      },
+      unlockedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
 
     // Profile Fields (Sujal - Profile Domain)
     profile: {

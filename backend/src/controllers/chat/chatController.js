@@ -263,7 +263,7 @@ export const getChatMessages = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const { chatId } = req.params;
-        const { limit = 50, before } = req.query;
+        const { limit = 10, before } = req.query;
 
         // Verify user is part of this chat
         const chat = await Chat.findOne({

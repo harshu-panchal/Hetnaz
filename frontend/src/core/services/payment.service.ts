@@ -55,6 +55,11 @@ export const initiatePayment = async (
     coinsAdded?: number;
     newBalance?: number;
     error?: string;
+    // Membership upgrade info
+    membershipUpgraded?: boolean;
+    previousTier?: string;
+    newTier?: 'silver' | 'gold' | 'platinum';
+    newMemberTier?: string;
 }> => {
     try {
         // Step 1: Load Razorpay SDK
@@ -102,8 +107,14 @@ export const initiatePayment = async (
                             message: result.message,
                             coinsAdded: result.coinsAdded,
                             newBalance: result.newBalance,
+                            // Pass through membership upgrade info
+                            membershipUpgraded: result.membershipUpgraded,
+                            previousTier: result.previousTier,
+                            newTier: result.newTier,
+                            newMemberTier: result.newMemberTier,
                         });
                     } catch (error: any) {
+
                         resolve({
                             success: false,
                             message: 'Payment verification failed',

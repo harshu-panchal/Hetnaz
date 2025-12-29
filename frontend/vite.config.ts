@@ -11,6 +11,51 @@ export default defineConfig({
       '@module': path.resolve(__dirname, './src/module'),
     },
   },
+  optimizeDeps: {
+    include: ['agora-rtc-sdk-ng'],
+  },
+  build: {
+    // Code splitting for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (!id.includes('node_modules')) return;
+
+          // Core React - rarely changes, cache separately
+          if (id.includes('/react@') ||
+            id.includes('/react-dom@') ||
+            id.includes('/react-router-dom@') ||
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/react-router')) {
+            return 'vendor-react';
+          }
+          // Socket.IO - loaded for real-time features
+          if (id.includes('/socket.io-client') || id.includes('/engine.io')) {
+            return 'vendor-socket';
+          }
+          // Agora - only loaded when needed for video calls (lazy)
+          if (id.includes('/agora-rtc-sdk-ng')) {
+            return 'vendor-agora';
+          }
+          // i18n - separate for caching
+          if (id.includes('/i18next') || id.includes('/react-i18next')) {
+            return 'vendor-i18n';
+          }
+        },
+      },
+    },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 500,
+    // Use esbuild for faster, smaller builds (default)
+    minify: 'esbuild',
+    // Target modern browsers for smaller bundle
+    target: 'es2020',
+  },
+  // Remove console in production via esbuild
+  esbuild: {
+    drop: ['console', 'debugger'],
+  },
   server: {
     port: 5174,
     proxy: {
@@ -21,4 +66,3 @@ export default defineConfig({
     },
   },
 })
-

@@ -11,6 +11,7 @@
  */
 
 import videoCallService from '../services/videoCall/videoCallService.js';
+import agoraService from '../services/agora/agoraService.js';
 import logger from '../utils/logger.js';
 
 // In-memory store for active calls and timers
@@ -103,16 +104,39 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             // Update call status
             const videoCall = await videoCallService.acceptCall(callId);
 
-            // Notify caller that call was accepted (using room named by callerId)
+            // Generate Agora tokens for both users
+            // Channel name = callId for uniqueness
+            const channelName = callId;
+            const callerUid = videoCall.callerId.toString().slice(-8); // Last 8 chars as numeric UID
+            const receiverUid = videoCall.receiverId.toString().slice(-8);
+
+            const callerToken = agoraService.generateRtcToken(channelName, callerUid, 'publisher');
+            const receiverToken = agoraService.generateRtcToken(channelName, receiverUid, 'publisher');
+
+            logger.info(`🎥 Agora tokens generated for channel: ${channelName}`);
+
+            // Notify caller that call was accepted with Agora credentials
             io.to(videoCall.callerId.toString()).emit('call:accepted', {
                 callId,
                 receiverId: videoCall.receiverId.toString(),
+                agora: {
+                    channelName,
+                    token: callerToken,
+                    uid: parseInt(callerUid) || 0,
+                    appId: agoraService.getAppId(),
+                },
             });
 
-            // Notify receiver (self) to proceed with WebRTC
+            // Notify receiver (self) to proceed with Agora credentials
             socket.emit('call:proceed', {
                 callId,
                 callerId: videoCall.callerId.toString(),
+                agora: {
+                    channelName,
+                    token: receiverToken,
+                    uid: parseInt(receiverUid) || 0,
+                    appId: agoraService.getAppId(),
+                },
             });
         } catch (error) {
             logger.error(`Call accept error: ${error.message}`);

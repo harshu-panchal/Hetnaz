@@ -150,12 +150,26 @@ export const verifyPayment = async (req, res, next) => {
             throw new BadRequestError('Payment verification failed');
         }
 
+        // Tier ranking for comparison
+        const tierRank = { basic: 1, silver: 2, gold: 3, platinum: 4 };
+        const tierIcons = {
+            silver: 'star',
+            gold: 'workspace_premium',
+            platinum: 'diamond',
+        };
+
         // Payment verified successfully - credit coins atomically
+        let membershipUpgraded = false;
+        let previousTier = null;
+        let newTier = null;
+
         const result = await transactionManager.executeTransaction([
             async (session) => {
-                // Get user's current balance
+                // Get user's current balance and the purchased plan
                 const user = await User.findById(userId).session(session);
                 if (!user) throw new Error('User not found');
+
+                const plan = await CoinPlan.findById(transaction.coinPlanId).session(session);
 
                 const balanceBefore = user.coinBalance;
                 const balanceAfter = balanceBefore + transaction.amountCoins;
@@ -171,11 +185,51 @@ export const verifyPayment = async (req, res, next) => {
 
                 // Credit coins to user
                 user.coinBalance = balanceAfter;
+
+                // Check if membership should be upgraded
+                if (plan && plan.tier) {
+                    previousTier = user.memberTier || 'basic';
+                    const purchasedTierRank = tierRank[plan.tier] || 1;
+                    const currentTierRank = tierRank[previousTier] || 1;
+
+                    logger.info(`📊 Tier check: purchased=${plan.tier}(${purchasedTierRank}), current=${previousTier}(${currentTierRank})`);
+
+                    // Upgrade membership if purchased tier is higher
+                    if (purchasedTierRank > currentTierRank) {
+                        user.memberTier = plan.tier;
+                        user.memberTierUpdatedAt = new Date();
+                        newTier = plan.tier;
+                        membershipUpgraded = true;
+
+                        // Award membership badge (if not already awarded)
+                        const badgeId = `${plan.tier}_member`;
+                        const existingBadge = user.badges?.find(b => b.id === badgeId);
+
+                        if (!existingBadge) {
+                            const tierName = plan.tier.charAt(0).toUpperCase() + plan.tier.slice(1);
+                            user.badges = user.badges || [];
+                            user.badges.push({
+                                id: badgeId,
+                                name: `${tierName} Member`,
+                                icon: tierIcons[plan.tier] || 'workspace_premium',
+                                category: 'membership',
+                                unlockedAt: new Date(),
+                            });
+                            logger.info(`🏅 Badge awarded: ${badgeId} to user ${userId}`);
+                        }
+
+                        logger.info(`⭐ Membership upgraded: ${previousTier} → ${plan.tier} for user ${userId}`);
+                    } else {
+                        logger.info(`ℹ️ No membership upgrade: purchased tier ${plan.tier} is not higher than current ${previousTier}`);
+                    }
+
+                }
+
                 await user.save({ session });
 
                 logger.info(`✅ Payment verified and ${transaction.amountCoins} coins credited to user ${userId}`);
 
-                return { transaction, user };
+                return { transaction, user, membershipUpgraded, previousTier, newTier };
             },
         ]);
 
@@ -186,12 +240,18 @@ export const verifyPayment = async (req, res, next) => {
                 coinsAdded: transaction.amountCoins,
                 newBalance: result.user.coinBalance,
                 transactionId: transaction._id,
+                // Membership upgrade info for frontend celebration
+                membershipUpgraded: result.membershipUpgraded,
+                previousTier: result.previousTier,
+                newTier: result.newTier,
+                newMemberTier: result.user.memberTier,
             },
         });
     } catch (error) {
         next(error);
     }
 };
+
 
 /**
  * Handle Razorpay webhook for payment events

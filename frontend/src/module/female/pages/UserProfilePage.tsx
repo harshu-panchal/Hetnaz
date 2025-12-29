@@ -22,7 +22,31 @@ interface UserProfile {
   distance?: string;
   latitude?: number;
   longitude?: number;
+  memberTier?: 'basic' | 'silver' | 'gold' | 'platinum';
 }
+
+// Tier badge styling
+const tierBadgeConfig = {
+  basic: null, // Don't show badge for basic
+  silver: {
+    label: 'SILVER',
+    icon: '⭐',
+    bgClass: 'bg-gradient-to-r from-gray-300 to-gray-400',
+    textClass: 'text-gray-800',
+  },
+  gold: {
+    label: 'GOLD',
+    icon: '👑',
+    bgClass: 'bg-gradient-to-r from-yellow-400 to-orange-400',
+    textClass: 'text-yellow-900',
+  },
+  platinum: {
+    label: 'PLATINUM',
+    icon: '💎',
+    bgClass: 'bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400',
+    textClass: 'text-white',
+  },
+};
 
 export const UserProfilePage = () => {
   const { t } = useTranslation();
@@ -85,7 +109,8 @@ export const UserProfilePage = () => {
         isVerified: data.isVerified,
         distance: distanceStr,
         latitude: profileLat,
-        longitude: profileLng
+        longitude: profileLng,
+        memberTier: data.memberTier || 'basic',
       };
 
       console.log('[FemaleUserProfilePage] Mapped profile:', mappedProfile);
@@ -165,18 +190,28 @@ export const UserProfilePage = () => {
         <div className="px-6 py-6 space-y-6">
           {/* Name and Verification */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{profile.name}</h2>
               {profile.isVerified && (
                 <MaterialSymbol name="verified" filled size={24} className="text-blue-500" />
               )}
+              {/* Membership Tier Badge */}
+              {profile.memberTier && profile.memberTier !== 'basic' && tierBadgeConfig[profile.memberTier] && (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold shadow-sm ${tierBadgeConfig[profile.memberTier]!.bgClass} ${tierBadgeConfig[profile.memberTier]!.textClass}`}>
+                  {tierBadgeConfig[profile.memberTier]!.icon} {t(tierBadgeConfig[profile.memberTier]!.label)} {t('member')}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
               {profile.age && <span>{t('yearsOld', { count: profile.age })}</span>}
-              {profile.location && <span>• {profile.location}</span>}
-              {profile.distance && (
+              {/* Only show distance, never show exact location */}
+              {profile.distance ? (
                 <span className="flex items-center gap-1 font-medium text-primary">
                   • <MaterialSymbol name="location_on" size={14} /> {profile.distance}
+                </span>
+              ) : (
+                <span className="text-gray-400 dark:text-gray-500 italic">
+                  • {t('locationNotSetMale')}
                 </span>
               )}
             </div>

@@ -1,6 +1,8 @@
 /**
- * Video Call Modal - Floating Video Call UI
+ * Video Call Modal - Floating Video Call UI with Agora SDK
  * @purpose: Display video call interface that survives route changes
+ * 
+ * UPDATED: Uses Agora SDK video tracks for rendering
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -26,25 +28,44 @@ export const VideoCallModal = () => {
         callPrice,
     } = useVideoCall();
 
-    const localVideoRef = useRef<HTMLVideoElement>(null);
-    const remoteVideoRef = useRef<HTMLVideoElement>(null);
+    const localVideoRef = useRef<HTMLDivElement>(null);
+    const remoteVideoRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState({ x: 20, y: 20 });
     const dragOffset = useRef({ x: 0, y: 0 });
 
-    // Attach local video stream
+    // Attach local video track (Agora uses .play() method on a DOM element)
     useEffect(() => {
-        if (localVideoRef.current && callState.localStream) {
-            localVideoRef.current.srcObject = callState.localStream;
+        if (localVideoRef.current && callState.localVideoTrack) {
+            // Clear previous content
+            localVideoRef.current.innerHTML = '';
+            // Agora plays video into a div container
+            callState.localVideoTrack.play(localVideoRef.current);
         }
-    }, [callState.localStream]);
 
-    // Attach remote video stream
+        return () => {
+            // Stop playing when component unmounts or track changes
+            if (callState.localVideoTrack) {
+                callState.localVideoTrack.stop();
+            }
+        };
+    }, [callState.localVideoTrack]);
+
+    // Attach remote video track
     useEffect(() => {
-        if (remoteVideoRef.current && callState.remoteStream) {
-            remoteVideoRef.current.srcObject = callState.remoteStream;
+        if (remoteVideoRef.current && callState.remoteVideoTrack) {
+            // Clear previous content
+            remoteVideoRef.current.innerHTML = '';
+            // Agora plays video into a div container
+            callState.remoteVideoTrack.play(remoteVideoRef.current);
         }
-    }, [callState.remoteStream]);
+
+        return () => {
+            if (callState.remoteVideoTrack) {
+                callState.remoteVideoTrack.stop();
+            }
+        };
+    }, [callState.remoteVideoTrack]);
 
     // Handle drag start
     const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -255,22 +276,17 @@ export const VideoCallModal = () => {
 
                 {/* Video area */}
                 <div className="relative aspect-[4/3] bg-black">
-                    {/* Remote video (main) */}
-                    <video
+                    {/* Remote video (main) - Agora renders into this div */}
+                    <div
                         ref={remoteVideoRef}
-                        autoPlay
-                        playsInline
-                        className="w-full h-full object-cover"
+                        className="w-full h-full"
                     />
 
-                    {/* Local video (PiP) */}
+                    {/* Local video (PiP) - Agora renders into this div */}
                     <div className="absolute bottom-2 right-2 w-24 h-32 rounded-lg overflow-hidden bg-gray-800 shadow-lg border-2 border-white/20">
-                        <video
+                        <div
                             ref={localVideoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            className="w-full h-full object-cover mirror"
+                            className="w-full h-full"
                             style={{ transform: 'scaleX(-1)' }}
                         />
                         {callState.isCameraOff && (

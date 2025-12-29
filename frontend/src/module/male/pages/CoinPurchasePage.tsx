@@ -10,6 +10,7 @@ import { TrustFooter } from '../components/TrustFooter';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { MaleSidebar } from '../components/MaleSidebar';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { MembershipUpgradeModal } from '../components/MembershipUpgradeModal';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import walletService from '../../../core/services/wallet.service';
@@ -30,6 +31,11 @@ export const CoinPurchasePage = () => {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Membership upgrade modal state
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeTier, setUpgradeTier] = useState<'silver' | 'gold' | 'platinum'>('silver');
+  const [previousTier, setPreviousTier] = useState<string>('basic');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -84,6 +90,21 @@ export const CoinPurchasePage = () => {
           // Update in auth context as well if available
           updateUser?.({ coinBalance: result.newBalance });
         }
+
+        // Check if membership was upgraded - show celebration modal
+        if (result.membershipUpgraded && result.newTier) {
+          setPreviousTier(result.previousTier || 'basic');
+          setUpgradeTier(result.newTier);
+
+          // Update auth context with new membership tier
+          updateUser?.({ memberTier: result.newTier });
+
+          // Small delay to let the purchase overlay close first
+          setTimeout(() => {
+            setShowUpgradeModal(true);
+          }, 300);
+        }
+
         // Refresh data after successful purchase
         setTimeout(() => {
           fetchData();
@@ -227,6 +248,15 @@ export const CoinPurchasePage = () => {
 
       {/* Bottom Navigation */}
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+
+      {/* Membership Upgrade Celebration Modal */}
+      <MembershipUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        newTier={upgradeTier}
+        previousTier={previousTier}
+      />
     </div>
   );
 };
+

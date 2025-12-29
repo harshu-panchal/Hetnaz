@@ -48,6 +48,11 @@ export const ChatWindowPage = () => {
   // Typing indicator
   const [isOtherTyping, setIsOtherTyping] = useState(false);
 
+  // Pagination state
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const MESSAGES_PER_PAGE = 10;
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUserId = user?.id;
 
@@ -72,9 +77,10 @@ export const ChatWindowPage = () => {
         setChatInfo(chat);
         setIntimacy(chat.intimacy);
 
-        // Get messages
-        const { messages: msgData } = await chatService.getChatMessages(chatId);
+        // Get messages (limited to 10 initially)
+        const { messages: msgData, hasMore: moreAvailable } = await chatService.getChatMessages(chatId, { limit: MESSAGES_PER_PAGE });
         setMessages(msgData);
+        setHasMore(moreAvailable);
         saveToChatCache(chatId, msgData);
 
         // Join chat room
@@ -473,6 +479,36 @@ export const ChatWindowPage = () => {
       )}
 
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center py-2">
+            <button
+              onClick={async () => {
+                if (!chatId || isLoadingMore) return;
+                setIsLoadingMore(true);
+                try {
+                  const oldestMessage = messages[0];
+                  const beforeDate = oldestMessage?.createdAt;
+                  const { messages: olderMessages, hasMore: moreAvailable } = await chatService.getChatMessages(chatId, {
+                    limit: MESSAGES_PER_PAGE,
+                    before: beforeDate
+                  });
+                  setMessages(prev => [...olderMessages, ...prev]);
+                  setHasMore(moreAvailable);
+                } catch (err) {
+                  console.error('Failed to load more messages:', err);
+                } finally {
+                  setIsLoadingMore(false);
+                }
+              }}
+              disabled={isLoadingMore}
+              className="px-4 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-full transition-colors disabled:opacity-50"
+            >
+              {isLoadingMore ? t('loading') : t('loadMore')}
+            </button>
+          </div>
+        )}
+
         {messages.length === 0 && (
           <div className="text-center text-gray-400 dark:text-gray-500 py-8">
             <p>{t('noMessagesYet')}</p>

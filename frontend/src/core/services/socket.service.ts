@@ -1,15 +1,23 @@
 /**
  * Socket Service - Socket.IO Client for Real-time Chat
  * @purpose: Manage Socket.IO connection and real-time events
+ * 
+ * Includes heartbeat mechanism:
+ * - Sends 'heartbeat' event every 30s to confirm connection
+ * - Server marks user offline if no heartbeat for 60s
  */
 
 import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
+// Heartbeat interval in ms
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+
 class SocketService {
     private socket: Socket | null = null;
     private listeners: Map<string, Set<Function>> = new Map();
+    private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
     /**
      * Connect to Socket.IO server
@@ -38,10 +46,20 @@ class SocketService {
 
         this.socket.on('connect', () => {
             console.log('✅ Socket connected:', this.socket?.id);
+            // Start heartbeat on connect
+            this.startHeartbeat();
         });
 
         this.socket.on('disconnect', (reason) => {
             console.log('Socket disconnected:', reason);
+            // Stop heartbeat on disconnect
+            this.stopHeartbeat();
+        });
+
+        this.socket.on('reconnect', () => {
+            console.log('Socket reconnected');
+            // Restart heartbeat on reconnect
+            this.startHeartbeat();
         });
 
         this.socket.on('connect_error', (error) => {
@@ -53,9 +71,41 @@ class SocketService {
     }
 
     /**
+     * Start heartbeat - sends ping every 30s
+     */
+    private startHeartbeat() {
+        // Clear any existing interval first
+        this.stopHeartbeat();
+
+        // Send initial heartbeat immediately
+        this.socket?.emit('heartbeat');
+
+        // Then send every 30 seconds
+        this.heartbeatInterval = setInterval(() => {
+            if (this.socket?.connected) {
+                this.socket.emit('heartbeat');
+            }
+        }, HEARTBEAT_INTERVAL);
+
+        console.log('💓 Heartbeat started');
+    }
+
+    /**
+     * Stop heartbeat
+     */
+    private stopHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+            console.log('💔 Heartbeat stopped');
+        }
+    }
+
+    /**
      * Disconnect from Socket.IO server
      */
     disconnect() {
+        this.stopHeartbeat();
         if (this.socket) {
             this.socket.disconnect();
             this.socket = null;

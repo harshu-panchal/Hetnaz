@@ -7,6 +7,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { UserProfile } from '../types/global';
 import socketService from '../services/socket.service';
 import walletService from '../services/wallet.service';
+import indexedDBCache from '../services/indexedDB.service';
 import { useAuth } from './AuthContext';
 import { mapUserToProfile } from '../utils/auth';
 
@@ -25,6 +26,7 @@ interface GlobalState {
     notifications: InAppNotification[];
     chatCache: Record<string, any[]>;
     saveToChatCache: (chatId: string, messages: any[]) => void;
+    loadFromChatCache: (chatId: string) => Promise<any[]>;
 }
 
 export interface InAppNotification {
@@ -66,14 +68,21 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
 
     const [isConnected, setIsConnected] = useState(false);
     const [notifications, setNotifications] = useState<InAppNotification[]>([]);
-    const [chatCache, setChatCache] = useState<Record<string, any[]>>(() => {
-        try {
-            const cached = localStorage.getItem(STORAGE_KEYS.CHAT_CACHE);
-            return cached ? JSON.parse(cached) : {};
-        } catch {
-            return {};
-        }
-    });
+    const [chatCache, setChatCache] = useState<Record<string, any[]>>({});
+
+    // Load chat cache from IndexedDB on mount (non-blocking)
+    useEffect(() => {
+        // This runs in background, doesn't block UI
+        const loadChatCache = async () => {
+            try {
+                const stats = await indexedDBCache.getStats();
+                console.log(`📦 IndexedDB cache: ${stats.chatCount} chats, ${stats.messageCount} messages`);
+            } catch (e) {
+                console.warn('IndexedDB not available, using memory-only cache');
+            }
+        };
+        loadChatCache();
+    }, []);
 
     const addNotification = useCallback((notification: Omit<InAppNotification, 'id'>) => {
         const id = Math.random().toString(36).substr(2, 9);
@@ -90,27 +99,39 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
     }, []);
 
     const saveToChatCache = useCallback((chatId: string, messages: any[]) => {
-        setChatCache(prev => {
-            const updated = { ...prev, [chatId]: messages.slice(-50) }; // Keep last 50 messages
+        const trimmedMessages = messages.slice(-100); // Keep last 100 messages
 
-            // Auto-Pruning: If we have more than 20 chats cached, remove the oldest one
-            const chatIds = Object.keys(updated);
-            if (chatIds.length > 20) {
-                delete updated[chatIds[0]];
-            }
+        // Update in-memory state
+        setChatCache(prev => ({
+            ...prev,
+            [chatId]: trimmedMessages
+        }));
 
-            try {
-                localStorage.setItem(STORAGE_KEYS.CHAT_CACHE, JSON.stringify(updated));
-            } catch (e: any) {
-                if (e.name === 'QuotaExceededError' || e.code === 22) {
-                    console.warn('Storage quota exceeded, clearing chat cache to free up space');
-                    // If still failing, clear the whole cache to prevent crash
-                    localStorage.removeItem(STORAGE_KEYS.CHAT_CACHE);
-                }
-            }
-            return updated;
+        // Persist to IndexedDB (non-blocking)
+        indexedDBCache.saveChatMessages(chatId, trimmedMessages).catch(e => {
+            console.warn('Failed to persist chat to IndexedDB:', e);
         });
     }, []);
+
+    // Function to load messages from IndexedDB cache
+    const loadFromChatCache = useCallback(async (chatId: string): Promise<any[]> => {
+        // First check in-memory cache
+        if (chatCache[chatId]) {
+            return chatCache[chatId];
+        }
+
+        // Then try IndexedDB
+        try {
+            const messages = await indexedDBCache.getChatMessages(chatId);
+            if (messages.length > 0) {
+                // Update in-memory cache
+                setChatCache(prev => ({ ...prev, [chatId]: messages }));
+            }
+            return messages;
+        } catch (e) {
+            return [];
+        }
+    }, [chatCache]);
 
     // Update user and persist to localStorage
     // setUser mapping
@@ -234,6 +255,7 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
         clearNotification,
         chatCache,
         saveToChatCache,
+        loadFromChatCache,
     };
 
     return (

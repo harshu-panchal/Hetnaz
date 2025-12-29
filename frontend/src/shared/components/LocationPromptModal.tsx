@@ -17,8 +17,6 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
-
-
     const handleUseMyLocation = () => {
         if (!navigator.geolocation) {
             setError('Geolocation is not supported by your browser');
@@ -28,6 +26,8 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
         setIsFetchingLocation(true);
         setError('');
 
+        // Always call getCurrentPosition - this will trigger the native browser permission prompt
+        // if permission hasn't been granted/denied yet
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const lat = position.coords.latitude;
@@ -69,7 +69,14 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
                 // Code 1 is PERMISSION_DENIED
                 if (err.code === 1) {
                     console.warn('User denied geolocation permission');
-                    setError('Location permission denied. Please enter manually.');
+                    // Simple message - user needs to enter manually
+                    setError('Location access denied. Please enter your location manually.');
+                } else if (err.code === 2) {
+                    // Position unavailable
+                    setError('Unable to determine your location. Please enter manually.');
+                } else if (err.code === 3) {
+                    // Timeout
+                    setError('Location request timed out. Please try again or enter manually.');
                 } else {
                     console.error('Geolocation error:', err);
                     setError('Failed to get your location. Please enter manually.');
@@ -78,11 +85,12 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
             },
             {
                 enableHighAccuracy: true,
-                timeout: 10000,
+                timeout: 15000,
                 maximumAge: 0
             }
         );
     };
+
 
     const handleSave = async () => {
         if (!location.trim()) {

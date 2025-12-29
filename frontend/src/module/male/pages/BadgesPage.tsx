@@ -20,6 +20,35 @@ export const BadgesPage = () => {
   // Badge data with translation keys
   const badges: Badge[] = useMemo(() => {
     const masterList: Badge[] = [
+      // Membership tier badges (earned through coin purchases)
+      {
+        id: 'silver_member',
+        name: t('badgeSilverMember') || 'Silver Member',
+        icon: 'star',
+        description: t('badgeSilverMemberDesc') || 'Achieved Silver membership through a coin purchase',
+        category: 'vip',
+        isUnlocked: false,
+        rarity: 'rare',
+      },
+      {
+        id: 'gold_member',
+        name: t('badgeGoldMember') || 'Gold Member',
+        icon: 'workspace_premium',
+        description: t('badgeGoldMemberDesc') || 'Achieved Gold membership through a coin purchase',
+        category: 'vip',
+        isUnlocked: false,
+        rarity: 'epic',
+      },
+      {
+        id: 'platinum_member',
+        name: t('badgePlatinumMember') || 'Platinum Member',
+        icon: 'diamond',
+        description: t('badgePlatinumMemberDesc') || 'Achieved the highest Platinum membership',
+        category: 'vip',
+        isUnlocked: false,
+        rarity: 'legendary',
+      },
+      // Original badges
       {
         id: '1',
         name: t('badgeVipMember'),
@@ -93,6 +122,7 @@ export const BadgesPage = () => {
         rarity: 'epic',
       },
     ];
+
 
     // Merge with user's unlocked badges from backend
     return masterList.map(badge => {

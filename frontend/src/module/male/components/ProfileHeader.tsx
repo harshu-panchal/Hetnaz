@@ -7,12 +7,67 @@ interface ProfileHeaderProps {
     avatar: string;
     isPremium: boolean;
     isOnline: boolean;
+    memberTier?: 'basic' | 'silver' | 'gold' | 'platinum';
   };
   onEditClick?: () => void;
 }
 
+// Tier configuration for display
+const tierConfig = {
+  basic: {
+    label: 'BASIC',
+    labelKey: 'BASIC',
+    icon: null,
+    textClass: 'text-gray-600 dark:text-gray-400',
+    bgClass: '',
+  },
+  silver: {
+    label: 'SILVER',
+    labelKey: 'SILVER',
+    icon: '⭐',
+    textClass: 'text-gray-500 dark:text-gray-300',
+    bgClass: 'bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600',
+  },
+  gold: {
+    label: 'GOLD',
+    labelKey: 'GOLD',
+    icon: '👑',
+    textClass: 'text-yellow-600 dark:text-yellow-400',
+    bgClass: 'bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30',
+  },
+  platinum: {
+    label: 'PLATINUM',
+    labelKey: 'PLATINUM',
+    icon: '💎',
+    textClass: 'text-purple-600 dark:text-cyan-400',
+    bgClass: 'bg-gradient-to-r from-purple-100 to-cyan-100 dark:from-purple-900/30 dark:to-cyan-900/30',
+  },
+};
+
 export const ProfileHeader = ({ user, onEditClick }: ProfileHeaderProps) => {
   const { t } = useTranslation();
+
+  const currentTier = user.memberTier || 'basic';
+  const config = tierConfig[currentTier] || tierConfig.basic;
+  const tierLabel = t(config.labelKey) || config.label;
+
+  // Render membership badge
+  const renderMembershipBadge = () => {
+    if (currentTier === 'basic') {
+      return (
+        <span className={`text-sm font-semibold ${config.textClass}`}>
+          {t('freeMember')}
+        </span>
+      );
+    }
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm font-bold ${config.bgClass} ${config.textClass}`}>
+        {config.icon && <span>{config.icon}</span>}
+        {tierLabel} {t('member')}
+      </span>
+    );
+  };
 
   return (
     <div className="flex items-center justify-between p-4 pt-8">
@@ -31,9 +86,9 @@ export const ProfileHeader = ({ user, onEditClick }: ProfileHeaderProps) => {
           <p className="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">
             {t('welcome')}, {user.name} <span className="text-pink-500">💕</span>
           </p>
-          <p className="text-pink-600/80 dark:text-pink-400/80 text-sm font-semibold leading-normal">
-            {user.isPremium ? `✨ ${t('vipMembership')}` : t('freeMember')}
-          </p>
+          <div className="mt-0.5">
+            {renderMembershipBadge()}
+          </div>
         </div>
       </div>
       <button
@@ -46,4 +101,3 @@ export const ProfileHeader = ({ user, onEditClick }: ProfileHeaderProps) => {
     </div>
   );
 };
-

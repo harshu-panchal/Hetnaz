@@ -159,10 +159,14 @@ export const UserProfilePage = () => {
             </div>
             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
               {profile.age && <span>{t('yearsOld', { count: profile.age })}</span>}
-              {profile.location && <span>• {profile.location}</span>}
-              {profile.distance && (
+              {/* Only show distance, never show exact location */}
+              {profile.distance ? (
                 <span className="flex items-center gap-1 font-medium text-primary">
                   • <MaterialSymbol name="location_on" size={14} /> {profile.distance}
+                </span>
+              ) : (
+                <span className="text-gray-400 dark:text-gray-500 italic">
+                  • {t('locationNotSetFemale')}
                 </span>
               )}
             </div>

@@ -3,19 +3,53 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface WalletBalanceCardProps {
   balance: number;
-  memberTier?: string;
+  memberTier?: 'basic' | 'silver' | 'gold' | 'platinum';
   userAvatar?: string;
 }
 
+// Tier styling config
+const tierStyles = {
+  basic: {
+    labelKey: 'freeMember',
+    icon: null,
+    textClass: 'text-[#cbb790]',
+    iconClass: 'text-primary',
+  },
+  silver: {
+    labelKey: 'SILVER',
+    icon: '⭐',
+    textClass: 'text-gray-300',
+    iconClass: 'text-gray-400',
+  },
+  gold: {
+    labelKey: 'GOLD',
+    icon: '👑',
+    textClass: 'text-yellow-400',
+    iconClass: 'text-yellow-500',
+  },
+  platinum: {
+    labelKey: 'PLATINUM',
+    icon: '💎',
+    textClass: 'text-cyan-300',
+    iconClass: 'text-cyan-400',
+  },
+};
+
 export const WalletBalanceCard = ({
   balance,
-  memberTier = 'Member',
+  memberTier = 'basic',
   userAvatar,
 }: WalletBalanceCardProps) => {
   const { t } = useTranslation();
   const formattedBalance = (balance || 0).toLocaleString();
   const defaultAvatar =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBoS_YLtV4hpNVbbyf0nrVmbQX6vzgn-xGLdye-t2gBz0LRib9HX4PeYJIj364IRM63hBRKmTLtWfuVOfikvNIryKKMjql6Ig1suPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPZpOMLYRY2W5WgHwClZhJ-JaWw470QybQVyCQD-hZYfamq_iJqx0EAJE0UNaa6Ee3_FbUUYSuUIIViQ_QxI6ytCepxc';
+
+  const currentTier = memberTier || 'basic';
+  const style = tierStyles[currentTier] || tierStyles.basic;
+  const tierLabel = currentTier === 'basic'
+    ? t('freeMember')
+    : `${style.icon || ''} ${t(style.labelKey)} ${t('member')}`;
 
   return (
     <div className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#3a301e] to-[#2a2315] border border-primary/20 shadow-lg p-6 flex flex-col items-center justify-center gap-4">
@@ -33,9 +67,9 @@ export const WalletBalanceCard = ({
         </div>
 
         <div className="flex items-center gap-2 mb-1">
-          <MaterialSymbol name="verified" filled size={20} className="text-primary" />
-          <p className="text-[#cbb790] text-sm font-medium uppercase tracking-wide">
-            {memberTier}
+          <MaterialSymbol name="verified" filled size={20} className={style.iconClass} />
+          <p className={`text-sm font-medium uppercase tracking-wide ${style.textClass}`}>
+            {tierLabel}
           </p>
         </div>
 
@@ -51,5 +85,3 @@ export const WalletBalanceCard = ({
     </div>
   );
 };
-
-

@@ -2,6 +2,12 @@
  * Socket.IO Chat Handlers - Real-time Messaging
  * @owner: Harsh (Chat Domain)
  * @purpose: Handle real-time chat events with Socket.IO
+ * 
+ * Online Status Management:
+ * - Uses heartbeat mechanism (ping every 30s)
+ * - Marks users offline if no heartbeat for 60s
+ * - Supports multiple tabs/devices per user
+ * - Runs cleanup every 60s to mark stale users offline
  */
 
 import jwt from 'jsonwebtoken';
@@ -13,8 +19,17 @@ import { getEnvConfig } from '../config/env.js';
 
 const { jwtSecret } = getEnvConfig();
 
-// Store active users: { userId: socketId }
+// Store active users: { oderId: Set<socketId> } - supports multiple tabs
 const activeUsers = new Map();
+
+// Store last heartbeat: { oderId: timestamp }
+const lastHeartbeat = new Map();
+
+// Heartbeat timeout in ms (mark offline if no heartbeat within this time)
+const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
+
+// Cleanup interval - check for stale connections
+const CLEANUP_INTERVAL = 60000; // 60 seconds
 
 /**
  * Authenticate Socket.IO connection
@@ -51,12 +66,23 @@ export const authenticateSocket = async (socket, next) => {
  * Setup Socket.IO chat handlers
  */
 export const setupChatHandlers = (io) => {
+    // Start periodic cleanup of stale connections
+    setInterval(() => {
+        cleanupStaleConnections(io);
+    }, CLEANUP_INTERVAL);
+
     io.on('connection', (socket) => {
         const userId = socket.userId;
         logger.info(`✅ User connected: ${userId} (${socket.id})`);
 
-        // Store active user
-        activeUsers.set(userId, socket.id);
+        // Add socket to user's active sockets (supports multiple tabs)
+        if (!activeUsers.has(userId)) {
+            activeUsers.set(userId, new Set());
+        }
+        activeUsers.get(userId).add(socket.id);
+
+        // Record heartbeat
+        lastHeartbeat.set(userId, Date.now());
 
         // Join user's personal room (for direct user-to-user events like video calls)
         socket.join(userId);
@@ -71,6 +97,17 @@ export const setupChatHandlers = (io) => {
 
         // Broadcast to contacts that user is online
         socket.broadcast.emit('user:online', { userId });
+
+        // ====================
+        // HEARTBEAT - Client pings to confirm still connected
+        // ====================
+        socket.on('heartbeat', () => {
+            lastHeartbeat.set(userId, Date.now());
+            // Also update lastSeen in DB (but not too frequently - every 30s is fine)
+            User.findByIdAndUpdate(userId, {
+                lastSeen: new Date(),
+            }).catch(() => { }); // Silent fail is ok for heartbeat
+        });
 
         // ====================
         // JOIN CHAT ROOM
@@ -149,11 +186,13 @@ export const setupChatHandlers = (io) => {
                 });
 
                 // Send to receiver if online but not in chat room
-                const receiverSocketId = activeUsers.get(message.receiverId._id.toString());
-                if (receiverSocketId) {
-                    io.to(receiverSocketId).emit('message:notification', {
-                        chatId,
-                        message,
+                const receiverSockets = activeUsers.get(message.receiverId._id.toString());
+                if (receiverSockets) {
+                    receiverSockets.forEach(socketId => {
+                        io.to(socketId).emit('message:notification', {
+                            chatId,
+                            message,
+                        });
                     });
                 }
             } catch (error) {
@@ -206,21 +245,34 @@ export const setupChatHandlers = (io) => {
             try {
                 logger.info(`User disconnected: ${userId} (${socket.id})`);
 
-                // Remove from active users
-                activeUsers.delete(userId);
+                // Remove this socket from user's active sockets
+                const userSockets = activeUsers.get(userId);
+                if (userSockets) {
+                    userSockets.delete(socket.id);
 
-                // Update user offline status
-                await User.findByIdAndUpdate(userId, {
-                    isOnline: false,
-                    socketId: null,
-                    lastSeen: new Date(),
-                });
+                    // Only mark offline if NO sockets remain (all tabs closed)
+                    if (userSockets.size === 0) {
+                        activeUsers.delete(userId);
+                        lastHeartbeat.delete(userId);
 
-                // Broadcast to contacts that user is offline
-                socket.broadcast.emit('user:offline', {
-                    userId,
-                    lastSeen: new Date(),
-                });
+                        // Update user offline status
+                        await User.findByIdAndUpdate(userId, {
+                            isOnline: false,
+                            socketId: null,
+                            lastSeen: new Date(),
+                        });
+
+                        // Broadcast to contacts that user is offline
+                        socket.broadcast.emit('user:offline', {
+                            userId,
+                            lastSeen: new Date(),
+                        });
+
+                        logger.info(`User ${userId} marked offline (all connections closed)`);
+                    } else {
+                        logger.info(`User ${userId} still has ${userSockets.size} active connection(s)`);
+                    }
+                }
             } catch (error) {
                 logger.error('Error handling disconnect:', error);
             }
@@ -229,13 +281,67 @@ export const setupChatHandlers = (io) => {
 };
 
 /**
+ * Cleanup stale connections - runs periodically
+ * Marks users as offline if no heartbeat received within timeout
+ */
+const cleanupStaleConnections = async (io) => {
+    const now = Date.now();
+    const staleUsers = [];
+
+    for (const [userId, lastBeat] of lastHeartbeat.entries()) {
+        if (now - lastBeat > HEARTBEAT_TIMEOUT) {
+            staleUsers.push(userId);
+        }
+    }
+
+    for (const userId of staleUsers) {
+        try {
+            logger.info(`🧹 Cleaning up stale connection for user ${userId}`);
+
+            // Get and disconnect all sockets for this user
+            const userSockets = activeUsers.get(userId);
+            if (userSockets) {
+                userSockets.forEach(socketId => {
+                    const socket = io.sockets.sockets.get(socketId);
+                    if (socket) {
+                        socket.disconnect(true);
+                    }
+                });
+            }
+
+            // Clean up tracking
+            activeUsers.delete(userId);
+            lastHeartbeat.delete(userId);
+
+            // Mark user as offline in DB
+            await User.findByIdAndUpdate(userId, {
+                isOnline: false,
+                socketId: null,
+                lastSeen: new Date(),
+            });
+
+            // Broadcast offline status
+            io.emit('user:offline', { userId, lastSeen: new Date() });
+        } catch (error) {
+            logger.error(`Error cleaning up stale connection for ${userId}:`, error);
+        }
+    }
+
+    if (staleUsers.length > 0) {
+        logger.info(`🧹 Cleaned up ${staleUsers.length} stale connection(s)`);
+    }
+};
+
+/**
  * Emit balance update to user (called from transaction controller)
  */
 export const emitBalanceUpdate = (io, userId, newBalance) => {
-    const socketId = activeUsers.get(userId);
-    if (socketId) {
-        io.to(socketId).emit('balance:update', {
-            balance: newBalance,
+    const userSockets = activeUsers.get(userId);
+    if (userSockets) {
+        userSockets.forEach(socketId => {
+            io.to(socketId).emit('balance:update', {
+                balance: newBalance,
+            });
         });
     }
 };
@@ -250,11 +356,26 @@ export const emitNewMessage = (io, chatId, message) => {
     });
 
     // Also notify receiver if they're online but not in chat
-    const receiverSocketId = activeUsers.get(message.receiverId.toString());
-    if (receiverSocketId) {
-        io.to(receiverSocketId).emit('message:notification', {
-            chatId,
-            message,
+    const receiverSockets = activeUsers.get(message.receiverId.toString());
+    if (receiverSockets) {
+        receiverSockets.forEach(socketId => {
+            io.to(socketId).emit('message:notification', {
+                chatId,
+                message,
+            });
         });
     }
+};
+
+/**
+ * Check if user is truly online (has active sockets with recent heartbeat)
+ */
+export const isUserOnline = (userId) => {
+    const userSockets = activeUsers.get(userId);
+    if (!userSockets || userSockets.size === 0) return false;
+
+    const lastBeat = lastHeartbeat.get(userId);
+    if (!lastBeat) return false;
+
+    return (Date.now() - lastBeat) < HEARTBEAT_TIMEOUT;
 };

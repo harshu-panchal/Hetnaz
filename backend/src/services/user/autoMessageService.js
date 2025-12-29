@@ -14,8 +14,13 @@ import { getRandomDefaultTemplate } from '../../config/defaultAutoMessages.js';
 
 const DAILY_AUTO_MESSAGE_LIMIT = 10;
 const NEW_USER_THRESHOLD_DAYS = 7; // Consider users registered within last 7 days as "new"
+const PROCESSING_DEBOUNCE_MS = 5000; // Debounce processing for 5 seconds
+
+// In-memory lock to prevent race conditions
+const processingLocks = new Map(); // maleUserId -> timestamp
 
 class AutoMessageService {
+
     /**
      * SYSTEM: Create default template for a new female user
      */
@@ -169,9 +174,22 @@ class AutoMessageService {
      */
     async processAutoMessagesForMale(maleUserId) {
         try {
+            const maleIdStr = maleUserId.toString();
+
+            // Check for debounce lock to prevent duplicate processing
+            const lastProcessed = processingLocks.get(maleIdStr);
+            if (lastProcessed && (Date.now() - lastProcessed) < PROCESSING_DEBOUNCE_MS) {
+                logger.info(`⏳ Auto-message processing debounced for male ${maleUserId} (last processed ${Date.now() - lastProcessed}ms ago)`);
+                return { success: true, sent: 0, reason: 'Debounced - already processed recently' };
+            }
+
+            // Set processing lock immediately to prevent race conditions
+            processingLocks.set(maleIdStr, Date.now());
+
             // Verify user is male
             const maleUser = await User.findById(maleUserId);
             if (!maleUser || maleUser.role !== 'male') {
+                processingLocks.delete(maleIdStr); // Release lock
                 return { success: false, reason: 'User is not male' };
             }
 
@@ -211,6 +229,7 @@ class AutoMessageService {
             return { success: false, error: error.message };
         }
     }
+
 
     /**
      * INTERNAL: Check if user is new

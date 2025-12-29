@@ -150,7 +150,7 @@ export const WalletPage = () => {
         {/* Hero Card */}
         <WalletBalanceCard
           balance={coinBalance || 0}
-          memberTier={t('member')}
+          memberTier={user?.memberTier}
           userAvatar={userAvatar}
         />
 
