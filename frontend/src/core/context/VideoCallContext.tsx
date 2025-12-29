@@ -107,6 +107,19 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
             callerName: string,
             callerAvatar: string
         ): Promise<void> => {
+            // Request permissions first (triggers Android system dialog)
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                // Stop tracks immediately - we just needed permission
+                stream.getTracks().forEach(track => track.stop());
+            } catch (permError) {
+                console.error('Permission denied:', permError);
+                throw new Error('Camera and microphone access required for video calls');
+            }
+
             await videoCallService.requestCall(receiverId, receiverName, receiverAvatar, chatId, callerName, callerAvatar);
         },
         []
@@ -114,6 +127,19 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
 
     const acceptCall = useCallback(async (): Promise<void> => {
         if (callState.callId) {
+            // Request permissions first (triggers Android system dialog)
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                // Stop tracks immediately - we just needed permission
+                stream.getTracks().forEach(track => track.stop());
+            } catch (permError) {
+                console.error('Permission denied:', permError);
+                throw new Error('Camera and microphone access required for video calls');
+            }
+
             await videoCallService.acceptCall(callState.callId);
         }
     }, [callState.callId]);
