@@ -8,12 +8,11 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { EditChatModal } from '../components/EditChatModal';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
-import chatService from '../../../core/services/chat.service';
 import socketService from '../../../core/services/socket.service';
-import type { Chat as ApiChat } from '../../../core/types/chat.types';
 import { useAuth } from '../../../core/context/AuthContext';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
 
 export const ChatListPage = () => {
   const { t } = useTranslation();
@@ -24,18 +23,19 @@ export const ChatListPage = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditChatOpen, setIsEditChatOpen] = useState(false);
-  const [chats, setChats] = useState<ApiChat[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Use optimized hook
+  const { chats, isLoading, error, refreshChats } = useOptimizedChatList();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchChats();
+    // Initial fetch (will load from cache first inside hook, then we trigger network)
+    refreshChats();
 
     socketService.connect();
 
     const handleNewMessage = () => {
-      fetchChats();
+      refreshChats();
     };
     socketService.on('message:new', handleNewMessage);
     socketService.on('message:notification', handleNewMessage);
@@ -44,21 +44,7 @@ export const ChatListPage = () => {
       socketService.off('message:new', handleNewMessage);
       socketService.off('message:notification', handleNewMessage);
     };
-  }, []);
-
-  const fetchChats = async () => {
-    try {
-      setIsLoading(true);
-      const data = await chatService.getMyChatList();
-      setChats(data);
-      setError(null);
-    } catch (err: any) {
-      console.error('Failed to fetch chats:', err);
-      setError(err.response?.data?.message || t('errorLoadChats'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, []); // refreshChats is stable
 
   const formatTimestamp = (date: string | Date): string => {
     const d = new Date(date);
@@ -152,7 +138,7 @@ export const ChatListPage = () => {
           <h3 className="text-xs font-bold text-gray-500 dark:text-[#cc8ea3] uppercase tracking-wider">
             {t('activeConversations')}
           </h3>
-          <button onClick={fetchChats} className="text-primary hover:opacity-80">
+          <button onClick={() => refreshChats()} className="text-primary hover:opacity-80">
             <MaterialSymbol name="refresh" size={18} />
           </button>
         </div>

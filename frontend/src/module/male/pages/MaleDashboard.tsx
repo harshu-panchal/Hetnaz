@@ -9,8 +9,8 @@ import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { LocationPromptModal } from '../../../shared/components/LocationPromptModal';
 import userService from '../../../core/services/user.service';
-import chatService from '../../../core/services/chat.service';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { BadgeDisplay } from '../../../shared/components/BadgeDisplay';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
@@ -37,12 +37,12 @@ interface MaleDashboardData {
 
 export const MaleDashboard = () => {
   const { t } = useTranslation();
-  const [dashboardData, setDashboardData] = useState<MaleDashboardData>({
-    nearbyUsers: [],
-    activeChats: [],
-    rawChats: []
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const [nearbyUsers, setNearbyUsers] = useState<MaleDashboardData['nearbyUsers']>([]);
+  const [isNearbyLoading, setIsNearbyLoading] = useState(true);
+
+  // Use optimized chat hook - loads from cache immediately
+  const { chats: rawChats, isLoading: isChatsLoading, refreshChats } = useOptimizedChatList();
+
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
@@ -50,30 +50,23 @@ export const MaleDashboard = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchDashboardData();
+    refreshChats();
+    fetchNearbyUsers();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchNearbyUsers = async () => {
     try {
-      setIsLoading(true);
-      const [nearbyResponse, chatsResponse] = await Promise.all([
-        userService.discoverFemales('all', 1, 10),
-        chatService.getMyChatList()
-      ]);
-
-      setDashboardData({
-        nearbyUsers: nearbyResponse.profiles?.map((p: any) => ({
-          id: p.id,
-          name: p.name || 'User',
-          avatar: p.avatar || ''
-        })) || [],
-        rawChats: chatsResponse || [],
-        activeChats: [] // Will be computed
-      });
+      setIsNearbyLoading(true);
+      const nearbyResponse = await userService.discoverFemales('all', 1, 10);
+      setNearbyUsers(nearbyResponse.profiles?.map((p: any) => ({
+        id: p.id,
+        name: p.name || 'User',
+        avatar: p.avatar || ''
+      })) || []);
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      console.error('Failed to fetch nearby users:', error);
     } finally {
-      setIsLoading(false);
+      setIsNearbyLoading(false);
     }
   };
 
@@ -106,7 +99,7 @@ export const MaleDashboard = () => {
   };
 
   const activeChatsForDisplay = useMemo(() => {
-    return dashboardData.rawChats.map((chat: any) => {
+    return rawChats.map((chat: any) => {
       const otherUser = chat.otherUser || {};
       const profileLat = otherUser.profile?.location?.coordinates?.[1] || otherUser.latitude;
       const profileLng = otherUser.profile?.location?.coordinates?.[0] || otherUser.longitude;
@@ -125,14 +118,14 @@ export const MaleDashboard = () => {
         userId: otherUser._id,
         userName: otherUser.name || 'User',
         userAvatar: otherUser.avatar || '',
-        lastMessage: chat.lastMessage?.content || 'Say hi!',
+        lastMessage: chat.lastMessage?.content || t('startChatting'),
         timestamp: formatTimestamp(chat.lastMessageAt),
         isOnline: !!otherUser.isOnline,
         hasUnread: (chat.unreadCount || 0) > 0,
         distance: distanceStr
       };
     });
-  }, [dashboardData.rawChats, user?.latitude, user?.longitude, t]);
+  }, [rawChats, user?.latitude, user?.longitude, t]);
 
   const handleChatClick = (chatId: string) => {
     navigate(`/male/chat/${chatId}`);
@@ -158,7 +151,9 @@ export const MaleDashboard = () => {
     setShowLocationPrompt(false);
   };
 
-  if (isLoading) {
+  // Only show full loading screen if we have NO chats and NO nearby users AND are loading both
+  // This allows cached chats to show up even if nearby users are loading
+  if (isChatsLoading && isNearbyLoading && rawChats.length === 0 && nearbyUsers.length === 0) {
     return (
       <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark">
         <div className="flex flex-col items-center gap-4">
@@ -189,7 +184,7 @@ export const MaleDashboard = () => {
       />
 
       <DiscoverNearbyCard
-        nearbyUsers={dashboardData.nearbyUsers}
+        nearbyUsers={nearbyUsers}
         onExploreClick={handleExploreClick}
       />
 

@@ -88,6 +88,7 @@ chatSchema.index({ lastMessageAt: -1 });
 chatSchema.index({ isActive: 1, lastMessageAt: -1 });
 
 // Compound index for finding chat between two users
+chatSchema.index({ 'participants.userId': 1, 'isActive': 1, 'lastMessageAt': -1 });
 // chatSchema.index({ 'participants.userId': 1, 'participants.userId': 1 }, { unique: true });
 
 // Instance method: Get other participant

@@ -32,10 +32,18 @@ export const getMyChatList = async (req, res, next) => {
             isActive: true,
             deletedBy: { $not: { $elemMatch: { userId } } }
         })
-            .populate('participants.userId', 'profile phoneNumber isOnline lastSeen isVerified')
-            .populate('lastMessage')
+            .select('participants lastMessage lastMessageAt createdAt messageCountByUser intimacyLevel')
+            .populate({
+                path: 'participants.userId',
+                select: 'profile.name profile.photos profile.name_hi profile.name_en profile.location phoneNumber isOnline lastSeen isVerified role'
+            })
+            .populate({
+                path: 'lastMessage',
+                select: 'content messageType senderId createdAt status'
+            })
             .sort({ lastMessageAt: -1 })
-            .limit(50);
+            .limit(50)
+            .lean();
 
         // Transform chats for frontend
         const transformedChats = chats.map(chat => {
@@ -145,8 +153,9 @@ export const getOrCreateChat = async (req, res, next) => {
             });
 
             chat = await Chat.findById(chat._id)
-                .populate('participants.userId', 'profile phoneNumber isOnline lastSeen isVerified')
-                .populate('lastMessage');
+                .populate('participants.userId', 'profile.name profile.photos profile.location phoneNumber isOnline lastSeen isVerified role')
+                .populate('lastMessage')
+                .lean();
         }
 
         // Transform for frontend - ensure string comparison
@@ -203,8 +212,9 @@ export const getChatById = async (req, res, next) => {
             _id: chatId,
             'participants.userId': userId
         })
-            .populate('participants.userId', 'profile phoneNumber isOnline lastSeen isVerified')
-            .populate('lastMessage');
+            .populate('participants.userId', 'profile.name profile.photos profile.location phoneNumber isOnline lastSeen isVerified role')
+            .populate('lastMessage')
+            .lean();
 
         if (!chat) {
             throw new NotFoundError('Chat not found');
@@ -289,8 +299,9 @@ export const getChatMessages = async (req, res, next) => {
         const messages = await Message.find(query)
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
-            .populate('senderId', 'profile')
-            .populate('receiverId', 'profile');
+            .populate('senderId', 'profile.name profile.photos')
+            .populate('receiverId', 'profile.name profile.photos')
+            .lean();
 
         // Mark messages as read
         await Message.updateMany(
@@ -305,7 +316,21 @@ export const getChatMessages = async (req, res, next) => {
             }
         );
 
-        // Update chat unread count
+        // Update chat unread count - NEED TO use Mongoose document for methods or update manually
+        // Since we have the chat document from findOne (which is a different query above), let's use that if possible.
+        // However, the `chat` variable above was fetched using `findOne`. We should make that lightweight too if we want,
+        // but for `markAsRead` which calls a method, we need the document. 
+        // BUT wait, `chat` above is NOT lean()ed so we can plain call it.
+        // Optimization: Let's do the update manually in DB to avoid fetching the full doc if we can. 
+        // Actually, the `chat` variable lines 269-272 is NOT lean, so we can keep using it.
+        // Just optimizing the MESSAGE fetch (lines 289) is enough gain.
+
+        // Wait, line 269 fetches `chat`. Let's optimize that too if it's just for auth check.
+        // Actually line 309 calls `chat.markAsRead(userId)`. This is a model method.
+        // We will keep `chat` non-lean for logic simplicity here as it's a single doc fetch.
+
+        // Update chat unread count logic manually to avoid full doc save if possible, 
+        // but existing method `markAsRead` logic is fine for now. It's safe.
         await chat.markAsRead(userId);
         await chat.save();
 

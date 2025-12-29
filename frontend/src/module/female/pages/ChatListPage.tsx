@@ -8,12 +8,11 @@ import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
-import chatService from '../../../core/services/chat.service';
 import socketService from '../../../core/services/socket.service';
-import type { Chat as ApiChat } from '../../../core/types/chat.types';
 import { useAuth } from '../../../core/context/AuthContext';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
 
 export const ChatListPage = () => {
   const { t } = useTranslation();
@@ -23,9 +22,9 @@ export const ChatListPage = () => {
   const { user: currentUser } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [chats, setChats] = useState<ApiChat[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use optimized hook
+  const { chats, isLoading, error, refreshChats } = useOptimizedChatList();
+
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [availableBalance, setAvailableBalance] = useState<number>(0);
 
@@ -34,7 +33,9 @@ export const ChatListPage = () => {
     // Get current user ID from token or context
     const user = JSON.parse(localStorage.getItem('matchmint_user') || '{}');
     setCurrentUserId(user.id || user._id || '');
-    fetchChats();
+
+    // Initial fetch (will load from cache first inside hook, then we trigger network)
+    refreshChats();
     fetchAvailableBalance();
 
     // Connect socket
@@ -42,7 +43,7 @@ export const ChatListPage = () => {
 
     // Listen for new messages to update chat list
     const handleNewMessage = () => {
-      fetchChats();
+      refreshChats();
     };
     socketService.on('message:new', handleNewMessage);
     socketService.on('message:notification', handleNewMessage);
@@ -52,20 +53,6 @@ export const ChatListPage = () => {
       socketService.off('message:notification', handleNewMessage);
     };
   }, []);
-
-  const fetchChats = async () => {
-    try {
-      setIsLoading(true);
-      const data = await chatService.getMyChatList();
-      setChats(data);
-      setError(null);
-    } catch (err: any) {
-      console.error('Failed to fetch chats:', err);
-      setError(err.response?.data?.message || t('errorLoadChats'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchAvailableBalance = async () => {
     try {

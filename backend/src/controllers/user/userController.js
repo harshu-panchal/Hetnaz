@@ -20,7 +20,12 @@ export const resubmitVerification = async (req, res, next) => {
 
 export const getProfile = async (req, res, next) => {
     try {
-        const user = await userService.getUserProfile(req.user.id);
+        // Use lean() for faster read-only profile fetch
+        const user = await User.findById(req.user.id).lean();
+        if (!user) {
+            const { NotFoundError } = await import('../../utils/errors.js');
+            throw new NotFoundError('User not found');
+        }
         res.status(200).json({
             status: 'success',
             data: { user }
@@ -178,7 +183,8 @@ export const getUserById = async (req, res, next) => {
         const { userId } = req.params;
 
         const user = await User.findById(userId)
-            .select('profile isOnline lastSeen role approvalStatus phoneNumber verificationDocuments createdAt isVerified isBlocked');
+            .select('profile isOnline lastSeen role approvalStatus phoneNumber verificationDocuments createdAt isVerified isBlocked')
+            .lean();
 
         if (!user) {
             return res.status(404).json({
