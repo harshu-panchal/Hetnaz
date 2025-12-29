@@ -169,23 +169,33 @@ class VideoCallService {
      * Accept an incoming call
      */
     async acceptCall(callId: string): Promise<void> {
+        console.log('🎯 STEP 1: acceptCall called with callId:', callId);
+        console.log('🎯 Current call state:', this.callState.status);
+
         if (this.callState.status !== 'ringing') {
+            console.error('❌ Cannot accept - status is not ringing:', this.callState.status);
             throw new Error('No incoming call to accept');
         }
 
+        console.log('🎯 STEP 2: Setting status to connecting');
         this.updateState({ status: 'connecting' });
 
         // Initialize local media
         try {
+            console.log('🎯 STEP 3: Initializing local media...');
             await this.initializeLocalMedia();
+            console.log('✅ STEP 3 COMPLETE: Local media initialized');
         } catch (error: any) {
+            console.error('❌ STEP 3 FAILED:', error);
             const errorMsg = error.message || 'Camera/Microphone access denied';
             this.updateState({ status: 'idle', error: errorMsg });
             throw new Error(errorMsg);
         }
 
+        console.log('🎯 STEP 4: Sending call:accept to backend');
         // Accept call via socket - backend will send Agora credentials
         socketService.emitToServer('call:accept', { callId });
+        console.log('✅ STEP 4 COMPLETE: call:accept sent');
     }
 
     /**
@@ -557,17 +567,22 @@ class VideoCallService {
     }
 
     private async handleCallProceed(data: any): Promise<void> {
-        console.log('📞 Proceeding with Agora credentials:', data);
+        console.log('🎯 STEP 5: Received call:proceed from backend');
+        console.log('🎯 Agora credentials:', data.agora);
 
         // Join Agora channel with provided credentials
         if (data.agora) {
             try {
+                console.log('🎯 STEP 6: Joining Agora channel...');
                 await this.joinAgoraChannel(data.agora);
+                console.log('✅ STEP 6 COMPLETE: Agora channel joined');
             } catch (error) {
-                console.error('Failed to join Agora channel:', error);
+                console.error('❌ STEP 6 FAILED:', error);
                 this.updateState({ status: 'ended', error: 'Failed to connect video call' });
                 setTimeout(() => this.cleanup(), 2000);
             }
+        } else {
+            console.error('❌ No Agora credentials in call:proceed');
         }
     }
 
@@ -594,7 +609,8 @@ class VideoCallService {
     }
 
     private handleCallEnded(data: any): void {
-        console.log('📞 Call ended:', data);
+        console.log('📞 Call ended event received:', data);
+        console.log('❌ CALL ENDING - Reason:', data.reason);
         this.updateState({
             status: 'ended',
             error: data.reason === 'rejected' ? 'Call rejected' : null,
