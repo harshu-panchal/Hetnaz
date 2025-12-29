@@ -107,11 +107,20 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             // Generate Agora tokens for both users
             // Channel name = callId for uniqueness
             const channelName = callId;
-            const callerUid = videoCall.callerId.toString().slice(-8); // Last 8 chars as numeric UID
-            const receiverUid = videoCall.receiverId.toString().slice(-8);
 
-            const callerToken = agoraService.generateRtcToken(channelName, callerUid, 'publisher');
-            const receiverToken = agoraService.generateRtcToken(channelName, receiverUid, 'publisher');
+            // Generate numeric UIDs from MongoDB ObjectId (use last 8 hex chars as number)
+            // MongoDB ObjectId is 24 hex chars, we take last 8 and convert to decimal
+            const callerIdHex = videoCall.callerId.toString().slice(-8);
+            const receiverIdHex = videoCall.receiverId.toString().slice(-8);
+
+            // Convert hex to decimal for Agora UID (must be positive 32-bit integer)
+            const callerUid = parseInt(callerIdHex, 16) % 2147483647; // Max 32-bit signed int
+            const receiverUid = parseInt(receiverIdHex, 16) % 2147483647;
+
+            logger.info(`🎥 Generating tokens - Caller UID: ${callerUid}, Receiver UID: ${receiverUid}`);
+
+            const callerToken = agoraService.generateRtcToken(channelName, callerUid.toString(), 'publisher');
+            const receiverToken = agoraService.generateRtcToken(channelName, receiverUid.toString(), 'publisher');
 
             logger.info(`🎥 Agora tokens generated for channel: ${channelName}`);
 
@@ -122,7 +131,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 agora: {
                     channelName,
                     token: callerToken,
-                    uid: parseInt(callerUid) || 0,
+                    uid: callerUid,
                     appId: agoraService.getAppId(),
                 },
             });
@@ -134,7 +143,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 agora: {
                     channelName,
                     token: receiverToken,
-                    uid: parseInt(receiverUid) || 0,
+                    uid: receiverUid,
                     appId: agoraService.getAppId(),
                 },
             });
