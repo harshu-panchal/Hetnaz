@@ -135,10 +135,20 @@ class VideoCallService {
      * Request a video call
      */
     async requestCall(receiverId: string, receiverName: string, receiverAvatar: string, chatId: string, callerName: string, callerAvatar: string): Promise<void> {
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('🔵 MALE (CALLER) - STEP 1: Initiating Video Call');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('   Receiver ID:', receiverId);
+        console.log('   Receiver Name:', receiverName);
+        console.log('   Chat ID:', chatId);
+        console.log('   Current Status:', this.callState.status);
+
         if (this.callState.status !== 'idle') {
+            console.error('❌ MALE - Cannot initiate call - already in call:', this.callState.status);
             throw new Error('Already in a call');
         }
 
+        console.log('🔵 MALE - STEP 2: Setting status to requesting');
         this.updateState({
             status: 'requesting',
             remoteUserId: receiverId,
@@ -149,13 +159,17 @@ class VideoCallService {
 
         // Pre-initialize local media
         try {
+            console.log('🔵 MALE - STEP 3: Initializing camera and microphone...');
             await this.initializeLocalMedia();
+            console.log('✅ MALE - STEP 3 COMPLETE: Camera/mic ready');
         } catch (error: any) {
+            console.error('❌ MALE - STEP 3 FAILED:', error.message);
             const errorMsg = error.message || 'Camera/Microphone access denied';
             this.updateState({ status: 'idle', error: errorMsg });
             throw new Error(errorMsg);
         }
 
+        console.log('🔵 MALE - STEP 4: Sending call request to backend...');
         // Send call request via socket
         socketService.emitToServer('call:request', {
             receiverId,
@@ -163,39 +177,43 @@ class VideoCallService {
             callerName,
             callerAvatar,
         });
+        console.log('✅ MALE - STEP 4 COMPLETE: Request sent to backend');
     }
 
     /**
      * Accept an incoming call
      */
     async acceptCall(callId: string): Promise<void> {
-        console.log('🎯 STEP 1: acceptCall called with callId:', callId);
-        console.log('🎯 Current call state:', this.callState.status);
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('🟣 FEMALE (RECEIVER) - STEP 1: Accepting Video Call');
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('   Call ID:', callId);
+        console.log('   Current Status:', this.callState.status);
 
         if (this.callState.status !== 'ringing') {
-            console.error('❌ Cannot accept - status is not ringing:', this.callState.status);
+            console.error('❌ FEMALE - Cannot accept - status is not ringing:', this.callState.status);
             throw new Error('No incoming call to accept');
         }
 
-        console.log('🎯 STEP 2: Setting status to connecting');
+        console.log('🟣 FEMALE - STEP 2: Setting status to connecting');
         this.updateState({ status: 'connecting' });
 
         // Initialize local media
         try {
-            console.log('🎯 STEP 3: Initializing local media...');
+            console.log('🟣 FEMALE - STEP 3: Initializing camera and microphone...');
             await this.initializeLocalMedia();
-            console.log('✅ STEP 3 COMPLETE: Local media initialized');
+            console.log('✅ FEMALE - STEP 3 COMPLETE: Camera/mic ready');
         } catch (error: any) {
-            console.error('❌ STEP 3 FAILED:', error);
+            console.error('❌ FEMALE - STEP 3 FAILED:', error);
             const errorMsg = error.message || 'Camera/Microphone access denied';
             this.updateState({ status: 'idle', error: errorMsg });
             throw new Error(errorMsg);
         }
 
-        console.log('🎯 STEP 4: Sending call:accept to backend');
+        console.log('🟣 FEMALE - STEP 4: Sending call:accept to backend');
         // Accept call via socket - backend will send Agora credentials
         socketService.emitToServer('call:accept', { callId });
-        console.log('✅ STEP 4 COMPLETE: call:accept sent');
+        console.log('✅ FEMALE - STEP 4 COMPLETE: Acceptance sent to backend');
     }
 
     /**

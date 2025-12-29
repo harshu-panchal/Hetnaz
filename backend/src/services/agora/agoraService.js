@@ -23,8 +23,17 @@ const TOKEN_EXPIRY_SECONDS = 86400;
  * @returns {string} RTC token
  */
 export const generateRtcToken = (channelName, uid, role = 'publisher') => {
+    console.log('🎥 Generating Agora token...');
+    console.log('   Channel:', channelName);
+    console.log('   UID:', uid);
+    console.log('   Role:', role);
+    console.log('   App ID exists:', !!AGORA_APP_ID);
+    console.log('   Certificate exists:', !!AGORA_APP_CERTIFICATE);
+
     if (!AGORA_APP_ID || !AGORA_APP_CERTIFICATE) {
-        logger.error('Agora credentials not configured');
+        logger.error('❌ Agora credentials not configured');
+        logger.error('   AGORA_APP_ID:', AGORA_APP_ID ? 'SET' : 'MISSING');
+        logger.error('   AGORA_APP_CERTIFICATE:', AGORA_APP_CERTIFICATE ? 'SET' : 'MISSING');
         throw new Error('Video calling is not configured');
     }
 
@@ -45,7 +54,7 @@ export const generateRtcToken = (channelName, uid, role = 'publisher') => {
         privilegeExpiredTs
     );
 
-    logger.info(`🎥 Agora token generated for channel: ${channelName}, uid: ${uid}`);
+    logger.info(`✅ Agora token generated for channel: ${channelName}, uid: ${uid}`);
 
     return token;
 };
