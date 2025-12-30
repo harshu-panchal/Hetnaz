@@ -381,6 +381,14 @@ class VideoCallService {
                     codec: 'vp8'
                 });
 
+                // Enable Cloud Proxy (Force Port 443) for reliable connections in India
+                try {
+                    this.agoraClient.startProxyServer(3);
+                    console.log('🌐 Agora Cloud Proxy (Port 443) enabled');
+                } catch (e) {
+                    console.warn('⚠️ Could not start Agora Proxy:', e);
+                }
+
                 // Handle remote user publishing
                 this.agoraClient.on('user-published', async (user, mediaType) => {
                     console.log('🎥 Remote user published:', user.uid, mediaType);
