@@ -1,192 +1,103 @@
 /**
- * Video Call Context - Simplified with new Agora service
+ * Video Call Context - Global Video Call State Provider
+ * @purpose: Provide video call state and actions to all components
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import socketService from '../services/socket.service';
-import agoraVideoCallService from '../services/agoraVideoCall.service';
-import type { ICameraVideoTrack } from 'agora-rtc-sdk-ng';
-
-interface VideoCallState {
-    status: 'idle' | 'requesting' | 'ringing' | 'connecting' | 'connected' | 'ended';
-    callId: string | null;
-    remoteUserId: string | null;
-    remoteUserName: string | null;
-    remoteUserAvatar: string | null;
-    isIncoming: boolean;
-    localVideoTrack: ICameraVideoTrack | null;
-    remoteVideoTrack: any | null;
-    isMicOff: boolean;
-    isCameraOff: boolean;
-    error: string | null;
-}
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import videoCallService, { CallState, VIDEO_CALL_PRICE, VIDEO_CALL_DURATION } from '../services/videoCall.service';
 
 interface VideoCallContextType {
-    callState: VideoCallState;
-    requestCall: (
-        receiverId: string,
-        receiverName: string,
-        receiverAvatar: string,
-        chatId: string,
-        callerName: string,
-        callerAvatar: string
-    ) => Promise<void>;
-    acceptCall: () => Promise<void>;
-    rejectCall: () => Promise<void>;
-    endCall: () => Promise<void>;
-    toggleMicrophone: (enabled: boolean) => Promise<void>;
-    toggleCamera: (enabled: boolean) => Promise<void>;
-    toggleMute: () => Promise<void>; // Alias for toggleMicrophone
+    // State
+    callState: CallState;
     isInCall: boolean;
-    callPrice: number;
     remainingTime: number;
+
+    // Actions
+    requestCall: (receiverId: string, receiverName: string, receiverAvatar: string, chatId: string, callerName: string, callerAvatar: string) => Promise<void>;
+    acceptCall: () => Promise<void>;
+    rejectCall: () => void;
+    endCall: () => void;
+    toggleMute: () => boolean;
+    toggleCamera: () => boolean;
+
+    // Config
+    callPrice: number;
+    callDuration: number;
 }
 
 const VideoCallContext = createContext<VideoCallContextType | undefined>(undefined);
 
-export const VideoCallProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [callState, setCallState] = useState<VideoCallState>({
-        status: 'idle',
-        callId: null,
-        remoteUserId: null,
-        remoteUserName: null,
-        remoteUserAvatar: null,
-        isIncoming: false,
-        localVideoTrack: null,
-        remoteVideoTrack: null,
-        isMicOff: false,
-        isCameraOff: false,
-        error: null,
-    });
+interface VideoCallProviderProps {
+    children: ReactNode;
+}
 
-    // Call duration timer (5 minutes = 300 seconds)
-    const [remainingTime, setRemainingTime] = useState(300);
+export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
+    console.log('📞📞📞 VideoCallProvider RENDERING');
+    const [callState, setCallState] = useState<CallState>(videoCallService.getState());
+    const [remainingTime, setRemainingTime] = useState(VIDEO_CALL_DURATION);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Setup Agora callbacks
+    // Initialize socket listeners on mount
     useEffect(() => {
-        agoraVideoCallService.onLocalVideoReady = (track) => {
-            console.log('✅ Local video ready');
-            setCallState(prev => ({ ...prev, localVideoTrack: track }));
-        };
+        console.log('📞📞📞 VideoCallProvider useEffect RUNNING');
+        videoCallService.setupSocketListeners();
 
-        agoraVideoCallService.onRemoteVideoReady = (user) => {
-            console.log('✅ Remote video ready from user:', user.uid);
-            setCallState(prev => ({ ...prev, remoteVideoTrack: user.videoTrack }));
-        };
+        // Subscribe to state changes
+        const unsubscribe = videoCallService.onStateChange((newState: CallState) => {
+            setCallState(newState);
 
-        agoraVideoCallService.onRemoteUserLeft = (uid) => {
-            console.log('👋 Remote user left:', uid);
-            setCallState(prev => ({ ...prev, remoteVideoTrack: null }));
-        };
-    }, []);
-
-    // Setup socket event listeners
-    useEffect(() => {
-        // Incoming call
-        socketService.on('call:incoming', (data: any) => {
-            console.log('📞 Incoming call from:', data.callerName);
-            setCallState({
-                status: 'ringing',
-                callId: data.callId,
-                remoteUserId: data.callerId,
-                remoteUserName: data.callerName,
-                remoteUserAvatar: data.callerAvatar,
-                isIncoming: true,
-                localVideoTrack: null,
-                remoteVideoTrack: null,
-                isMicOff: false,
-                isCameraOff: false,
-                error: null,
-            });
-        });
-
-        // Call accepted (for caller)
-        socketService.on('call:accepted', async (data: any) => {
-            console.log('✅ Call accepted, joining Agora channel...');
-            setCallState(prev => ({ ...prev, status: 'connecting' }));
-
-            try {
-                await agoraVideoCallService.joinChannel(data.agora);
-                setCallState(prev => ({ ...prev, status: 'connected' }));
-            } catch (error: any) {
-                console.error('❌ Failed to join Agora:', error);
-                setCallState(prev => ({ ...prev, status: 'ended', error: error.message }));
+            // Reset timer when call starts
+            if (newState.status === 'connected' && newState.startTime) {
+                const elapsed = Math.floor((Date.now() - newState.startTime) / 1000);
+                setRemainingTime(Math.max(0, newState.duration - elapsed));
             }
-        });
 
-        // Call proceed (for receiver)
-        socketService.on('call:proceed', async (data: any) => {
-            console.log('✅ Proceeding with call, joining Agora channel...');
-
-            try {
-                await agoraVideoCallService.joinChannel(data.agora);
-                setCallState(prev => ({ ...prev, status: 'connected' }));
-            } catch (error: any) {
-                console.error('❌ Failed to join Agora:', error);
-                setCallState(prev => ({ ...prev, status: 'ended', error: error.message }));
+            // Clear timer when call ends
+            if (newState.status === 'idle' || newState.status === 'ended') {
+                if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                    timerRef.current = null;
+                }
+                setRemainingTime(VIDEO_CALL_DURATION);
             }
-        });
-
-        // Call rejected
-        socketService.on('call:rejected', () => {
-            console.log('❌ Call rejected');
-            setCallState(prev => ({ ...prev, status: 'ended', error: 'Call rejected' }));
-            setTimeout(() => {
-                setCallState({
-                    status: 'idle',
-                    callId: null,
-                    remoteUserId: null,
-                    remoteUserName: null,
-                    remoteUserAvatar: null,
-                    isIncoming: false,
-                    localVideoTrack: null,
-                    remoteVideoTrack: null,
-                    isMicOff: false,
-                    isCameraOff: false,
-                    error: null,
-                });
-            }, 2000);
-        });
-
-        // Call ended
-        socketService.on('call:ended', async () => {
-            console.log('📞 Call ended');
-            await agoraVideoCallService.leaveChannel();
-            setCallState(prev => ({ ...prev, status: 'ended' }));
-            setTimeout(() => {
-                setCallState({
-                    status: 'idle',
-                    callId: null,
-                    remoteUserId: null,
-                    remoteUserName: null,
-                    remoteUserAvatar: null,
-                    isIncoming: false,
-                    localVideoTrack: null,
-                    remoteVideoTrack: null,
-                    isMicOff: false,
-                    isCameraOff: false,
-                    error: null,
-                });
-            }, 2000);
-        });
-
-        // Call error
-        socketService.on('call:error', (data: any) => {
-            console.error('❌ Call error:', data.message);
-            setCallState(prev => ({ ...prev, status: 'ended', error: data.message }));
         });
 
         return () => {
-            socketService.off('call:incoming', () => { });
-            socketService.off('call:accepted', () => { });
-            socketService.off('call:proceed', () => { });
-            socketService.off('call:rejected', () => { });
-            socketService.off('call:ended', () => { });
-            socketService.off('call:error', () => { });
+            unsubscribe();
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
         };
     }, []);
 
-    // Request a call
+    // Countdown timer when connected
+    useEffect(() => {
+        if (callState.status === 'connected') {
+            timerRef.current = setInterval(() => {
+                setRemainingTime((prev) => {
+                    if (prev <= 1) {
+                        // Time's up - backend will force end
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } else {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        }
+
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        };
+    }, [callState.status]);
+
+    // Actions
     const requestCall = useCallback(
         async (
             receiverId: string,
@@ -196,133 +107,92 @@ export const VideoCallProvider: React.FC<{ children: ReactNode }> = ({ children 
             callerName: string,
             callerAvatar: string
         ): Promise<void> => {
-            console.log('📞 Requesting call to:', receiverName);
+            // Request permissions first (triggers Android system dialog)
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                // Stop tracks immediately - we just needed permission
+                stream.getTracks().forEach(track => track.stop());
 
-            setCallState({
-                status: 'requesting',
-                callId: null,
-                remoteUserId: receiverId,
-                remoteUserName: receiverName,
-                remoteUserAvatar: receiverAvatar,
-                isIncoming: false,
-                localVideoTrack: null,
-                remoteVideoTrack: null,
-                isMicOff: false,
-                isCameraOff: false,
-                error: null,
-            });
+                // Wait for camera to be fully released (critical for Android)
+                await new Promise(resolve => setTimeout(resolve, 200));
+            } catch (permError) {
+                console.error('Permission denied:', permError);
+                throw new Error('Camera and microphone access required for video calls');
+            }
 
-            // Send call request to backend
-            socketService.emitToServer('call:request', {
-                receiverId,
-                chatId,
-                callerName,
-                callerAvatar,
-            });
+            await videoCallService.requestCall(receiverId, receiverName, receiverAvatar, chatId, callerName, callerAvatar);
         },
         []
     );
 
-    // Accept call
     const acceptCall = useCallback(async (): Promise<void> => {
         if (callState.callId) {
-            console.log('✅ Accepting call:', callState.callId);
-            setCallState(prev => ({ ...prev, status: 'connecting' }));
+            // Request permissions first (triggers Android system dialog)
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                // Stop tracks immediately - we just needed permission
+                stream.getTracks().forEach(track => track.stop());
 
-            // Send accept to backend
-            socketService.emitToServer('call:accept', { callId: callState.callId });
+                // Wait for camera to be fully released (critical for Android)
+                await new Promise(resolve => setTimeout(resolve, 200));
+            } catch (permError) {
+                console.error('Permission denied:', permError);
+                throw new Error('Camera and microphone access required for video calls');
+            }
+
+            await videoCallService.acceptCall(callState.callId);
         }
     }, [callState.callId]);
 
-    // Reject call
-    const rejectCall = useCallback(async (): Promise<void> => {
+    const rejectCall = useCallback((): void => {
         if (callState.callId) {
-            console.log('❌ Rejecting call:', callState.callId);
-            socketService.emitToServer('call:reject', { callId: callState.callId });
-            setCallState({
-                status: 'idle',
-                callId: null,
-                remoteUserId: null,
-                remoteUserName: null,
-                remoteUserAvatar: null,
-                isIncoming: false,
-                localVideoTrack: null,
-                remoteVideoTrack: null,
-                isMicOff: false,
-                isCameraOff: false,
-                error: null,
-            });
+            videoCallService.rejectCall(callState.callId);
         }
     }, [callState.callId]);
 
-    // End call
-    const endCall = useCallback(async (): Promise<void> => {
-        console.log('📞 Ending call');
-
-        if (callState.callId) {
-            socketService.emitToServer('call:end', { callId: callState.callId });
-        }
-
-        await agoraVideoCallService.leaveChannel();
-
-        setCallState({
-            status: 'idle',
-            callId: null,
-            remoteUserId: null,
-            remoteUserName: null,
-            remoteUserAvatar: null,
-            isIncoming: false,
-            localVideoTrack: null,
-            remoteVideoTrack: null,
-            isMicOff: false,
-            isCameraOff: false,
-            error: null,
-        });
-    }, [callState.callId]);
-
-    // Toggle microphone
-    const toggleMicrophone = useCallback(async (enabled: boolean): Promise<void> => {
-        await agoraVideoCallService.toggleMicrophone(enabled);
-        setCallState(prev => ({ ...prev, isMicOff: !enabled }));
+    const endCall = useCallback((): void => {
+        videoCallService.endCall();
     }, []);
 
-    // Toggle mute (alias for toggleMicrophone)
-    const toggleMute = useCallback(async (): Promise<void> => {
-        const newMicState = !callState.isMicOff;
-        await toggleMicrophone(newMicState);
-    }, [callState.isMicOff, toggleMicrophone]);
-
-    // Toggle camera
-    const toggleCamera = useCallback(async (enabled: boolean): Promise<void> => {
-        await agoraVideoCallService.toggleCamera(enabled);
-        setCallState(prev => ({ ...prev, isCameraOff: !enabled }));
+    const toggleMute = useCallback((): boolean => {
+        return videoCallService.toggleMute();
     }, []);
 
-    return (
-        <VideoCallContext.Provider
-            value={{
-                callState,
-                requestCall,
-                acceptCall,
-                rejectCall,
-                endCall,
-                toggleMicrophone,
-                toggleCamera,
-                toggleMute,
-                isInCall: callState.status === 'connected' || callState.status === 'connecting',
-                callPrice: parseInt(import.meta.env.VITE_VIDEO_CALL_PRICE || '500'),
-                remainingTime,
-            }}
-        >
-            {children}
-        </VideoCallContext.Provider>
-    );
+    const toggleCamera = useCallback((): boolean => {
+        return videoCallService.toggleCamera();
+    }, []);
+
+    const isInCall = ['requesting', 'ringing', 'connecting', 'connected'].includes(callState.status);
+
+    const value: VideoCallContextType = {
+        callState,
+        isInCall,
+        remainingTime,
+        requestCall,
+        acceptCall,
+        rejectCall,
+        endCall,
+        toggleMute,
+        toggleCamera,
+        callPrice: VIDEO_CALL_PRICE,
+        callDuration: VIDEO_CALL_DURATION,
+    };
+
+    return <VideoCallContext.Provider value={value}>{children}</VideoCallContext.Provider>;
 };
 
 export const useVideoCall = (): VideoCallContextType => {
     const context = useContext(VideoCallContext);
-    if (!context) {
-        throw new Error('useVideoCall must be used within VideoCallProvider');
+    if (context === undefined) {
+        throw new Error('useVideoCall must be used within a VideoCallProvider');
     }
     return context;
 };
+
+export default VideoCallContext;

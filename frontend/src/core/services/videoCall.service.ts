@@ -389,21 +389,8 @@ class VideoCallService {
                             return;
                         }
 
-                        // Verify the track exists before subscribing
-                        if (mediaType === 'video' && !user.hasVideo) {
-                            console.warn('⚠️ User has no video track to subscribe to');
-                            return;
-                        }
-                        if (mediaType === 'audio' && !user.hasAudio) {
-                            console.warn('⚠️ User has no audio track to subscribe to');
-                            return;
-                        }
-
-                        console.log('🎥 Subscribing to', mediaType, 'from user', user.uid);
-
                         // Subscribe to their track
                         await this.agoraClient!.subscribe(user, mediaType);
-                        console.log('✅ Successfully subscribed to', mediaType);
 
                         if (mediaType === 'video') {
                             this.remoteVideoTrack = user.videoTrack || null;
@@ -417,7 +404,6 @@ class VideoCallService {
                         }
                     } catch (error: any) {
                         console.error('❌ Failed to subscribe to remote user:', error.message);
-                        console.error('   Error code:', error.code);
                     }
                 });
 
