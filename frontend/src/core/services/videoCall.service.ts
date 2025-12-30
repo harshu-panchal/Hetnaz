@@ -551,7 +551,7 @@ class VideoCallService {
 
     private handleIncomingCall(data: any): void {
         // Ignore if we are already handling this call or already in another call
-        if (this.state.callId === data.callId || this.state.status !== 'idle') {
+        if (this.callState.callId === data.callId || this.callState.status !== 'idle') {
             console.log('📞 Ignoring duplicate or overlapping incoming call:', data.callId);
             return;
         }
