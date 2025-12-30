@@ -504,7 +504,15 @@ class VideoCallService {
 
         } catch (error: any) {
             console.error('Failed to join Agora channel:', error);
-            socketService.emitToServer('call:connection-failed', { callId: this.callState.callId });
+
+            // CRITICAL: Only notify backend of failure if we haven't succeeded yet
+            // This prevents late-arriving retry errors from killing an active call
+            if (this.callState.status !== 'connected') {
+                console.log('❌ Reporting connection failure to backend');
+                socketService.emitToServer('call:connection-failed', { callId: this.callState.callId });
+            } else {
+                console.log('⚠️ Ignoring late-arriving Agora error as we are already connected');
+            }
             throw error;
         }
     }
@@ -629,6 +637,8 @@ class VideoCallService {
     }
 
     private handleCallStarted(data: any): void {
+        if (this.callState.status === 'connected') return;
+
         console.log('📞 Call started:', data);
 
         // Stop ringtone when call connects
