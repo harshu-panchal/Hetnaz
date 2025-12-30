@@ -91,6 +91,10 @@ const videoCallSchema = new mongoose.Schema(
             iceConnectionState: String,
             connectionType: String, // 'relay' | 'direct'
         },
+        rejoinCount: {
+            type: Number,
+            default: 0,
+        },
     },
     {
         timestamps: true,

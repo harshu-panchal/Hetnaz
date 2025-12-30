@@ -19,6 +19,7 @@ interface VideoCallContextType {
     endCall: () => void;
     toggleMute: () => boolean;
     toggleCamera: () => boolean;
+    rejoinCall: () => void;
 
     // Config
     callPrice: number;
@@ -168,6 +169,10 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
         return videoCallService.toggleCamera();
     }, []);
 
+    const rejoinCall = useCallback((): void => {
+        videoCallService.rejoinCall();
+    }, []);
+
     const isInCall = ['requesting', 'ringing', 'connecting', 'connected'].includes(callState.status);
 
     const value: VideoCallContextType = {
@@ -180,6 +185,7 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
         endCall,
         toggleMute,
         toggleCamera,
+        rejoinCall,
         callPrice: VIDEO_CALL_PRICE,
         callDuration: VIDEO_CALL_DURATION,
     };

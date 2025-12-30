@@ -363,6 +363,70 @@ export const cancelCall = async (callId) => {
 };
 
 /**
+ * Rejoin an interrupted call (accidental cut or hang up with time left)
+ * @param {string} callId - VideoCall ID
+ * @param {string} userId - User ID who is rejoining
+ * @returns {Promise<{videoCall: VideoCall, remainingTime: number}>}
+ */
+export const rejoinCall = async (callId, userId) => {
+    try {
+        const videoCall = await VideoCall.findById(callId);
+
+        if (!videoCall) {
+            throw new NotFoundError('Call not found');
+        }
+
+        // Validate if rejoin is possible
+        if (videoCall.status !== 'ended' && videoCall.status !== 'failed') {
+            throw new BadRequestError(`Cannot rejoin call in ${videoCall.status} state`);
+        }
+
+        if (videoCall.endReason === 'timer_expired') {
+            throw new BadRequestError('Call already reached its time limit');
+        }
+
+        if (videoCall.rejoinCount >= 1) {
+            throw new BadRequestError('Rejoin is allowed only once per call');
+        }
+
+        // Calculate remaining seconds
+        const connectedTime = videoCall.connectedAt ? new Date(videoCall.connectedAt).getTime() : 0;
+        const endedTime = videoCall.endedAt ? new Date(videoCall.endedAt).getTime() : Date.now();
+
+        if (!connectedTime) {
+            throw new BadRequestError('Cannot rejoin a call that never connected');
+        }
+
+        const elapsedSeconds = Math.floor((endedTime - connectedTime) / 1000);
+        const remainingSeconds = Math.max(0, videoCall.callDurationSeconds - elapsedSeconds);
+
+        if (remainingSeconds < 5) {
+            throw new BadRequestError('Insufficient time remaining to rejoin');
+        }
+
+        // Re-set isOnCall for both users
+        await User.updateMany(
+            { _id: { $in: [videoCall.callerId, videoCall.receiverId] } },
+            { $set: { isOnCall: true } }
+        );
+
+        // Update call record
+        videoCall.status = 'connected';
+        videoCall.rejoinCount += 1;
+        videoCall.endedAt = null;
+        videoCall.endReason = null;
+        await videoCall.save();
+
+        logger.info(`🔄 Video call REJOINED: ${callId} (Remaining: ${remainingSeconds}s)`);
+
+        return { videoCall, remainingSeconds };
+    } catch (error) {
+        logger.error(`rejoinCall error: ${error.message}`);
+        throw error;
+    }
+};
+
+/**
  * Get call by ID
  * @param {string} callId - VideoCall ID
  * @returns {Promise<VideoCall>}
@@ -421,6 +485,7 @@ export default {
     rejectCall,
     handleMissedCall,
     cancelCall,
+    rejoinCall,
     getCall,
     getActiveCallForUser,
     cleanupStaleCalls,

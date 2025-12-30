@@ -31,6 +31,7 @@ export interface CallState {
     error: string | null;
     isMuted: boolean;
     isCameraOff: boolean;
+    wasRejoined: boolean;
     // Agora specific
     agoraChannel: string | null;
     agoraToken: string | null;
@@ -81,6 +82,7 @@ class VideoCallService {
             error: null,
             isMuted: false,
             isCameraOff: false,
+            wasRejoined: false,
             agoraChannel: null,
             agoraToken: null,
             agoraUid: null,
@@ -127,6 +129,9 @@ class VideoCallService {
 
         // Missed call
         socketService.on('call:missed', this.handleMissedCall.bind(this));
+
+        // Rejoin proceed
+        socketService.on('call:rejoin-proceed', this.handleRejoinProceed.bind(this));
 
         console.log('📞 Agora video call socket listeners initialized');
     }
@@ -232,7 +237,24 @@ class VideoCallService {
         if (!this.callState.callId) return;
 
         socketService.emitToServer('call:end', { callId: this.callState.callId });
-        this.cleanup();
+
+        // If we are already in rejoin mode, or call was interrupted, fully cleanup
+        if (this.callState.status === 'ended') {
+            this.cleanup();
+            this.updateState({ status: 'idle' });
+        } else {
+            // Normal end will trigger handleCallEnded via socket
+        }
+    }
+
+    /**
+     * Rejoin an interrupted call
+     */
+    rejoinCall(): void {
+        if (!this.callState.callId) return;
+        console.log('🔄 Requesting to rejoin call:', this.callState.callId);
+        socketService.emitToServer('call:rejoin', { callId: this.callState.callId });
+        this.updateState({ status: 'connecting' });
     }
 
     /**
@@ -688,6 +710,29 @@ class VideoCallService {
             startTime: data.startTime || Date.now(),
             duration: data.duration || VIDEO_CALL_DURATION,
         });
+    }
+
+    private async handleRejoinProceed(data: any): Promise<void> {
+        console.log('🔄 STEP 5-REJOIN: Received call:rejoin-proceed');
+        console.log('🔄 New startTime:', data.startTime);
+
+        if (data.agora) {
+            try {
+                this.updateState({
+                    status: 'connecting',
+                    wasRejoined: true,
+                    startTime: data.startTime
+                });
+
+                await this.joinAgoraChannel(data.agora);
+
+                this.updateState({ status: 'connected' });
+                console.log('✅ REJOIN COMPLETE');
+            } catch (error) {
+                console.error('❌ Failed to rejoin Agora channel:', error);
+                this.updateState({ status: 'ended', error: 'Failed to rejoin' });
+            }
+        }
     }
 
     private handleCallEnded(data: any): void {

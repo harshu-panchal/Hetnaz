@@ -291,6 +291,86 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
     });
 
     // ====================
+    // CALL REJOIN (Either user)
+    // ====================
+    socket.on('call:rejoin', async (data) => {
+        try {
+            const { callId } = data;
+            logger.info(`🔄 Call rejoin requested: ${callId} by ${userId}`);
+
+            const { videoCall, remainingSeconds } = await videoCallService.rejoinCall(callId, userId);
+
+            const channelName = callId;
+            const callerId = videoCall.callerId.toString();
+            const receiverId = videoCall.receiverId.toString();
+
+            // Generate tokens again
+            const callerIdHex = callerId.slice(-8);
+            const receiverIdHex = receiverId.slice(-8);
+            const callerUid = parseInt(callerIdHex, 16) % 2147483647;
+            const receiverUid = parseInt(receiverIdHex, 16) % 2147483647;
+
+            const callerToken = agoraService.generateRtcToken(channelName, callerUid.toString(), 'publisher');
+            const receiverToken = agoraService.generateRtcToken(channelName, receiverUid.toString(), 'publisher');
+
+            // Start NEW timer with remaining duration
+            const durationMs = remainingSeconds * 1000;
+            const timerId = setTimeout(async () => {
+                try {
+                    logger.info(`⏰ Rejoined call timer expired: ${callId}`);
+                    await videoCallService.endCall(callId, 'timer_expired', null);
+
+                    io.to(callerId).emit('call:force-end', { callId, reason: 'timer_expired' });
+                    io.to(receiverId).emit('call:force-end', { callId, reason: 'timer_expired' });
+                    activeCallTimers.delete(callId);
+                } catch (error) {
+                    logger.error(`Rejoin timer end error: ${error.message}`);
+                }
+            }, durationMs);
+
+            activeCallTimers.set(callId, {
+                timer: timerId,
+                type: 'duration',
+                startTime: Date.now() - (videoCall.callDurationSeconds - remainingSeconds) * 1000,
+                callerId,
+                receiverId,
+            });
+
+            // Notify both users to proceed with rejoining Agora
+            const rejoinData = {
+                callId,
+                remainingSeconds,
+                startTime: Date.now() - (videoCall.callDurationSeconds - remainingSeconds) * 1000,
+            };
+
+            io.to(callerId).emit('call:rejoin-proceed', {
+                ...rejoinData,
+                agora: {
+                    channelName,
+                    token: callerToken,
+                    uid: callerUid,
+                    appId: agoraService.getAppId(),
+                },
+            });
+
+            io.to(receiverId).emit('call:rejoin-proceed', {
+                ...rejoinData,
+                agora: {
+                    channelName,
+                    token: receiverToken,
+                    uid: receiverUid,
+                    appId: agoraService.getAppId(),
+                },
+            });
+
+            logger.info(`✅ Rejoin sequence initiated for call ${callId}`);
+        } catch (error) {
+            logger.error(`Call rejoin error: ${error.message}`);
+            socket.emit('call:error', { message: error.message });
+        }
+    });
+
+    // ====================
     // WEBRTC SIGNALING: OFFER
     // ====================
     socket.on('webrtc:offer', async (data) => {

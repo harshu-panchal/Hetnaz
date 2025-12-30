@@ -26,6 +26,7 @@ export const VideoCallModal = () => {
         endCall,
         toggleMute,
         toggleCamera,
+        rejoinCall,
         callPrice,
     } = useVideoCall();
 
@@ -593,17 +594,54 @@ export const VideoCallModal = () => {
 
         // Call ended UI
         if (callState.status === 'ended') {
+            const hasTimeLeft = remainingTime > 10;
+            const canRejoin = hasTimeLeft && !callState.wasRejoined;
+
             return (
-                <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm">
-                    <div className="bg-gray-800 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
-                        <div className="w-16 h-16 rounded-full bg-gray-700 mx-auto mb-4 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-in fade-in">
+                    <div className="bg-gray-900 border border-white/10 rounded-[2.5rem] p-10 max-w-sm w-full mx-4 text-center shadow-[0_30px_100px_rgba(0,0,0,0.8)] relative overflow-hidden group">
+                        {/* Decorative background element */}
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
+
+                        <div className="w-20 h-20 rounded-full bg-white/5 mx-auto mb-6 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform duration-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white/40 group-hover:text-indigo-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" transform="rotate(135 12 12)" />
                             </svg>
                         </div>
-                        <h2 className="text-xl font-bold text-white mb-2">Call Ended</h2>
-                        {callState.error && (
-                            <p className="text-gray-400 text-sm">{callState.error}</p>
+
+                        <h2 className="text-2xl font-black text-white mb-2 tracking-tight">
+                            {canRejoin ? 'Call Interrupted' : 'Call Ended'}
+                        </h2>
+
+                        {canRejoin && (
+                            <div className="mt-4">
+                                <p className="text-gray-400 text-sm mb-8 leading-relaxed px-4">
+                                    Your call was disconnected. You have <span className="text-indigo-400 font-bold">{formatTime(remainingTime)}</span> left.
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={rejoinCall}
+                                        className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                                        </svg>
+                                        REJOIN CALL
+                                    </button>
+                                    <button
+                                        onClick={endCall}
+                                        className="w-full h-14 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-2xl font-bold transition-all active:scale-95 border border-white/5 uppercase text-[10px] tracking-[0.2em]"
+                                    >
+                                        End Permanently
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {!canRejoin && (
+                            <p className="text-gray-400 text-sm leading-relaxed px-4 mt-2">
+                                {callState.error || 'The call session has concluded.'}
+                            </p>
                         )}
                     </div>
                 </div>
