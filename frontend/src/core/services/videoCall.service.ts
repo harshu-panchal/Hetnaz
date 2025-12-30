@@ -373,9 +373,6 @@ class VideoCallService {
 
             // Create Agora client if not exists
             if (!this.agoraClient) {
-                // Set area to India to optimize connection for Indian users
-                AgoraRTC.setArea({ areaCode: ['INDIA'] } as any);
-
                 this.agoraClient = AgoraRTC.createClient({
                     mode: 'rtc',
                     codec: 'vp8'
@@ -442,17 +439,7 @@ class VideoCallService {
                     });
                 });
 
-                // Handle connection state changes
-                this.agoraClient.on('connection-state-change', (curState, _prevState, reason) => {
-                    console.log('🎥 Agora connection state:', curState, 'reason:', reason);
-
-                    // Don't send call:connected here - wait for successful publish
-                    if (curState === 'DISCONNECTED' || curState === 'DISCONNECTING') {
-                        if (reason === 'NETWORK_ERROR') {
-                            socketService.emitToServer('call:connection-failed', { callId: this.callState.callId });
-                        }
-                    }
-                });
+                // Removed automatic failure on network change to let Agora SDK handle retries internally
             }
 
             // Use appId from credentials or fallback to env
@@ -462,24 +449,40 @@ class VideoCallService {
                 throw new Error('Agora App ID is missing. Please check your environment configuration.');
             }
 
-            // Join the channel
-            try {
-                await this.agoraClient.join(
-                    appId,
-                    credentials.channelName,
-                    credentials.token,
-                    credentials.uid
-                );
-                console.log('🎥 Joined Agora channel successfully');
-            } catch (joinError: any) {
-                console.error('❌ Failed to join Agora channel:', joinError);
+            // Join the channel with up to 3 retries
+            let lastError: any;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    console.log(`🎥 Agora join attempt ${attempt}/3...`);
+                    await this.agoraClient.join(
+                        appId,
+                        credentials.channelName,
+                        credentials.token,
+                        credentials.uid
+                    );
+                    console.log('🎥 Joined Agora channel successfully');
+                    lastError = null;
+                    break; // Success!
+                } catch (joinError: any) {
+                    lastError = joinError;
+                    console.warn(`⚠️ Agora join attempt ${attempt} failed:`, joinError.message);
 
-                if (joinError.code === 'INVALID_PARAMS') {
+                    // If it's the last attempt, don't wait
+                    if (attempt < 3) {
+                        const delay = attempt * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+            }
+
+            if (lastError) {
+                console.error('❌ All Agora join attempts failed:', lastError);
+                if (lastError.code === 'INVALID_PARAMS') {
                     throw new Error('Invalid Agora credentials. Please contact support.');
-                } else if (joinError.code === 'NETWORK_ERROR') {
+                } else if (lastError.code === 'NETWORK_ERROR') {
                     throw new Error('Network error. Please check your internet connection.');
                 } else {
-                    throw new Error(`Failed to join video call: ${joinError.message || 'Unknown error'}`);
+                    throw new Error(`Failed to join video call after 3 attempts: ${lastError.message || 'Unknown error'}`);
                 }
             }
 
@@ -488,14 +491,9 @@ class VideoCallService {
                 await this.agoraClient.publish([this.localAudioTrack, this.localVideoTrack]);
                 console.log('🎥 Published local tracks');
 
-                // Only the CALLER sends call:connected to avoid duplicate events
-                // The receiver (incoming call) should not send this
-                if (!this.callState.isIncoming) {
-                    console.log('🎥 Caller notifying backend: call connected');
-                    socketService.emitToServer('call:connected', { callId: this.callState.callId });
-                } else {
-                    console.log('🎥 Receiver - not sending call:connected (caller will send it)');
-                }
+                // Notify backend that we are connected and published
+                console.log('🎥 Notifying backend: call connected');
+                socketService.emitToServer('call:connected', { callId: this.callState.callId });
             }
 
             this.updateState({
