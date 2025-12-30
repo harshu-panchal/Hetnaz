@@ -487,26 +487,38 @@ class VideoCallService {
             }
 
             // Publish local tracks
-            if (this.localAudioTrack && this.localVideoTrack) {
-                await this.agoraClient.publish([this.localAudioTrack, this.localVideoTrack]);
-                console.log('🎥 Published local tracks');
+            try {
+                if (this.localAudioTrack && this.localVideoTrack) {
+                    await this.agoraClient.publish([this.localAudioTrack, this.localVideoTrack]);
+                    console.log('🎥 Published local tracks');
+                }
+
+                this.updateState({
+                    agoraChannel: credentials.channelName,
+                    agoraToken: credentials.token,
+                    agoraUid: credentials.uid,
+                });
 
                 // Notify backend that we are connected and published
-                console.log('🎥 Notifying backend: call connected');
-                socketService.emitToServer('call:connected', { callId: this.callState.callId });
+                // Only if we haven't already processed a 'call:started' event
+                if (this.callState.status !== 'connected') {
+                    console.log('🎥 Notifying backend: call connected');
+                    socketService.emitToServer('call:connected', { callId: this.callState.callId });
+                } else {
+                    console.log('🎥 Already in connected state, skipping call:connected emit');
+                }
+            } catch (publishError: any) {
+                console.error('❌ Failed to publish local tracks:', publishError);
+                // Only throw if we're not yet connected per the started event
+                if (this.callState.status !== 'connected') {
+                    throw publishError;
+                }
+                console.warn('⚠️ Ignoring publish error as call is already active');
             }
-
-            this.updateState({
-                agoraChannel: credentials.channelName,
-                agoraToken: credentials.token,
-                agoraUid: credentials.uid,
-            });
-
         } catch (error: any) {
             console.error('Failed to join Agora channel:', error);
 
             // CRITICAL: Only notify backend of failure if we haven't succeeded yet
-            // This prevents late-arriving retry errors from killing an active call
             if (this.callState.status !== 'connected') {
                 console.log('❌ Reporting connection failure to backend');
                 socketService.emitToServer('call:connection-failed', { callId: this.callState.callId });
@@ -593,7 +605,11 @@ class VideoCallService {
 
     private async handleCallAccepted(data: any): Promise<void> {
         console.log('📞 Call accepted with Agora credentials:', data);
-        this.updateState({ status: 'connecting' });
+
+        // Only set to connecting if we aren't already connected
+        if (this.callState.status !== 'connected') {
+            this.updateState({ status: 'connecting' });
+        }
 
         // Join Agora channel with provided credentials
         if (data.agora) {
@@ -601,8 +617,14 @@ class VideoCallService {
                 await this.joinAgoraChannel(data.agora);
             } catch (error) {
                 console.error('Failed to join Agora channel:', error);
-                this.updateState({ status: 'ended', error: 'Failed to connect video call' });
-                setTimeout(() => this.cleanup(), 2000);
+
+                // CRITICAL: Only mark as ended if we haven't successfully started already
+                if (this.callState.status !== 'connected') {
+                    this.updateState({ status: 'ended', error: 'Failed to connect video call' });
+                    setTimeout(() => this.cleanup(), 2000);
+                } else {
+                    console.log('⚠️ Ignoring late join failure in handleCallAccepted as call is already active');
+                }
             }
         }
     }
@@ -618,9 +640,17 @@ class VideoCallService {
                 await this.joinAgoraChannel(data.agora);
                 console.log('✅ STEP 6 COMPLETE: Agora channel joined');
             } catch (error) {
-                console.error('❌ STEP 6 FAILED:', error);
-                this.updateState({ status: 'ended', error: 'Failed to connect video call' });
-                setTimeout(() => this.cleanup(), 2000);
+                console.error('❌ Failed to join after proceed:', error);
+
+                // CRITICAL: If the call has already started (successfully connected via started event),
+                // do NOT perform cleanup or reset to idle.
+                if (this.callState.status !== 'connected') {
+                    console.log('❗ Cleaning up due to join failure before connection');
+                    this.cleanup();
+                    this.updateState({ status: 'idle' });
+                } else {
+                    console.log('⚠️ Ignoring late join failure as call is already active');
+                }
             }
         } else {
             console.error('❌ No Agora credentials in call:proceed');
