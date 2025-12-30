@@ -34,6 +34,7 @@ export const VideoCallModal = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState({ x: 20, y: 20 });
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [isSwapped, setIsSwapped] = useState(false);
     const dragOffset = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
@@ -76,62 +77,53 @@ export const VideoCallModal = () => {
         }
     };
 
-    // Attach local video track (Agora uses .play() method on a DOM element)
+    // Attach tracks based on swapped state
     useEffect(() => {
         let isActive = true;
-        const playTrack = async () => {
-            if (localVideoRef.current && callState.localVideoTrack) {
-                console.log('🎥 Playing local video track...');
-                localVideoRef.current.innerHTML = ''; // Clear container
-                try {
-                    await callState.localVideoTrack.play(localVideoRef.current);
-                } catch (e) {
-                    console.error('Failed to play local track:', e);
+        const playTracks = async () => {
+            // Main container logic
+            if (remoteVideoRef.current) {
+                const mainTrack = isSwapped ? callState.localVideoTrack : callState.remoteVideoTrack;
+                remoteVideoRef.current.innerHTML = '';
+                if (mainTrack) {
+                    try {
+                        await mainTrack.play(remoteVideoRef.current);
+                    } catch (e) {
+                        console.error('Failed to play main track:', e);
+                    }
+                }
+            }
+
+            // PiP container logic
+            if (localVideoRef.current) {
+                const pipTrack = isSwapped ? callState.remoteVideoTrack : callState.localVideoTrack;
+                localVideoRef.current.innerHTML = '';
+                if (pipTrack) {
+                    try {
+                        await pipTrack.play(localVideoRef.current);
+                    } catch (e) {
+                        console.error('Failed to play PiP track:', e);
+                    }
                 }
             }
         };
 
-        // Delay to ensure DOM is ready
         const timer = setTimeout(() => {
-            if (isActive) playTrack();
+            if (isActive) playTracks();
         }, 300);
 
         return () => {
             isActive = false;
             clearTimeout(timer);
-            if (callState.localVideoTrack) {
-                callState.localVideoTrack.stop();
-            }
+            if (callState.localVideoTrack) callState.localVideoTrack.stop();
+            if (callState.remoteVideoTrack) callState.remoteVideoTrack.stop();
         };
-    }, [callState.localVideoTrack, isFullScreen, callState.status]);
+    }, [callState.localVideoTrack, callState.remoteVideoTrack, isFullScreen, isSwapped, callState.status]);
 
-    // Attach remote video track
-    useEffect(() => {
-        let isActive = true;
-        const playTrack = async () => {
-            if (remoteVideoRef.current && callState.remoteVideoTrack) {
-                console.log('🎥 Playing remote video track...');
-                remoteVideoRef.current.innerHTML = '';
-                try {
-                    await callState.remoteVideoTrack.play(remoteVideoRef.current);
-                } catch (e) {
-                    console.error('Failed to play remote track:', e);
-                }
-            }
-        };
-
-        const timer = setTimeout(() => {
-            if (isActive) playTrack();
-        }, 400);
-
-        return () => {
-            isActive = false;
-            clearTimeout(timer);
-            if (callState.remoteVideoTrack) {
-                callState.remoteVideoTrack.stop();
-            }
-        };
-    }, [callState.remoteVideoTrack, isFullScreen, callState.status]);
+    const handleToggleSwap = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsSwapped(!isSwapped);
+    };
 
     // Handle drag start
     const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -337,8 +329,12 @@ export const VideoCallModal = () => {
                 return (
                     <div className="fixed inset-0 z-[10000] bg-black flex flex-col font-sans">
                         <div className="flex-1 relative bg-black overflow-hidden flex items-center justify-center">
-                            {/* Main Remote Video */}
-                            <div ref={remoteVideoRef} className="w-full h-full" />
+                            {/* Main Video Container */}
+                            <div
+                                ref={remoteVideoRef}
+                                className="w-full h-full"
+                                style={{ transform: isSwapped ? 'scaleX(-1)' : '' }}
+                            />
 
                             {/* Top Bar (Overlaid) */}
                             <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/70 to-transparent flex justify-between items-start z-10">
@@ -380,19 +376,36 @@ export const VideoCallModal = () => {
                             </div>
 
                             {/* Floating Local PiP (Fullscreen mode) */}
-                            <div className="absolute bottom-36 right-8 w-36 h-52 rounded-[2rem] overflow-hidden bg-gray-900 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.8)] border-2 border-white/30 z-20 transition-all hover:scale-105 active:scale-95 group">
-                                <div ref={localVideoRef} className="w-full h-full" style={{ transform: 'scaleX(-1)' }} />
-                                {callState.isCameraOff && (
+                            <button
+                                onClick={handleToggleSwap}
+                                className="absolute bottom-36 right-8 w-36 h-52 rounded-[2rem] overflow-hidden bg-gray-900 shadow-[0_30px_60px_-12px_rgba(0,0,0,0.8)] border-2 border-white/40 z-20 transition-all hover:scale-105 active:scale-95 group ring-0 hover:ring-4 ring-white/10"
+                                title="Click to Swap Video"
+                            >
+                                <div
+                                    ref={localVideoRef}
+                                    className="w-full h-full pointer-events-none"
+                                    style={{ transform: !isSwapped ? 'scaleX(-1)' : '' }}
+                                />
+
+                                {((!isSwapped && callState.isCameraOff) || (isSwapped && !callState.remoteVideoTrack)) && (
                                     <div className="absolute inset-0 bg-[#1a1a1a] flex flex-col items-center justify-center gap-3">
                                         <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                             </svg>
                                         </div>
-                                        <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider">Camera Off</span>
+                                        <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider">
+                                            {isSwapped ? 'Remote Off' : 'Camera Off'}
+                                        </span>
                                     </div>
                                 )}
-                            </div>
+
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                </div>
+                            </button>
                         </div>
 
                         {/* Immersive Controls Bar */}
@@ -488,20 +501,39 @@ export const VideoCallModal = () => {
 
                     {/* Video area */}
                     <div className="relative aspect-[3/4] bg-[#0a0a0a]">
-                        {/* Remote video (main) */}
-                        <div ref={remoteVideoRef} className="w-full h-full object-cover" />
+                        {/* Main Video in Mini Mode */}
+                        <div
+                            ref={remoteVideoRef}
+                            className="w-full h-full object-cover"
+                            style={{ transform: isSwapped ? 'scaleX(-1)' : '' }}
+                        />
 
-                        {/* Local video PiP */}
-                        <div className="absolute bottom-4 right-4 w-32 h-44 rounded-3xl overflow-hidden bg-gray-950 shadow-2xl border-2 border-white/20 z-10 transition-transform active:scale-95 group">
-                            <div ref={localVideoRef} className="w-full h-full" style={{ transform: 'scaleX(-1)' }} />
-                            {callState.isCameraOff && (
+                        {/* PiP Video in Mini Mode */}
+                        <button
+                            onClick={handleToggleSwap}
+                            className="absolute bottom-4 right-4 w-32 h-44 rounded-3xl overflow-hidden bg-gray-950 shadow-2xl border-2 border-white/30 z-10 transition-transform hover:scale-105 active:scale-95 group cursor-pointer ring-0 hover:ring-2 ring-white/10"
+                            title="Click to Swap"
+                        >
+                            <div
+                                ref={localVideoRef}
+                                className="w-full h-full pointer-events-none"
+                                style={{ transform: !isSwapped ? 'scaleX(-1)' : '' }}
+                            />
+
+                            {((!isSwapped && callState.isCameraOff) || (isSwapped && !callState.remoteVideoTrack)) && (
                                 <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                     </svg>
                                 </div>
                             )}
-                        </div>
+
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                </svg>
+                            </div>
+                        </button>
 
                         {/* Status overlays in mini mode */}
                         {callState.isMuted && (
