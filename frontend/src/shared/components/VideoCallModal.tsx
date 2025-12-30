@@ -409,7 +409,7 @@ export const VideoCallModal = () => {
                         </div>
 
                         {/* Immersive Controls Bar */}
-                        <div className="h-32 bg-gray-900/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-center gap-12 pb-safe z-10 px-6">
+                        <div className="h-24 bg-gray-900/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-center gap-12 pb-safe z-10 px-6">
                             <button
                                 onClick={toggleMute}
                                 className={`w-16 h-16 rounded-3xl flex items-center justify-center transition-all duration-300 ${callState.isMuted ? 'bg-red-500 shadow-[0_0_25px_rgba(239,68,68,0.4)] scale-110' : 'bg-gray-800 hover:bg-gray-700 hover:scale-110 shadow-xl border border-white/5'}`}
@@ -547,7 +547,7 @@ export const VideoCallModal = () => {
                     </div>
 
                     {/* Compact Controls Bar */}
-                    <div className="bg-gray-800/95 backdrop-blur-2xl px-5 py-6 flex items-center justify-around gap-2 border-t border-white/5">
+                    <div className="bg-gray-800/95 backdrop-blur-2xl px-5 py-4 flex items-center justify-around gap-2 border-t border-white/5">
                         <button
                             onClick={toggleMute}
                             className={`w-13 h-13 rounded-2xl flex items-center justify-center transition-all ${callState.isMuted ? 'bg-red-500 shadow-lg shadow-red-500/20' : 'bg-white/5 hover:bg-white/10 active:scale-90 border border-white/5'}`}
