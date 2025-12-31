@@ -817,13 +817,19 @@ class VideoCallService {
     // Peer disconnected - Waiting state
     private handlePeerWaiting(data: any): void {
         console.log('⏳ Peer disconnected. Waiting for them...', data);
-        this.updateState({ isPeerDisconnected: true });
+        // Keep status as 'connected' so user stays in call interface
+        // But set isPeerDisconnected to show waiting overlay
+        this.updateState({
+            isPeerDisconnected: true,
+            // The timer will be paused in VideoCallContext when isPeerDisconnected is true
+        });
     }
 
     // Peer rejoined
     private handlePeerRejoined(data: any): void {
         console.log('✅ Peer rejoined! Resuming call.', data);
         this.updateState({ isPeerDisconnected: false });
+        // Timer will resume in VideoCallContext
     }
 }
 
