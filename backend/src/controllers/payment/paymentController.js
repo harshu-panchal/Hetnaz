@@ -252,6 +252,12 @@ export const verifyPayment = async (req, res, next) => {
                         }
                     }
 
+                    // Safety check: Ensure lockedCoins is never negative
+                    if (user.lockedCoins < 0) {
+                        logger.warn(`⚠️ User ${userId} had negative lockedCoins (${user.lockedCoins}), resetting to 0`);
+                        user.lockedCoins = 0;
+                    }
+
                     await user.save({ session });
                     logger.debug('   > User and Transaction saved successfully');
 

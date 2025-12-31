@@ -218,9 +218,12 @@ export const markCallConnected = async (callId) => {
         await videoCall.save();
 
         // Remove locked coins from caller (already deducted from balance)
-        await User.findByIdAndUpdate(videoCall.callerId, {
-            $inc: { lockedCoins: -videoCall.coinAmount },
-        });
+        // Use $max to ensure lockedCoins never goes below 0
+        const caller = await User.findById(videoCall.callerId);
+        if (caller) {
+            caller.lockedCoins = Math.max(0, caller.lockedCoins - videoCall.coinAmount);
+            await caller.save();
+        }
 
         // Credit coins to receiver
         await User.findByIdAndUpdate(videoCall.receiverId, {
@@ -302,13 +305,13 @@ export const endCall = async (callId, endReason, endedBy) => {
             ['rejected', 'failed', 'missed', 'cancelled'].includes(finalStatus);
 
         if (needsRefund) {
-            // Refund caller
-            await User.findByIdAndUpdate(videoCall.callerId, {
-                $inc: {
-                    coinBalance: videoCall.coinAmount,
-                    lockedCoins: -videoCall.coinAmount,
-                },
-            });
+            // Refund caller - ensure lockedCoins doesn't go negative
+            const caller = await User.findById(videoCall.callerId);
+            if (caller) {
+                caller.coinBalance += videoCall.coinAmount;
+                caller.lockedCoins = Math.max(0, caller.lockedCoins - videoCall.coinAmount);
+                await caller.save();
+            }
 
             videoCall.billingStatus = 'refunded';
             logger.info(`💰 Video call refunded: ${callId} (${videoCall.coinAmount} coins)`);
