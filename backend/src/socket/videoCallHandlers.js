@@ -248,6 +248,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
         }
     });
 
+
     // ====================
     // CALL END (Either user)
     // ====================
@@ -256,34 +257,126 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             const { callId } = data;
             logger.info(`📞 Call end requested: ${callId} by ${userId}`);
 
-            // Clear any active timers
-            const timerData = activeCallTimers.get(callId);
-            if (timerData) {
-                clearTimeout(timerData.timer);
-                activeCallTimers.delete(callId);
-            }
-
-            // Get call to determine who ended it
+            // Get call to determine roles
             const call = await videoCallService.getCall(callId);
             if (!call) {
                 socket.emit('call:ended', { callId, reason: 'not_found' });
                 return;
             }
 
-            const endReason = call.callerId.toString() === userId ? 'caller_ended' : 'receiver_ended';
-            const videoCall = await videoCallService.endCall(callId, endReason, userId);
+            const otherUserId = call.callerId.toString() === userId
+                ? call.receiverId.toString()
+                : call.callerId.toString();
 
-            const endData = {
+            // Check if there's already an interruption timer (meaning the other user already disconnected)
+            const existingInterruption = activeCallTimers.get(`${callId}_interruption`);
+
+            if (existingInterruption) {
+                // Both users have now disconnected - end call permanently
+                logger.info(`📞 Both users disconnected from call: ${callId}`);
+
+                // Clear interruption timer
+                clearTimeout(existingInterruption.timer);
+                activeCallTimers.delete(`${callId}_interruption`);
+
+                // Clear main timer if it exists
+                const timerData = activeCallTimers.get(callId);
+                if (timerData) {
+                    clearTimeout(timerData.timer);
+                    activeCallTimers.delete(callId);
+                }
+
+                const endReason = call.callerId.toString() === userId ? 'caller_ended' : 'receiver_ended';
+                const videoCall = await videoCallService.endCall(callId, endReason, userId);
+
+                const endData = {
+                    callId,
+                    reason: 'both_disconnected',
+                    duration: videoCall.connectedAt
+                        ? Math.floor((Date.now() - new Date(videoCall.connectedAt).getTime()) / 1000)
+                        : 0,
+                };
+
+                // Notify both users
+                io.to(call.callerId.toString()).emit('call:ended', endData);
+                io.to(call.receiverId.toString()).emit('call:ended', endData);
+
+                return;
+            }
+
+            // This is the FIRST user to disconnect - enter waiting state
+            logger.info(`📞 First user disconnected: ${userId}, other user ${otherUserId} enters waiting state`);
+
+            // 1. Clear MAIN duration timer (PAUSE THE CALL)
+            const timerData = activeCallTimers.get(callId);
+            let remainingTime = 0;
+
+            if (timerData && timerData.type === 'duration') {
+                clearTimeout(timerData.timer);
+                // Calculate remaining time for resumption
+                const elapsedMs = Date.now() - timerData.startTime;
+                const originalDurationMs = call.callDurationSeconds * 1000;
+                const remainingMs = Math.max(0, originalDurationMs - elapsedMs);
+                remainingTime = Math.ceil(remainingMs / 1000);
+
+                activeCallTimers.delete(callId);
+                logger.info(`⏸️ Call paused. Remaining: ${remainingTime}s`);
+            }
+
+            // 2. Notify the disconnecting user that their call has ended
+            socket.emit('call:ended', {
                 callId,
-                reason: endReason,
-                duration: videoCall.connectedAt
-                    ? Math.floor((Date.now() - new Date(videoCall.connectedAt).getTime()) / 1000)
+                reason: call.callerId.toString() === userId ? 'caller_ended' : 'receiver_ended',
+                duration: call.connectedAt
+                    ? Math.floor((Date.now() - new Date(call.connectedAt).getTime()) / 1000)
                     : 0,
-            };
+            });
 
-            // Notify both users using rooms
-            io.to(videoCall.callerId.toString()).emit('call:ended', endData);
-            io.to(videoCall.receiverId.toString()).emit('call:ended', endData);
+            // 3. Notify OTHER user to WAIT (they stay in call)
+            io.to(otherUserId).emit('call:waiting', {
+                callId,
+                disconnectedUserId: userId,
+            });
+
+            // 4. Start INTERRUPTION TIMEOUT (60s grace period)
+            const interruptionTimerId = setTimeout(async () => {
+                try {
+                    logger.info(`❌ Interruption timeout expired for call: ${callId}`);
+
+                    const endReason = call.callerId.toString() === userId
+                        ? 'caller_disconnected'
+                        : 'receiver_disconnected';
+
+                    const videoCall = await videoCallService.endCall(
+                        callId,
+                        endReason,
+                        userId
+                    );
+
+                    // Notify other user that waiting is over -> Call Ended
+                    io.to(otherUserId).emit('call:ended', {
+                        callId,
+                        reason: endReason,
+                        refunded: videoCall.billingStatus === 'refunded',
+                    });
+
+                    activeCallTimers.delete(`${callId}_interruption`);
+
+                } catch (err) {
+                    logger.error(`Interruption timeout error: ${err.message}`);
+                }
+            }, 60000); // 60 seconds grace
+
+            activeCallTimers.set(`${callId}_interruption`, {
+                timer: interruptionTimerId,
+                type: 'interruption',
+                disconnectedUserId: userId,
+                waitingUserId: otherUserId,
+                remainingTimeWhenPaused: remainingTime,
+            });
+
+            logger.info(`⏳ Interruption timer started for call: ${callId}`);
+
         } catch (error) {
             logger.error(`Call end error: ${error.message}`);
             socket.emit('call:error', { message: error.message });
@@ -499,10 +592,18 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             // Check if user had an active call
             const activeCall = await videoCallService.getActiveCallForUser(userId);
             if (activeCall) {
+                const callId = activeCall._id.toString();
+
+                // Check if interruption timer already exists (from call:end handler)
+                const existingInterruption = activeCallTimers.get(`${callId}_interruption`);
+                if (existingInterruption) {
+                    logger.info(`📞 Interruption already handled for call: ${callId}, skipping disconnect logic`);
+                    return;
+                }
+
                 logger.info(`📞 User disconnected during active call: ${activeCall._id}`);
 
                 // 1. Identify roles
-                const callId = activeCall._id.toString();
                 const otherUserId = activeCall.callerId.toString() === userId
                     ? activeCall.receiverId.toString()
                     : activeCall.callerId.toString();
