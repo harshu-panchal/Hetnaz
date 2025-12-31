@@ -738,11 +738,30 @@ class VideoCallService {
     private handleCallEnded(data: any): void {
         console.log('📞 Call ended event received:', data);
         console.log('❌ CALL ENDING - Reason:', data.reason);
+
         this.updateState({
             status: 'ended',
             error: data.reason === 'rejected' ? 'Call rejected' : null,
         });
-        setTimeout(() => this.cleanup(), 2000);
+
+        // CHECK FOR REJOIN POSSIBILITY
+        const elapsed = data.duration || 0;
+        const remaining = (this.callState.duration || VIDEO_CALL_DURATION) - elapsed;
+        const canRejoin = remaining > 10 && !this.callState.wasRejoined;
+
+        if (canRejoin && data.reason !== 'rejected') {
+            console.log('⏳ REJOIN WINDOW OPEN: Avoiding immediate cleanup. Remaining:', remaining);
+            // Safety cleanup after 60 seconds if user does nothing
+            setTimeout(() => {
+                if (this.callState.status === 'ended') {
+                    console.log('⏳ Rejoin window expired. Cleaning up.');
+                    this.cleanup();
+                }
+            }, 60000);
+        } else {
+            console.log('🧹 No rejoin possible. Cleaning up in 2s.');
+            setTimeout(() => this.cleanup(), 2000);
+        }
     }
 
     private handleForceEnd(data: any): void {
@@ -751,6 +770,8 @@ class VideoCallService {
             status: 'ended',
             error: data.reason === 'timer_expired' ? 'Call time limit reached' : 'Call ended',
         });
+
+        // Timer expired means 0 remaining, so always cleanup
         setTimeout(() => this.cleanup(), 2000);
     }
 
@@ -760,6 +781,21 @@ class VideoCallService {
             status: 'ended',
             error: data.message,
         });
+
+        // Error might be interrupt, so check if we started
+        if (this.callState.startTime) {
+            const elapsed = Math.floor((Date.now() - this.callState.startTime) / 1000);
+            const remaining = (this.callState.duration || VIDEO_CALL_DURATION) - elapsed;
+
+            if (remaining > 10 && !this.callState.wasRejoined) {
+                console.log('⏳ ERROR REJOIN WINDOW OPEN. Avoiding immediate cleanup.');
+                setTimeout(() => {
+                    if (this.callState.status === 'ended') this.cleanup();
+                }, 60000);
+                return;
+            }
+        }
+
         setTimeout(() => this.cleanup(), 2000);
     }
 
