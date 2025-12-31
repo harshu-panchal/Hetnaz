@@ -13,6 +13,7 @@
 import videoCallService from '../services/videoCall/videoCallService.js';
 import agoraService from '../services/agora/agoraService.js';
 import logger from '../utils/logger.js';
+import User from '../models/User.js';
 
 // In-memory store for active calls and timers
 const activeCallTimers = new Map(); // callId -> { timer, startTime }
@@ -24,6 +25,21 @@ const activeCallTimers = new Map(); // callId -> { timer, startTime }
  * @param {string} userId - Authenticated user ID
  */
 export const setupVideoCallHandlers = (socket, io, userId) => {
+    // Helper: Validate call belongs to this user
+    const validateCallOwnership = async (callId) => {
+        const call = await videoCallService.getCall(callId);
+        if (!call) {
+            logger.warn(`Call not found: ${callId}`);
+            return null;
+        }
+        const isParticipant = call.callerId.toString() === userId || call.receiverId.toString() === userId;
+        if (!isParticipant) {
+            logger.warn(`User ${userId} is not a participant of call ${callId}`);
+            return null;
+        }
+        return call;
+    };
+
     // ====================
     // CALL REQUEST (Male → Female)
     // ====================
@@ -256,16 +272,17 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             const { callId } = data;
             logger.info(`📞 Call end requested: ${callId} by ${userId}`);
 
-            // Get call to check state
-            const call = await videoCallService.getCall(callId);
+            // Validate call ownership
+            const call = await validateCallOwnership(callId);
             if (!call) {
-                socket.emit('call:ended', { callId, reason: 'not_found', canRejoin: false });
+                socket.emit('call:error', { message: 'Call not found or you are not a participant' });
                 return;
             }
 
             // Check if call is already truly ended
             if (call.status === 'ended' || call.status === 'cancelled') {
-                socket.emit('call:ended', { callId, reason: 'already_ended', canRejoin: false });
+                logger.warn(`Ignoring end request for already ended call: ${callId}`);
+                // Don't emit again to avoid duplicates
                 return;
             }
 
@@ -292,16 +309,21 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             if (canRejoin) {
                 logger.info(`⏸️ Call Soft Ended (Rejoin Active): ${callId}. Remaining: ${remainingTime}s`);
 
-                // Update DB to interrupted state
-                call.status = 'interrupted';
-                call.endedAt = new Date(); // soft end time for calc
-                await call.save();
+                try {
+                    // Update DB to interrupted state
+                    call.status = 'interrupted';
+                    call.endedAt = new Date();
+                    await call.save();
 
-                // Free up users but they will be "pinned" to this call by getActiveCallForUser
-                await User.updateMany(
-                    { _id: { $in: [call.callerId, call.receiverId] } },
-                    { $set: { isOnCall: false } }
-                );
+                    // Free up users - wrapped in try-catch
+                    await User.updateMany(
+                        { _id: { $in: [call.callerId, call.receiverId] } },
+                        { $set: { isOnCall: false } }
+                    );
+                } catch (dbError) {
+                    logger.error(`DB update error during soft end: ${dbError.message}`);
+                    // Continue with notification even if DB fails
+                }
 
                 // Notify sender they can rejoin
                 socket.emit('call:ended', {
@@ -407,15 +429,19 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                     ? videoCall.receiverId.toString()
                     : videoCall.callerId.toString();
 
-                // Reset DB state
-                videoCall.status = 'connected';
-                videoCall.endedAt = null;
-                await videoCall.save();
+                // Reset DB state - wrapped in try-catch
+                try {
+                    videoCall.status = 'connected';
+                    videoCall.endedAt = null;
+                    await videoCall.save();
 
-                await User.updateMany(
-                    { _id: { $in: [videoCall.callerId, videoCall.receiverId] } },
-                    { $set: { isOnCall: true } }
-                );
+                    await User.updateMany(
+                        { _id: { $in: [videoCall.callerId, videoCall.receiverId] } },
+                        { $set: { isOnCall: true } }
+                    );
+                } catch (dbError) {
+                    logger.error(`DB update error during rejoin: ${dbError.message}`);
+                }
 
                 // Notify other user: "Partner is back!"
                 io.to(otherUserId).emit('call:peer-rejoined', { callId });
@@ -629,15 +655,19 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                     disconnectedUserId: userId,
                 });
 
-                // 3.5 Mark call as interrupted in DB
-                activeCall.status = 'interrupted';
-                activeCall.endedAt = new Date();
-                await activeCall.save();
+                // 3.5 Mark call as interrupted in DB - wrapped in try-catch
+                try {
+                    activeCall.status = 'interrupted';
+                    activeCall.endedAt = new Date();
+                    await activeCall.save();
 
-                await User.updateMany(
-                    { _id: { $in: [activeCall.callerId, activeCall.receiverId] } },
-                    { $set: { isOnCall: false } }
-                );
+                    await User.updateMany(
+                        { _id: { $in: [activeCall.callerId, activeCall.receiverId] } },
+                        { $set: { isOnCall: false } }
+                    );
+                } catch (dbError) {
+                    logger.error(`DB update error during disconnect: ${dbError.message}`);
+                }
 
                 // 4. Start INTERRUPTION TIMEOUT (60s grace period)
                 // If user doesn't return, end call PERMANENTLY
