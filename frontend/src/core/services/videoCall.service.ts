@@ -862,12 +862,36 @@ class VideoCallService {
     private handlePeerWaiting(data: any): void {
         console.log('⏳ Peer disconnected. Waiting for them...', data);
         this.updateState({ isPeerDisconnected: true });
+
+        // PAUSE STREAMING: Stop publishing to save bandwidth and indicicate waiting
+        if (this.agoraClient && (this.localVideoTrack || this.localAudioTrack)) {
+            const tracksToUnpublish = [];
+            if (this.localVideoTrack) tracksToUnpublish.push(this.localVideoTrack);
+            if (this.localAudioTrack) tracksToUnpublish.push(this.localAudioTrack);
+
+            if (tracksToUnpublish.length > 0) {
+                console.log('⏸️ Pausing local streaming while waiting for peer...');
+                this.agoraClient.unpublish(tracksToUnpublish).catch(e => console.warn('Unpublish err:', e));
+            }
+        }
     }
 
     // Peer rejoined
     private handlePeerRejoined(data: any): void {
         console.log('✅ Peer rejoined! Resuming call.', data);
         this.updateState({ isPeerDisconnected: false });
+
+        // RESUME STREAMING
+        if (this.agoraClient && (this.localVideoTrack || this.localAudioTrack)) {
+            const tracksToPublish = [];
+            if (this.localVideoTrack) tracksToPublish.push(this.localVideoTrack);
+            if (this.localAudioTrack) tracksToPublish.push(this.localAudioTrack);
+
+            if (tracksToPublish.length > 0) {
+                console.log('▶️ Resuming local streaming as peer is back.');
+                this.agoraClient.publish(tracksToPublish).catch(e => console.warn('Publish err:', e));
+            }
+        }
     }
 }
 
