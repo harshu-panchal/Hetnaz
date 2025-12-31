@@ -64,7 +64,10 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             logger.warn(`Call not found: ${callId}`);
             return null;
         }
-        const isParticipant = call.callerId.toString() === userId || call.receiverId.toString() === userId;
+        const callerId = call.callerId._id ? call.callerId._id.toString() : call.callerId.toString();
+        const receiverId = call.receiverId._id ? call.receiverId._id.toString() : call.receiverId.toString();
+
+        const isParticipant = callerId === userId || receiverId === userId;
         if (!isParticipant) {
             logger.warn(`User ${userId} is not a participant of call ${callId}`);
             return null;
@@ -508,7 +511,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             // B. Normal Rejoin (e.g. browser crash where disconnect event might not have handled everything perfectly, or manual rejoin)
             const result = await videoCallService.rejoinCall(callId, userId);
             const videoCall = result.videoCall;
-            remainingSeconds = result.remainingTime;
+            remainingSeconds = result.remainingSeconds;
 
             await setupCallResumption(videoCall, remainingSeconds, userId);
 
