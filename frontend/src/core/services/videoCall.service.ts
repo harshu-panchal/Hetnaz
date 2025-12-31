@@ -239,7 +239,7 @@ class VideoCallService {
     /**
      * End the current call
      */
-    endCall(): void {
+    async endCall(): Promise<void> {
         console.log('🔴 endCall() called. CallId:', this.callState.callId, 'Status:', this.callState.status);
 
         if (!this.callState.callId) {
@@ -256,7 +256,20 @@ class VideoCallService {
             this.cleanup();
             this.updateState({ status: 'idle' });
         } else {
-            console.log('⏳ Status is', this.callState.status, '- waiting for backend response');
+            console.log('⏳ Status is', this.callState.status, '- performing soft leave (keeping engine alive for rejoin)');
+
+            // SOFT LEAVE: Leave the channel but keep engine and tracks alive
+            // This allows for quick rejoin without recreating everything
+            if (this.agoraClient && this.agoraClient.connectionState === 'CONNECTED') {
+                try {
+                    await this.agoraClient.leave();
+                    console.log('✅ Left Agora channel (soft leave)');
+                } catch (error) {
+                    console.error('⚠️ Error leaving Agora channel:', error);
+                }
+            }
+
+            // Don't cleanup - let handleCallEnded decide based on canRejoin flag
             // Normal end will trigger handleCallEnded via socket
         }
     }
@@ -729,16 +742,47 @@ class VideoCallService {
     private async handleRejoinProceed(data: any): Promise<void> {
         console.log('🔄 STEP 5-REJOIN: Received call:rejoin-proceed');
         console.log('🔄 New startTime:', data.startTime);
+        console.log('🔄 Agora client exists:', !!this.agoraClient);
+        console.log('🔄 Agora client state:', this.agoraClient?.connectionState);
 
         if (data.agora) {
             try {
                 this.updateState({
                     status: 'connecting',
                     wasRejoined: true,
-                    startTime: data.startTime
+                    startTime: data.startTime,
+                    duration: data.remainingSeconds || this.callState.duration,
                 });
 
-                await this.joinAgoraChannel(data.agora);
+                // REUSE EXISTING ENGINE: Don't create a new client, just rejoin the channel
+                if (this.agoraClient) {
+                    console.log('✅ Reusing existing Agora client for rejoin');
+
+                    // If somehow still connected, leave first
+                    if (this.agoraClient.connectionState === 'CONNECTED') {
+                        console.log('⚠️ Still connected, leaving first...');
+                        await this.agoraClient.leave();
+                    }
+
+                    // Rejoin with new token
+                    console.log('🔄 Rejoining channel:', data.agora.channelName);
+                    await this.agoraClient.join(
+                        data.agora.appId,
+                        data.agora.channelName,
+                        data.agora.token,
+                        data.agora.uid
+                    );
+
+                    // Re-publish existing tracks (they're still alive from soft leave)
+                    if (this.localAudioTrack && this.localVideoTrack) {
+                        console.log('🔄 Re-publishing existing local tracks');
+                        await this.agoraClient.publish([this.localAudioTrack, this.localVideoTrack]);
+                    }
+                } else {
+                    // Fallback: If client was somehow destroyed, create new one
+                    console.log('⚠️ No existing client, creating new one');
+                    await this.joinAgoraChannel(data.agora);
+                }
 
                 this.updateState({ status: 'connected' });
                 console.log('✅ REJOIN COMPLETE');
