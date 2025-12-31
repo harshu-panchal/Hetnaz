@@ -240,15 +240,23 @@ class VideoCallService {
      * End the current call
      */
     endCall(): void {
-        if (!this.callState.callId) return;
+        console.log('🔴 endCall() called. CallId:', this.callState.callId, 'Status:', this.callState.status);
 
+        if (!this.callState.callId) {
+            console.log('⚠️ No callId, returning early');
+            return;
+        }
+
+        console.log('📤 Emitting call:end to backend for callId:', this.callState.callId);
         socketService.emitToServer('call:end', { callId: this.callState.callId });
 
         // If we are already in rejoin mode, or call was interrupted, fully cleanup
         if (this.callState.status === 'ended') {
+            console.log('🧹 Status is ended, cleaning up immediately');
             this.cleanup();
             this.updateState({ status: 'idle' });
         } else {
+            console.log('⏳ Status is', this.callState.status, '- waiting for backend response');
             // Normal end will trigger handleCallEnded via socket
         }
     }
