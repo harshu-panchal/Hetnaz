@@ -54,12 +54,23 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
             }
 
             // Clear timer when call ends
-            if (newState.status === 'idle' || newState.status === 'ended') {
+            // Clear timer when call ends
+            if (newState.status === 'idle') {
                 if (timerRef.current) {
                     clearInterval(timerRef.current);
                     timerRef.current = null;
                 }
                 setRemainingTime(VIDEO_CALL_DURATION);
+            }
+
+            // Just stop the timer if ended, but keep value for UI
+            if (newState.status === 'ended') {
+                if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                    timerRef.current = null;
+                }
+                // Do NOT reset remainingTime here so UI can show it
+                console.log('🛑 Call ended in Context - Keeping remaining time:', remainingTime);
             }
         });
 

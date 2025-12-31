@@ -597,6 +597,13 @@ export const VideoCallModal = () => {
             const hasTimeLeft = remainingTime > 10;
             const canRejoin = hasTimeLeft && !callState.wasRejoined;
 
+            console.log('🛑 Call Ended UI Check:');
+            console.log('   - Status:', callState.status);
+            console.log('   - Remaining Time:', remainingTime);
+            console.log('   - Has Time Left (>10s):', hasTimeLeft);
+            console.log('   - Was Rejoined:', callState.wasRejoined);
+            console.log('   - Can Rejoin:', canRejoin);
+
             return (
                 <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-in fade-in">
                     <div className="bg-gray-900 border border-white/10 rounded-[2.5rem] p-10 max-w-sm w-full mx-4 text-center shadow-[0_30px_100px_rgba(0,0,0,0.8)] relative overflow-hidden group">
