@@ -32,6 +32,7 @@ export interface CallState {
     isMuted: boolean;
     isCameraOff: boolean;
     wasRejoined: boolean;
+    isPeerDisconnected: boolean;
     // Agora specific
     agoraChannel: string | null;
     agoraToken: string | null;
@@ -83,6 +84,7 @@ class VideoCallService {
             isMuted: false,
             isCameraOff: false,
             wasRejoined: false,
+            isPeerDisconnected: false,
             agoraChannel: null,
             agoraToken: null,
             agoraUid: null,
@@ -132,6 +134,10 @@ class VideoCallService {
 
         // Rejoin proceed
         socketService.on('call:rejoin-proceed', this.handleRejoinProceed.bind(this));
+
+        // Peer waiting/rejoined events
+        socketService.on('call:waiting', this.handlePeerWaiting.bind(this));
+        socketService.on('call:peer-rejoined', this.handlePeerRejoined.bind(this));
 
         console.log('📞 Agora video call socket listeners initialized');
     }
@@ -806,6 +812,18 @@ class VideoCallService {
             error: 'Call missed. Coins refunded.',
         });
         setTimeout(() => this.cleanup(), 2000);
+    }
+
+    // Peer disconnected - Waiting state
+    private handlePeerWaiting(data: any): void {
+        console.log('⏳ Peer disconnected. Waiting for them...', data);
+        this.updateState({ isPeerDisconnected: true });
+    }
+
+    // Peer rejoined
+    private handlePeerRejoined(data: any): void {
+        console.log('✅ Peer rejoined! Resuming call.', data);
+        this.updateState({ isPeerDisconnected: false });
     }
 }
 

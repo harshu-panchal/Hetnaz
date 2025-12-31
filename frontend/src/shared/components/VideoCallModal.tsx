@@ -407,6 +407,27 @@ export const VideoCallModal = () => {
                                     </svg>
                                 </div>
                             </button>
+
+                            {/* WAITING FOR PARTNER OVERLAY (Fullscreen) */}
+                            {callState.isPeerDisconnected && (
+                                <div className="absolute inset-0 z-[50] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-500">
+                                    <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center mb-6 relative">
+                                        <div className="absolute inset-0 border-4 border-indigo-500/30 rounded-full animate-ping"></div>
+                                        <div className="w-3 h-3 bg-red-500 rounded-full absolute top-1 right-1 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse"></div>
+                                        {callState.remoteUserAvatar ? (
+                                            <img src={callState.remoteUserAvatar} alt="Remote User" className="w-full h-full rounded-full object-cover opacity-50" />
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white/50" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-white mb-2">Waiting for {callState.remoteUserName}</h3>
+                                    <p className="text-white/60 max-w-xs leading-relaxed">
+                                        Connection lost. Waiting for them to rejoin...
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Immersive Controls Bar */}
@@ -545,6 +566,23 @@ export const VideoCallModal = () => {
                                 </svg>
                             </div>
                         )}
+
+                        {/* WAITING FOR PARTNER OVERLAY (Mini) */}
+                        {callState.isPeerDisconnected && (
+                            <div className="absolute inset-0 z-[50] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
+                                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3 relative">
+                                    <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-full animate-ping"></div>
+                                    {callState.remoteUserAvatar ? (
+                                        <img src={callState.remoteUserAvatar} alt="Remote User" className="w-full h-full rounded-full object-cover opacity-50" />
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white/50" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <p className="text-white/80 text-xs font-bold mb-1">Waiting...</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Compact Controls Bar */}
@@ -588,7 +626,7 @@ export const VideoCallModal = () => {
                             )}
                         </button>
                     </div>
-                </div>
+                </div >
             );
         }
 
