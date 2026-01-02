@@ -46,7 +46,6 @@ export const MyProfilePage = () => {
   const [stats, setStats] = useState({
     matches: 0,
     sent: 0,
-    views: 0,
     coinsSpent: 0
   });
 
@@ -234,11 +233,7 @@ export const MyProfilePage = () => {
             <MaterialSymbol name="insights" className="text-primary" />
             {t('activitySummary')}
           </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{stats.views}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t('profileViews')}</div>
-            </div>
+          <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-primary">{stats.matches}</div>
               <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{t('matches')}</div>

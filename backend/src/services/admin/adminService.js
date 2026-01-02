@@ -85,7 +85,8 @@ export const getDashboardStats = async () => {
 
     // 3. Activity Metrics
     const activityMetrics = [
-        { type: 'Messages', count: await Transaction.countDocuments({ type: 'message_spent', status: 'completed' }) },
+        { type: 'Text Messages', count: await Transaction.countDocuments({ type: 'message_spent', status: 'completed' }) },
+        { type: 'Image Messages', count: await Transaction.countDocuments({ type: 'image_spent', status: 'completed' }) },
         { type: 'Video Calls', count: await Transaction.countDocuments({ type: 'video_call_spent', status: 'completed' }) },
         { type: 'Gifts', count: await Transaction.countDocuments({ type: 'gift_sent', status: 'completed' }) },
         { type: 'Withdrawals', count: await Withdrawal.countDocuments({ status: 'completed' }) }

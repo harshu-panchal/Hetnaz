@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MaterialSymbol } from '../types/material-symbol';
 import { AttachmentMenu } from './AttachmentMenu';
+import { ImagePicker, ImagePickerRef } from '../../../shared/components/ImagePicker';
+import { CameraCapture } from '../../../shared/components/CameraCapture';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
-  onSendPhoto?: () => void;
+  onSendPhoto?: (base64: string) => void;
   onSendGift?: () => void;
   onTypingStart?: () => void;
   onTypingStop?: () => void;
@@ -27,9 +29,11 @@ export const MessageInput = ({
 }: MessageInputProps) => {
   const [message, setMessage] = useState('');
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const imagePickerRef = useRef<ImagePickerRef>(null);
 
   const handleSend = () => {
     if (message.trim() && !disabled && !isSending) {
@@ -112,13 +116,42 @@ export const MessageInput = ({
       id: 'photo',
       icon: 'image',
       label: 'Send Photo',
-      onClick: onSendPhoto,
+      onClick: () => {
+        setIsAttachmentMenuOpen(false);
+        imagePickerRef.current?.pickImage();
+      },
       color: 'bg-blue-500',
+    });
+    attachmentItems.push({
+      id: 'camera',
+      icon: 'photo_camera',
+      label: 'Take Photo',
+      onClick: () => {
+        setIsAttachmentMenuOpen(false);
+        setIsCameraOpen(true);
+      },
+      color: 'bg-green-500',
     });
   }
 
   return (
     <div className="px-4 py-3 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 relative">
+      {onSendPhoto && (
+        <>
+          <ImagePicker
+            ref={imagePickerRef}
+            onImageSelect={onSendPhoto}
+            disabled={disabled || isSending}
+            hidden
+          />
+          <CameraCapture
+            isOpen={isCameraOpen}
+            onClose={() => setIsCameraOpen(false)}
+            onCapture={onSendPhoto}
+          />
+        </>
+      )}
+
       <div className="flex items-end gap-2">
         {/* Attachment Menu Button (+ Button) */}
         {(onSendGift || onSendPhoto) && (
@@ -149,7 +182,7 @@ export const MessageInput = ({
             onKeyPress={handleKeyPress}
             placeholder={disabled ? 'Insufficient coins...' : placeholder}
             disabled={disabled || isSending}
-            className="w-full h-10 px-4 pr-16 bg-white dark:bg-[#2f151e] rounded-full border border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#cc8ea3]/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+            className="w-full h-10 px-4 bg-white dark:bg-[#2f151e] rounded-full border border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#cc8ea3]/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800"
           />
 
         </div>

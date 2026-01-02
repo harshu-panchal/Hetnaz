@@ -12,6 +12,7 @@ router.use(protect);
 
 // Me
 router.get('/me', userController.getProfile);
+router.get('/config', userController.getAppSettings);
 
 // Me Stats
 router.get('/me/stats', statsController.getMeStats);

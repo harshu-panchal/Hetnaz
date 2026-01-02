@@ -42,12 +42,13 @@ export const FemaleApprovalDetailPage = () => {
                 console.log('👤 [FemaleApproval] Extracted user object:', user);
 
                 // Transform to FemaleApproval format
+                // Handle both nested (user.profile.name) and flat (user.name) structures
                 const approvalData: FemaleApproval = {
                     userId: user.id || user._id,
                     user: {
                         id: user.id || user._id,
                         phoneNumber: user.phoneNumber,
-                        name: user.profile.name,
+                        name: user.profile?.name || user.name, // Support both structures
                         role: user.role,
                         isBlocked: user.isBlocked || false,
                         isVerified: user.isVerified || false,
@@ -55,11 +56,13 @@ export const FemaleApprovalDetailPage = () => {
                         lastLoginAt: user.lastSeen
                     },
                     profile: {
-                        age: user.profile.age,
-                        city: user.profile.location?.city || '',
-                        bio: user.profile.bio || '',
-                        // Extract URL from photo objects: [{url: '...'}, ...] => ['url1', 'url2', ...]
-                        photos: (user.profile.photos || []).map((photo: any) => typeof photo === 'string' ? photo : photo.url)
+                        age: user.profile?.age || user.age,
+                        city: user.profile?.location?.city || user.city || user.location || '',
+                        bio: user.profile?.bio || user.bio || '',
+                        // Extract URL from photo objects
+                        photos: (user.profile?.photos || user.photos || []).map((photo: any) =>
+                            typeof photo === 'string' ? photo : photo.url
+                        )
                     },
                     verificationDocuments: user.verificationDocuments || {},
                     approvalStatus: user.approvalStatus || 'pending',

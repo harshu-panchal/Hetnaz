@@ -53,6 +53,14 @@ export interface Gift {
   imageUrl?: string;
 }
 
+export interface Attachment {
+  type: 'image' | 'video' | 'audio';
+  url: string;
+  thumbnail?: string;
+  size?: number;
+  mimeType?: string;
+}
+
 export interface Message {
   id: string;
   chatId: string;
@@ -66,6 +74,7 @@ export interface Message {
   readStatus?: 'sent' | 'delivered' | 'read';
   gifts?: Gift[]; // For gift messages
   giftNote?: string; // Optional note with gifts
+  attachments?: Attachment[];
 }
 
 export interface EarningsBreakdown {

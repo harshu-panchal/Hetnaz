@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChatWindowHeader } from '../components/ChatWindowHeader';
 import { MessageBubble } from '../components/MessageBubble';
 import { MessageInput } from '../components/MessageInput';
-import { PhotoPickerModal } from '../components/PhotoPickerModal';
 import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import { ChatGiftSelectorModal } from '../components/ChatGiftSelectorModal';
 import { LevelUpModal } from '../components/LevelUpModal';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
+import { ImageModal } from '../../../shared/components/ImageModal';
+import apiClient from '../../../core/api/client';
+import { compressImage } from '../../../core/utils/image';
 
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { useVideoCall } from '../../../core/context/VideoCallContext';
@@ -20,13 +22,18 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 
 // Message cost constant
 const MESSAGE_COST = 50;
+const IMAGE_MESSAGE_COST = 100;
 
 export const ChatWindowPage = () => {
   const { t } = useTranslation();
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
-  const { coinBalance, updateBalance, user, chatCache, saveToChatCache } = useGlobalState();
+  const { coinBalance, updateBalance, user, chatCache, saveToChatCache, appSettings } = useGlobalState();
   const { requestCall, isInCall, callPrice } = useVideoCall();
+
+  // Dynamic Costs from Admin Settings
+  const currentMessageCost = appSettings?.messageCosts?.[user?.memberTier || 'basic'] || MESSAGE_COST;
+  const currentImageCost = appSettings?.messageCosts?.imageMessage || IMAGE_MESSAGE_COST;
 
   const [messages, setMessages] = useState<ApiMessage[]>(() => {
     return (chatId && chatCache[chatId]) ? chatCache[chatId] : [];
@@ -38,7 +45,6 @@ export const ChatWindowPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Modals
-  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
   const [isGiftSelectorOpen, setIsGiftSelectorOpen] = useState(false);
   const [levelUpInfo, setLevelUpInfo] = useState<IntimacyInfo | null>(null);
@@ -52,6 +58,10 @@ export const ChatWindowPage = () => {
   // Block status
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
   const [isBlockedByOther, setIsBlockedByOther] = useState(false);
+
+  // Image modal and upload
+  const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Pagination state
   const [hasMore, setHasMore] = useState(false);
@@ -114,12 +124,12 @@ export const ChatWindowPage = () => {
 
   // Check balance on load and show modal if insufficient
   useEffect(() => {
-    if (!isLoading && coinBalance < MESSAGE_COST) {
-      setRequiredCoinsModal(MESSAGE_COST);
+    if (!isLoading && coinBalance < currentMessageCost) {
+      setRequiredCoinsModal(currentMessageCost);
       setModalAction(t('actionSendMessage'));
       setIsBalanceModalOpen(true);
     }
-  }, [isLoading, coinBalance, t]);
+  }, [isLoading, coinBalance, currentMessageCost, t]);
 
   // Process offline queue when back online
   useEffect(() => {
@@ -166,10 +176,10 @@ export const ChatWindowPage = () => {
   // Socket event listeners
   useEffect(() => {
     const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
-      if (data.chatId === chatId) {
+      if (String(data.chatId) === String(chatId)) {
         setMessages(prev => {
           // 1. Permanent ID check - if real ID already exists, ignore
-          if (prev.some(m => m._id === data.message._id)) return prev;
+          if (prev.some(m => String(m._id) === String(data.message._id))) return prev;
 
           // 2. Identify and Deduplicate Optimistic messages for the Sender
           const senderIdVal = typeof data.message.senderId === 'object'
@@ -180,15 +190,16 @@ export const ChatWindowPage = () => {
 
           if (isSender) {
             // Find if there is a temp message with matching content
+            // For images, content might be empty so we also check messageType
             const optimisticMsg = prev.find(m =>
               String(m._id).startsWith('temp_') &&
-              m.content === data.message.content
+              m.content === data.message.content &&
+              m.messageType === data.message.messageType
             );
 
             if (optimisticMsg) {
               // Replace the temp message with the real one from socket
-              // This handles the case where socket arrives before API response
-              return prev.map(m => m._id === optimisticMsg._id ? data.message : m);
+              return prev.map(m => String(m._id) === String(optimisticMsg._id) ? data.message : m);
             }
           }
 
@@ -263,14 +274,14 @@ export const ChatWindowPage = () => {
   const handleSendMessage = async (content: string) => {
     if (!chatId || isSending) return;
 
-    if (coinBalance < MESSAGE_COST) {
-      setRequiredCoinsModal(MESSAGE_COST);
+    if (coinBalance < currentMessageCost) {
+      setRequiredCoinsModal(currentMessageCost);
       setModalAction(t('actionSendMessage'));
       setIsBalanceModalOpen(true);
       return;
     }
 
-    const newBalance = coinBalance - MESSAGE_COST;
+    const newBalance = coinBalance - currentMessageCost;
     updateBalance(newBalance);
 
     const optimisticMessage: ApiMessage = {
@@ -404,6 +415,80 @@ export const ChatWindowPage = () => {
         setMessages(prev => prev.filter(m => m._id !== optimisticMessage._id));
       }
     } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Send image
+  const handleSendImage = async (base64Image: string) => {
+    if (!chatId || isSending || isUploadingImage) return;
+
+    if (coinBalance < currentImageCost) {
+      setRequiredCoinsModal(currentImageCost);
+      setModalAction(t('actionSendMessage'));
+      setIsBalanceModalOpen(true);
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      setError(null);
+
+      // Compress image before upload
+      const compressedBase64 = await compressImage(base64Image, { maxWidth: 1000, maxHeight: 1000, quality: 0.75 });
+
+      // Upload to Cloudinary - increased timeout to 60s for direct upload
+      const response = await apiClient.post('/upload/chat-image',
+        { image: compressedBase64 },
+        { timeout: 60000 }
+      );
+      const { url } = response.data.data;
+
+      // Deduct balance
+      const newBalance = coinBalance - currentImageCost;
+      updateBalance(newBalance);
+
+      // Create optimistic message
+      const optimisticMessage: ApiMessage = {
+        _id: `temp_image_${Date.now()}`,
+        chatId: chatId,
+        senderId: user?.id || '',
+        content: '',
+        messageType: 'image',
+        status: 'sending',
+        attachments: [{ type: 'image', url }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any;
+
+      setMessages(prev => [...prev, optimisticMessage]);
+
+      // Send via chat service
+      setIsSending(true);
+      const result = await chatService.sendMessage(chatId, '', 'image', url);
+
+      setMessages(prev => prev.map(m =>
+        m._id === optimisticMessage._id ? result.message : m
+      ));
+
+      if (result.newBalance !== undefined) {
+        updateBalance(result.newBalance);
+      }
+
+      if (result.levelUp) {
+        setLevelUpInfo(result.levelUp);
+        setIntimacy(result.intimacy);
+      } else if (result.intimacy) {
+        setIntimacy(result.intimacy);
+      }
+
+    } catch (err: any) {
+      console.error('Failed to send image:', err);
+      setError(err.response?.data?.message || t('errorFailedToSendImage'));
+      // Refund coins on failure
+      updateBalance(coinBalance);
+    } finally {
+      setIsUploadingImage(false);
       setIsSending(false);
     }
   };
@@ -583,6 +668,7 @@ export const ChatWindowPage = () => {
           return (
             <MessageBubble
               key={message._id}
+              onImageClick={(url) => setSelectedImageModal(url)}
               message={{
                 id: message._id,
                 chatId: message.chatId,
@@ -594,6 +680,7 @@ export const ChatWindowPage = () => {
                 isSent,
                 readStatus: message.status === 'failed' ? 'sent' : message.status as any,
                 gifts: message.gifts as any,
+                attachments: message.attachments as any,
               }}
             />
           );
@@ -615,23 +702,19 @@ export const ChatWindowPage = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      <MessageInput
-        onSendMessage={handleSendMessage}
-        onSendPhoto={() => setIsPhotoPickerOpen(true)}
-        onSendGift={() => setIsGiftSelectorOpen(true)}
-        onTypingStart={handleTypingStart}
-        onTypingStop={handleTypingStop}
-        placeholder={isBlockedByMe ? t('unblockToSendMessage') : isBlockedByOther ? t('youAreBlocked') : t('typeMessage')}
-        coinCost={MESSAGE_COST}
-        disabled={coinBalance < MESSAGE_COST || isSending || isBlockedByMe || isBlockedByOther}
-        isSending={isSending}
-      />
-
-      <PhotoPickerModal
-        isOpen={isPhotoPickerOpen}
-        onClose={() => setIsPhotoPickerOpen(false)}
-        onPhotoSelect={() => { }}
-      />
+      <div className="relative">
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          onSendPhoto={handleSendImage}
+          onSendGift={() => setIsGiftSelectorOpen(true)}
+          onTypingStart={handleTypingStart}
+          onTypingStop={handleTypingStop}
+          placeholder={isBlockedByMe ? t('unblockToSendMessage') : isBlockedByOther ? t('youAreBlocked') : t('typeMessage')}
+          coinCost={MESSAGE_COST}
+          disabled={coinBalance < MESSAGE_COST || isSending || isUploadingImage || isBlockedByMe || isBlockedByOther}
+          isSending={isSending || isUploadingImage}
+        />
+      </div>
 
       <ChatMoreOptionsModal
         isOpen={isMoreOptionsOpen}
@@ -666,6 +749,15 @@ export const ChatWindowPage = () => {
         levelInfo={levelUpInfo}
         userName={chatInfo.otherUser.name}
       />
+
+      {/* Image Modal for full-screen view */}
+      {selectedImageModal && (
+        <ImageModal
+          isOpen={!!selectedImageModal}
+          imageUrl={selectedImageModal}
+          onClose={() => setSelectedImageModal(null)}
+        />
+      )}
     </div>
   );
 };

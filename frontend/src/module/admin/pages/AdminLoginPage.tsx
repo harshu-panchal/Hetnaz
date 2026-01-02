@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { normalizePhoneNumber } from '../../../core/utils/phoneNumber';
 import { loginWithOtp } from '../../auth/services/auth.service';
 
 export const AdminLoginPage = () => {
@@ -16,8 +17,13 @@ export const AdminLoginPage = () => {
 
         if (!formData.phone?.trim()) {
             newErrors.phone = 'Phone number is required';
-        } else if (!/^\d{10}$/.test(formData.phone)) {
-            newErrors.phone = 'Please enter a valid 10-digit phone number';
+        } else {
+            try {
+                // Attempt to normalize - will throw if invalid
+                normalizePhoneNumber(formData.phone);
+            } catch (error: any) {
+                newErrors.phone = 'Please enter a valid phone number';
+            }
         }
 
         setErrors(newErrors);
@@ -30,9 +36,11 @@ export const AdminLoginPage = () => {
             setIsLoading(true);
             setApiError(null);
             try {
-                await loginWithOtp(formData.phone);
+                // Normalize phone number (handles +91, 91, or 10-digit input)
+                const normalizedPhone = normalizePhoneNumber(formData.phone);
+                await loginWithOtp(normalizedPhone);
                 navigate('/otp-verification', {
-                    state: { mode: 'login', phoneNumber: formData.phone }
+                    state: { mode: 'login', phoneNumber: normalizedPhone }
                 });
             } catch (err: any) {
                 setApiError(err.message || 'Login request failed. Ensure you are an admin.');
@@ -43,9 +51,10 @@ export const AdminLoginPage = () => {
     };
 
     const handleChange = (value: string) => {
-        // Only allow digits inside state
-        const cleanValue = value.replace(/\D/g, '').slice(0, 10);
-        setFormData({ phone: cleanValue });
+        // Allow user to type freely, we'll validate on submit
+        // Remove non-digit characters except +
+        const cleaned = value.replace(/[^\d+]/g, '');
+        setFormData({ phone: cleaned });
         if (errors.phone) {
             setErrors({});
         }

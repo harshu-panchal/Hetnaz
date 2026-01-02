@@ -120,8 +120,12 @@ export const discoverFemales = async (req, res, next) => {
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         // Get current user's blocked list and coordinates in one query
-        const currentUser = await User.findById(req.user.id).select('blockedUsers profile.location.coordinates').lean();
+        const currentUser = await User.findById(req.user.id).select('blockedUsers profile.location.coordinates phoneNumber').lean();
+        console.log('[DISCOVER-DEBUG] Current user:', req.user.id, 'Phone:', currentUser?.phoneNumber);
+
         const blockedUserIds = currentUser?.blockedUsers || [];
+        console.log('[DISCOVER-DEBUG] Blocked users count:', blockedUserIds.length);
+
         const currentUserCoords = currentUser?.profile?.location?.coordinates?.coordinates;
         const hasCurrentUserCoords = currentUserCoords && currentUserCoords[0] !== 0 && currentUserCoords[1] !== 0;
 
@@ -130,6 +134,7 @@ export const discoverFemales = async (req, res, next) => {
             blockedUsers: req.user.id
         }).select('_id').lean();
         const blockerIds = usersWhoBlockedMe.map(u => u._id);
+        console.log('[DISCOVER-DEBUG] Users who blocked me count:', blockerIds.length);
 
         const query = {
             _id: {
@@ -142,6 +147,12 @@ export const discoverFemales = async (req, res, next) => {
             isActive: true,
             isDeleted: false,
         };
+
+        console.log('[DISCOVER-DEBUG] Query:', JSON.stringify(query, null, 2));
+
+        // Count total matching users before applying filters
+        const totalMatchingUsers = await User.countDocuments(query);
+        console.log('[DISCOVER-DEBUG] Total matching users:', totalMatchingUsers);
 
         // Filter and Sort options
         let sortOption = { isOnline: -1, lastSeen: -1 }; // Default: "Recommend" (Online first, then recently seen)
@@ -172,6 +183,8 @@ export const discoverFemales = async (req, res, next) => {
             .skip(skip)
             .limit(parseInt(limit))
             .lean();
+
+        console.log('[DISCOVER-DEBUG] Users found after query:', users.length);
 
         // Transform for frontend
         const profiles = users.map(user => {
@@ -316,6 +329,23 @@ export const getUserById = async (req, res, next) => {
                     isBlocked: currentUser?.role === 'admin' ? user.isBlocked : undefined
                 }
             }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get public platform settings (costs, limits)
+ */
+export const getAppSettings = async (req, res, next) => {
+    try {
+        const { default: AppSettings } = await import('../../models/AppSettings.js');
+        const settings = await AppSettings.getSettings();
+
+        res.status(200).json({
+            status: 'success',
+            data: { settings }
         });
     } catch (error) {
         next(error);

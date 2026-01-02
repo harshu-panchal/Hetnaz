@@ -101,7 +101,7 @@ export const AdminDashboard = () => {
   }
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col bg-[#f0f2f5] dark:bg-[#050505] overflow-x-hidden transition-colors duration-300">
+    <div className="relative flex h-full min-h-screen w-full flex-col bg-[#f0f0f1] dark:bg-[#1d2327] overflow-x-hidden transition-colors duration-300">
       {/* Top Navbar */}
       <AdminTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
 

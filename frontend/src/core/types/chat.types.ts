@@ -47,6 +47,13 @@ export interface Message {
         giftImage: string;
     }>;
     status: 'sent' | 'delivered' | 'read' | 'failed';
+    attachments?: Array<{
+        type: 'image' | 'video' | 'audio';
+        url: string;
+        thumbnail?: string;
+        size?: number;
+        mimeType?: string;
+    }>;
     createdAt: string | Date;
     deliveredAt?: string | Date;
     readAt?: string | Date;

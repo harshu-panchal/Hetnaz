@@ -15,6 +15,7 @@ import transactionManager from '../../core/transactions/transactionManager.js';
 import dataValidation from '../../core/validation/dataValidation.js';
 import logger from '../../utils/logger.js';
 import { checkLevelUp, getLevelInfo } from '../../utils/intimacyLevel.js';
+import { emitNewMessage, emitBalanceUpdate } from '../../socket/chatHandlers.js';
 
 // Helper functions to get costs from AppSettings
 const getMessageCost = async (userTier) => {
@@ -33,6 +34,11 @@ const getHiMessageCost = async () => {
     return settings.messageCosts.hiMessage;
 };
 
+const getImageMessageCost = async () => {
+    const settings = await AppSettings.getSettings();
+    return settings.messageCosts.imageMessage;
+};
+
 
 /**
  * Send a text message
@@ -40,10 +46,15 @@ const getHiMessageCost = async () => {
 export const sendMessage = async (req, res, next) => {
     try {
         const senderId = req.user.id;
-        const { chatId, content } = req.body;
+        const { chatId, content, messageType = 'text', attachments } = req.body;
 
-        if (!content || content.trim().length === 0) {
+        // Content is required for text messages, but optional for image messages with attachments
+        if (messageType === 'text' && (!content || content.trim().length === 0)) {
             throw new BadRequestError('Message content is required');
+        }
+
+        if (messageType === 'image' && (!attachments || attachments.length === 0)) {
+            throw new BadRequestError('Attachments are required for image messages');
         }
 
         // Verify chat exists and user is participant
@@ -78,8 +89,8 @@ export const sendMessage = async (req, res, next) => {
         // If sender is male, deduct coins
         let transaction = null;
         if (req.user.role === 'male') {
-            // Get message cost based on user's tier
-            const MESSAGE_COST = await getMessageCost(sender.memberTier);
+            // Get message cost based on type
+            const MESSAGE_COST = await (messageType === 'image' ? getImageMessageCost() : getMessageCost(sender.memberTier));
 
             // Validate user has enough coins
             await dataValidation.validateMessageSend(senderId, MESSAGE_COST);
@@ -96,7 +107,7 @@ export const sendMessage = async (req, res, next) => {
                     // Create transaction record for sender
                     const senderTx = await Transaction.create([{
                         userId: senderId,
-                        type: 'message_spent',
+                        type: messageType === 'image' ? 'image_spent' : 'message_spent',
                         direction: 'debit',
                         amountCoins: MESSAGE_COST,
                         status: 'completed',
@@ -104,7 +115,7 @@ export const sendMessage = async (req, res, next) => {
                         balanceAfter: sender.coinBalance,
                         relatedUserId: receiverId,
                         relatedChatId: chatId,
-                        description: `Message sent to user`,
+                        description: `${messageType === 'image' ? 'Image' : 'Message'} sent to user`,
                     }], { session });
 
                     // Credit coins to receiver (female)
@@ -116,7 +127,7 @@ export const sendMessage = async (req, res, next) => {
                     // Create transaction record for receiver
                     await Transaction.create([{
                         userId: receiverId,
-                        type: 'message_earned',
+                        type: messageType === 'image' ? 'image_earned' : 'message_earned',
                         direction: 'credit',
                         amountCoins: MESSAGE_COST,
                         status: 'completed',
@@ -124,7 +135,7 @@ export const sendMessage = async (req, res, next) => {
                         balanceAfter: receiver.coinBalance,
                         relatedUserId: senderId,
                         relatedChatId: chatId,
-                        description: `Message received from user`,
+                        description: `${messageType === 'image' ? 'Image' : 'Message'} received from user`,
                     }], { session });
 
                     return { senderTx: senderTx[0], newBalance: sender.coinBalance };
@@ -139,8 +150,9 @@ export const sendMessage = async (req, res, next) => {
             chatId,
             senderId,
             receiverId,
-            content,
-            messageType: 'text',
+            content: content || '',
+            messageType,
+            attachments,
             status: 'sent',
             transactionId: transaction?._id,
         });
@@ -158,8 +170,11 @@ export const sendMessage = async (req, res, next) => {
         await chat.incrementUnread(senderId);
 
         // Track message count per user
-        chat.totalMessageCount = (chat.totalMessageCount || 0) + 1;
-        const userMessageCount = (chat.messageCountByUser?.get(senderId.toString()) || 0) + 1;
+        // Images contribute 2 points to intimacy, regular messages 1
+        const intensityPoints = (messageType === 'image') ? 2 : 1;
+        chat.totalMessageCount = (chat.totalMessageCount || 0) + intensityPoints;
+
+        const userMessageCount = (chat.messageCountByUser?.get(senderId.toString()) || 0) + intensityPoints;
         if (!chat.messageCountByUser) {
             chat.messageCountByUser = new Map();
         }
@@ -188,7 +203,6 @@ export const sendMessage = async (req, res, next) => {
         // Emit real-time update via Socket.IO
         const io = req.app.get('io');
         if (io) {
-            const { emitNewMessage, emitBalanceUpdate } = await import('../../socket/index.js');
             emitNewMessage(io, chatId, populatedMessage);
 
             // Emit balance update if male
@@ -363,7 +377,6 @@ export const sendHiMessage = async (req, res, next) => {
         // Emit real-time update
         const io = req.app.get('io');
         if (io) {
-            const { emitNewMessage, emitBalanceUpdate } = await import('../../socket/index.js');
             emitNewMessage(io, chat._id.toString(), populatedMessage);
             emitBalanceUpdate(io, senderId, result.newBalance);
 
@@ -551,7 +564,6 @@ export const sendGift = async (req, res, next) => {
         // Emit real-time update
         const io = req.app.get('io');
         if (io) {
-            const { emitNewMessage, emitBalanceUpdate } = await import('../../socket/index.js');
             emitNewMessage(io, chatId, populatedMessage);
             emitBalanceUpdate(io, senderId, result.newBalance);
 

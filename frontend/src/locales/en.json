@@ -509,5 +509,12 @@
   "locationPermissionDenied": "Location permission denied. Please enable in browser settings or enter manually.",
   "setLocationTitle": "Set Your Location",
   "setLocationDesc": "Help us connect you with nearby users",
-  "loadMore": "Load More"
+  "loadMore": "Load More",
+  "dailyRewardTitle": "Daily Reward!",
+  "dailyRewardSubtitle": "Welcome back! Here's your daily bonus",
+  "youEarned": "You Earned",
+  "newBalanceLabel": "New Balance",
+  "awesomeThanks": "Awesome, Thanks!",
+  "comeBackTomorrow": "💝 Come back tomorrow for more rewards!",
+  "coins": "Coins"
 }

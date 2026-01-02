@@ -188,14 +188,18 @@ export const updatePayoutSlab = async (req, res, next) => {
         const { id } = req.params;
         const updates = req.body;
 
-        const slab = await PayoutSlab.findByIdAndUpdate(id, updates, {
-            new: true,
-            runValidators: true
-        });
+        // Fetch the slab first
+        const slab = await PayoutSlab.findById(id);
 
         if (!slab) {
             throw new NotFoundError('Payout slab not found');
         }
+
+        // Apply updates
+        Object.assign(slab, updates);
+
+        // Validate and save
+        await slab.save();
 
         res.status(200).json({
             status: 'success',

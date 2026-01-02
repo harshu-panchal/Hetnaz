@@ -18,6 +18,7 @@ class SocketService {
     private socket: Socket | null = null;
     private listeners: Map<string, Set<Function>> = new Map();
     private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+    private currentChatId: string | null = null;
 
     /**
      * Connect to Socket.IO server
@@ -48,6 +49,12 @@ class SocketService {
             console.log('✅ Socket connected:', this.socket?.id);
             // Start heartbeat on connect
             this.startHeartbeat();
+
+            // Rejoin current chat if we were in one
+            if (this.currentChatId) {
+                console.log('🔄 Rejoining chat room:', this.currentChatId);
+                this.joinChat(this.currentChatId);
+            }
         });
 
         this.socket.on('disconnect', (reason) => {
@@ -248,6 +255,7 @@ class SocketService {
      * Join a chat room
      */
     joinChat(chatId: string) {
+        this.currentChatId = chatId;
         this.socket?.emit('chat:join', { chatId });
     }
 
@@ -255,6 +263,9 @@ class SocketService {
      * Leave a chat room
      */
     leaveChat(chatId: string) {
+        if (this.currentChatId === chatId) {
+            this.currentChatId = null;
+        }
         this.socket?.emit('chat:leave', { chatId });
     }
 

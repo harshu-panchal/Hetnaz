@@ -5,6 +5,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import videoCallService, { CallState, VIDEO_CALL_PRICE, VIDEO_CALL_DURATION } from '../services/videoCall.service';
+import { useGlobalState } from './GlobalStateContext';
 
 interface VideoCallContextType {
     // State
@@ -33,6 +34,7 @@ interface VideoCallProviderProps {
 }
 
 export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
+    const { appSettings } = useGlobalState();
     console.log('📞📞📞 VideoCallProvider RENDERING');
     const [callState, setCallState] = useState<CallState>(videoCallService.getState());
     const [remainingTime, setRemainingTime] = useState(VIDEO_CALL_DURATION);
@@ -201,7 +203,7 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
         toggleMute,
         toggleCamera,
         rejoinCall,
-        callPrice: VIDEO_CALL_PRICE,
+        callPrice: appSettings?.messageCosts?.videoCall || VIDEO_CALL_PRICE,
         callDuration: VIDEO_CALL_DURATION,
     };
 

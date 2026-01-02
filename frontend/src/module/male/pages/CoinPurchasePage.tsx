@@ -136,7 +136,7 @@ export const CoinPurchasePage = () => {
       price: plan.priceInINR,
       coins: plan.totalCoins,
       bonus: bonus || undefined,
-      badge: plan.badge || undefined,
+      badge: plan.badge === 'BEST_VALUE' ? 'BEST VALUE' : (plan.badge || undefined),
       isPopular: plan.badge === 'POPULAR',
       isBestValue: plan.badge === 'BEST_VALUE',
     };

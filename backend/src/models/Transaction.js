@@ -20,6 +20,8 @@ const transactionSchema = new mongoose.Schema(
         'purchase', // Coin purchase
         'message_spent', // Male user spent coins on message
         'message_earned', // Female user earned coins from message
+        'image_spent', // Male user spent coins on image message
+        'image_earned', // Female user earned coins from image message
         'video_call_spent', // Male user spent coins on video call
         'video_call_earned', // Female user earned coins from video call
         'gift_sent', // Male user sent gift
@@ -125,8 +127,8 @@ transactionSchema.methods.getSummary = function () {
 // Before save: Validate transaction data
 transactionSchema.pre('save', async function (next) {
   // Validate direction matches type
-  const creditTypes = ['purchase', 'message_earned', 'video_call_earned', 'gift_received', 'bonus'];
-  const debitTypes = ['message_spent', 'video_call_spent', 'gift_sent', 'withdrawal', 'adjustment'];
+  const creditTypes = ['purchase', 'message_earned', 'image_earned', 'video_call_earned', 'gift_received', 'bonus'];
+  const debitTypes = ['message_spent', 'image_spent', 'video_call_spent', 'gift_sent', 'withdrawal', 'adjustment'];
 
   if (this.direction === 'credit' && !creditTypes.includes(this.type)) {
     return next(new Error(`Invalid transaction type ${this.type} for credit direction`));

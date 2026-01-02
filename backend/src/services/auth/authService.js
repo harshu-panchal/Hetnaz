@@ -34,6 +34,7 @@ const createSendToken = (user, statusCode, res) => {
 
 import Otp from '../../models/Otp.js';
 import { normalizePhoneNumber } from '../../utils/phoneNumber.js';
+import * as smsService from '../sms/smsHubService.js';
 
 // Helper to generate numeric OTP
 const generateNumericOtp = (length = 4) => {
@@ -45,46 +46,59 @@ const generateNumericOtp = (length = 4) => {
 };
 
 export const requestLoginOtp = async (phoneNumber) => {
-    // Normalize phone number (accepts 10 digits, 91+10 digits, or +91+10 digits)
-    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    try {
+        console.log('[AUTH] requestLoginOtp called with:', phoneNumber);
 
-    const user = await User.findOne({ phoneNumber: normalizedPhone });
-    if (!user) {
-        throw new BadRequestError('User not found. Please sign up first.');
+        // Normalize phone number (accepts 10 digits, 91+10 digits, or +91+10 digits)
+        const normalizedPhone = normalizePhoneNumber(phoneNumber);
+        console.log('[AUTH] Normalized phone:', normalizedPhone);
+
+        const user = await User.findOne({ phoneNumber: normalizedPhone });
+        if (!user) {
+            console.log('[AUTH] User not found for phone:', normalizedPhone);
+            throw new BadRequestError('User not found. Please sign up first.');
+        }
+
+        const otp = generateNumericOtp(6);
+
+        // Save/Update OTP
+        await Otp.findOneAndUpdate(
+            { phoneNumber: normalizedPhone, type: 'login' },
+            { otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
+            { upsert: true, new: true }
+        );
+
+        // Send via SMS provider
+        await smsService.sendOTP(normalizedPhone, otp);
+        console.log(`[OTP-LOGIN] Mobile: ${normalizedPhone}, Code: ${otp}`);
+
+        return { message: 'OTP sent successfully' };
+    } catch (error) {
+        console.error('[AUTH] requestLoginOtp error:', error.message);
+        throw error;
     }
-
-    const otp = generateNumericOtp(6);
-
-    // Save/Update OTP
-    await Otp.findOneAndUpdate(
-        { phoneNumber: normalizedPhone, type: 'login' },
-        { otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
-        { upsert: true, new: true }
-    );
-
-    // TODO: Send via SMS provider
-    console.log(`[OTP-LOGIN] Mobile: ${normalizedPhone}, Code: ${otp}`);
-
-    return { message: 'OTP sent successfully' };
 };
 
 export const verifyLoginOtp = async (phoneNumber, otpCode) => {
     // Normalize phone number
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
-    // BYPASS LOGIC (123456 Bypass active)
-    if (otpCode !== '123456') {
+    const user = await User.findOne({ phoneNumber: normalizedPhone });
+    if (!user) {
+        throw new BadRequestError('User not found');
+    }
+
+    // BYPASS LOGIC (123456 Bypass active ONLY for Admin)
+    const isAdmin = user.role === 'admin';
+    const isBypass = otpCode === '123456' && isAdmin;
+
+    if (!isBypass) {
         const otpRecord = await Otp.findOne({ phoneNumber: normalizedPhone, type: 'login', otp: otpCode });
         if (!otpRecord) {
             throw new BadRequestError('Invalid or expired OTP');
         }
         // Clear OTP
         await Otp.deleteOne({ _id: otpRecord._id });
-    }
-
-    const user = await User.findOne({ phoneNumber: normalizedPhone });
-    if (!user) {
-        throw new BadRequestError('User not found');
     }
 
     return user;
@@ -118,7 +132,8 @@ export const requestSignupOtp = async (userData) => {
         { upsert: true, new: true }
     );
 
-    // TODO: Send via SMS provider
+    // Send via SMS provider
+    await smsService.sendOTP(normalizedPhone, otp);
     console.log(`[OTP-SIGNUP] Mobile: ${normalizedPhone}, Code: ${otp}`);
 
     return { message: 'OTP sent successfully' };
@@ -128,16 +143,20 @@ export const verifySignupOtp = async (phoneNumber, otpCode) => {
     // Normalize phone number
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
-    // BYPASS LOGIC (123456 Bypass active)
-    // We still need the otpRecord to get signupData, but we allow 123456 to fetch it
-    const otpQuery = otpCode === '123456'
-        ? { phoneNumber: normalizedPhone, type: 'signup' }
-        : { phoneNumber: normalizedPhone, type: 'signup', otp: otpCode };
-
-    const otpRecord = await Otp.findOne(otpQuery);
+    // For signup, we check the otpRecord first
+    const otpRecord = await Otp.findOne({ phoneNumber: normalizedPhone, type: 'signup' });
 
     if (!otpRecord) {
-        throw new BadRequestError('Invalid or expired OTP');
+        throw new BadRequestError('OTP not requested or expired');
+    }
+
+    // BYPASS LOGIC Check role from pending signup data
+    const isBypass = otpCode === '123456' && otpRecord.signupData?.role === 'admin';
+
+    if (!isBypass) {
+        if (otpRecord.otp !== otpCode) {
+            throw new BadRequestError('Invalid OTP');
+        }
     }
 
     const userData = otpRecord.signupData;

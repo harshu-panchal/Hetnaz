@@ -32,7 +32,6 @@ export const MyProfilePage = () => {
   // Stats - fetched from backend
   const [stats, setStats] = useState({
     messagesReceived: 0,
-    profileViews: 0,
     activeConversations: 0,
     totalEarnings: 0,
     availableBalance: 0,
@@ -53,7 +52,6 @@ export const MyProfilePage = () => {
       const data = await userService.getFemaleDashboardData();
       setStats({
         messagesReceived: data.stats?.messagesReceived || 0,
-        profileViews: data.stats?.profileViews || 0,
         activeConversations: data.stats?.activeConversations || 0,
         totalEarnings: data.earnings?.totalEarnings || 0,
         availableBalance: data.earnings?.availableBalance || 0,
@@ -185,7 +183,7 @@ export const MyProfilePage = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="bg-white dark:bg-[#342d18] rounded-xl p-4 shadow-sm text-center">
             <div className="flex items-center justify-center mb-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
@@ -194,16 +192,6 @@ export const MyProfilePage = () => {
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.messagesReceived.toLocaleString()}</p>
             <p className="text-xs text-gray-500 dark:text-[#cbbc90] mt-1">{t('messages')}</p>
-          </div>
-
-          <div className="bg-white dark:bg-[#342d18] rounded-xl p-4 shadow-sm text-center">
-            <div className="flex items-center justify-center mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
-                <MaterialSymbol name="visibility" className="text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.profileViews.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 dark:text-[#cbbc90] mt-1">{t('views')}</p>
           </div>
 
           <div className="bg-white dark:bg-[#342d18] rounded-xl p-4 shadow-sm text-center">
@@ -266,18 +254,6 @@ export const MyProfilePage = () => {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2a2515] rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                  <MaterialSymbol name="trending_up" className="text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{t('profileViews')}</p>
-                  <p className="text-xs text-gray-500 dark:text-[#cbbc90]">{t('thisWeek')}</p>
-                </div>
-              </div>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">{stats.profileViews.toLocaleString()}</p>
-            </div>
 
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#2a2515] rounded-lg">
               <div className="flex items-center gap-3">

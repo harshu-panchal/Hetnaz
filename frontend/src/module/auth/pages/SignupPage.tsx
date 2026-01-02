@@ -244,13 +244,13 @@ export const SignupPage = () => {
                       onClick={() => handleChange('phone', '')}
                       className="pr-4 text-gray-300 hover:text-gray-500 transition-colors"
                     >
-                      <MaterialSymbol name="cancel" size={24} fill />
+                      <MaterialSymbol name="cancel" size={24} filled />
                     </button>
                   )}
                 </div>
                 {errors.phone && (
                   <div className="flex items-center gap-1.5 mt-2 ml-1 text-red-500 animate-in fade-in slide-in-from-top-1">
-                    <MaterialSymbol name="error" size={16} fill />
+                    <MaterialSymbol name="error" size={16} filled />
                     <p className="text-xs font-bold leading-none">{errors.phone}</p>
                   </div>
                 )}

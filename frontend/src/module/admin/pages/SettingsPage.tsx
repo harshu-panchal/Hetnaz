@@ -30,6 +30,7 @@ const mockSettings: AdminSettings = {
     gold: 40,
     platinum: 35,
     hiMessage: 5,
+    imageMessage: 100,
     videoCall: 500,
   },
   giftCosts: {
@@ -181,7 +182,7 @@ export const SettingsPage = () => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 mt-[57px]">
+      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
@@ -556,6 +557,27 @@ export const SettingsPage = () => {
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Cost for the initial "Hi" message to start a conversation</p>
+                      </div>
+
+                      {/* Image Message */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Image/Photo Message
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={settings.messageCosts.imageMessage}
+                            onChange={(e) => handleMessageCostChange('imageMessage', parseInt(e.target.value) || 0)}
+                            min="0"
+                            step="1"
+                            className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                            coins
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Cost for sending an image or taking a photo in chat</p>
                       </div>
                     </div>
                   </div>

@@ -7,7 +7,9 @@ import chatService from '../../../core/services/chat.service';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
 import { HiSentModal } from '../components/HiSentModal';
+import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
 import offlineQueueService from '../../../core/services/offlineQueue.service';
+import apiClient from '../../../core/api/client';
 
 import { useAuth } from '../../../core/context/AuthContext';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
@@ -33,6 +35,43 @@ export const NearbyFemalesPage = () => {
   // Hi Sent Modal
   const [isHiSentModalOpen, setIsHiSentModalOpen] = useState(false);
   const [sentHiRecipient, setSentHiRecipient] = useState({ name: '', chatId: '' });
+
+  // Daily Reward Modal
+  const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState(false);
+  const [dailyRewardData, setDailyRewardData] = useState({ amount: 0, newBalance: 0 });
+
+  // Check and claim daily reward on page load
+  useEffect(() => {
+    const checkDailyReward = async () => {
+      try {
+        console.log('[DailyReward] Attempting to claim...');
+        const response = await apiClient.post('/rewards/daily/claim');
+        console.log('[DailyReward] Response:', response.data);
+        const result = response.data.data;
+        console.log('[DailyReward] Result:', result);
+
+        if (result.claimed) {
+          console.log('[DailyReward] Reward claimed! Amount:', result.amount, 'New Balance:', result.newBalance);
+          // Show celebration modal
+          setDailyRewardData({
+            amount: result.amount,
+            newBalance: result.newBalance
+          });
+          setIsDailyRewardModalOpen(true);
+          console.log('[DailyReward] Modal state set to true');
+          // Update global balance
+          updateBalance(result.newBalance);
+        } else {
+          console.log('[DailyReward] Not claimed. Reason:', result.reason);
+        }
+      } catch (error) {
+        // Silently fail - don't disrupt user experience
+        console.log('[DailyReward] Failed to claim:', error);
+      }
+    };
+
+    checkDailyReward();
+  }, [updateBalance]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -324,6 +363,14 @@ export const NearbyFemalesPage = () => {
         onClose={() => setIsHiSentModalOpen(false)}
         onGoToChat={() => navigate(`/male/chat/${sentHiRecipient.chatId}`)}
         recipientName={sentHiRecipient.name}
+      />
+
+      {/* Daily Reward Modal */}
+      <DailyRewardModal
+        isOpen={isDailyRewardModalOpen}
+        onClose={() => setIsDailyRewardModalOpen(false)}
+        coinsAwarded={dailyRewardData.amount}
+        newBalance={dailyRewardData.newBalance}
       />
     </div>
   );

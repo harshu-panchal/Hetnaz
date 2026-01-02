@@ -2,6 +2,14 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminStats } from '../context/AdminStatsContext';
 
+interface SubItem {
+  id: string;
+  label: string;
+  path: string;
+  isActive?: boolean;
+  badgeCount?: number;
+}
+
 interface NavItem {
   id: string;
   icon: string;
@@ -9,6 +17,7 @@ interface NavItem {
   isActive?: boolean;
   hasBadge?: boolean;
   badgeCount?: number;
+  subItems?: SubItem[];
 }
 
 export const useAdminNavigation = () => {
@@ -41,35 +50,48 @@ export const useAdminNavigation = () => {
       id: 'users',
       icon: 'people',
       label: 'Users',
-      isActive: location.pathname.startsWith('/admin/users'),
+      isActive: location.pathname === '/admin/users' && !location.pathname.includes('/admin/female-approval'),
+      subItems: [
+        {
+          id: 'all-users',
+          label: 'All Users',
+          path: '/admin/users',
+          isActive: location.pathname === '/admin/users',
+        },
+        {
+          id: 'female-approval',
+          label: 'Female Approval',
+          path: '/admin/female-approval',
+          isActive: location.pathname.startsWith('/admin/female-approval'),
+          badgeCount: stats.pendingFemaleApprovals,
+        },
+      ],
     },
     {
-      id: 'female-approval',
-      icon: 'verified_user',
-      label: 'Female Approval',
-      hasBadge: stats.pendingFemaleApprovals > 0,
-      badgeCount: stats.pendingFemaleApprovals,
-      isActive: location.pathname.startsWith('/admin/female-approval'),
-    },
-    {
-      id: 'coin-economy',
-      icon: 'monetization_on',
-      label: 'Coin Economy',
-      isActive: location.pathname.startsWith('/admin/coin-economy'),
-    },
-    {
-      id: 'withdrawals',
-      icon: 'account_balance_wallet',
-      label: 'Withdrawals',
-      hasBadge: stats.pendingWithdrawals > 0,
-      badgeCount: stats.pendingWithdrawals,
-      isActive: location.pathname.startsWith('/admin/withdrawals'),
-    },
-    {
-      id: 'transactions',
-      icon: 'receipt_long',
-      label: 'Transactions',
-      isActive: location.pathname.startsWith('/admin/transactions'),
+      id: 'finance',
+      icon: 'account_balance',
+      label: 'Finance',
+      subItems: [
+        {
+          id: 'coin-economy',
+          label: 'Coin Economy',
+          path: '/admin/coin-economy',
+          isActive: location.pathname.startsWith('/admin/coin-economy'),
+        },
+        {
+          id: 'withdrawals',
+          label: 'Withdrawals',
+          path: '/admin/withdrawals',
+          isActive: location.pathname.startsWith('/admin/withdrawals'),
+          badgeCount: stats.pendingWithdrawals,
+        },
+        {
+          id: 'transactions',
+          label: 'Transactions',
+          path: '/admin/transactions',
+          isActive: location.pathname.startsWith('/admin/transactions'),
+        },
+      ],
     },
     {
       id: 'settings',
@@ -90,7 +112,7 @@ export const useAdminNavigation = () => {
       case 'dashboard':
         navigate('/admin/dashboard');
         break;
-      case 'users':
+      case 'all-users':
         navigate('/admin/users');
         break;
       case 'female-approval':
@@ -123,4 +145,3 @@ export const useAdminNavigation = () => {
     handleNavigationClick,
   };
 };
-

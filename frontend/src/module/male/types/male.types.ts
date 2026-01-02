@@ -63,6 +63,14 @@ export interface NearbyFemale {
 
 export type FilterType = 'all' | 'nearby' | 'new' | 'popular';
 
+export interface Attachment {
+  type: 'image' | 'video' | 'audio';
+  url: string;
+  thumbnail?: string;
+  size?: number;
+  mimeType?: string;
+}
+
 export interface Message {
   id: string;
   chatId: string;
@@ -77,6 +85,7 @@ export interface Message {
   cost?: number; // Cost in coins for male users
   gifts?: Gift[]; // Gifts sent with the message
   giftNote?: string; // Optional note with gifts
+  attachments?: Attachment[]; // Multi-media attachments
 }
 
 export interface Transaction {

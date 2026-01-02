@@ -28,6 +28,7 @@ interface GlobalState {
     chatCache: Record<string, any[]>;
     saveToChatCache: (chatId: string, messages: any[]) => void;
     loadFromChatCache: (chatId: string) => Promise<any[]>;
+    appSettings: any | null;
 }
 
 export interface InAppNotification {
@@ -70,6 +71,18 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
     const [isConnected, setIsConnected] = useState(false);
     const [notifications, setNotifications] = useState<InAppNotification[]>([]);
     const [chatCache, setChatCache] = useState<Record<string, any[]>>({});
+    const [appSettings, setAppSettings] = useState<any | null>(null);
+
+    // Fetch app settings
+    const refreshSettings = useCallback(async () => {
+        try {
+            const { configService } = await import('../services/config.service');
+            const config = await configService.refreshConfig();
+            setAppSettings(config);
+        } catch (error) {
+            console.error('Failed to refresh app settings:', error);
+        }
+    }, []);
 
     // Load chat cache from IndexedDB on mount (non-blocking)
     useEffect(() => {
@@ -83,7 +96,8 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
             }
         };
         loadChatCache();
-    }, []);
+        refreshSettings();
+    }, [refreshSettings]);
 
     const addNotification = useCallback((notification: Omit<InAppNotification, 'id'>) => {
         const id = Math.random().toString(36).substr(2, 9);
@@ -260,6 +274,7 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
         chatCache,
         saveToChatCache,
         loadFromChatCache,
+        appSettings,
     };
 
     return (

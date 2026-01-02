@@ -350,8 +350,9 @@ export const emitBalanceUpdate = (io, userId, newBalance) => {
  * Emit new message to chat (called from message controller)
  */
 export const emitNewMessage = (io, chatId, message) => {
-    io.to(`chat:${chatId}`).emit('message:new', {
-        chatId,
+    const chatIdStr = chatId.toString();
+    io.to(`chat:${chatIdStr}`).emit('message:new', {
+        chatId: chatIdStr,
         message,
     });
 

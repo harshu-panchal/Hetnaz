@@ -12,6 +12,8 @@ import adminRoutes from './admin/routes.js';
 import walletRoutes from './wallet/routes.js';
 import paymentRoutes from './payment/routes.js';
 import chatRoutes from './chat/routes.js';
+import rewardRoutes from './reward/routes.js';
+import uploadRoutes from './upload/routes.js';
 // import maleRoutes from './male/routes.js';
 // import femaleRoutes from './female/routes.js';
 
@@ -22,6 +24,8 @@ export {
     walletRoutes,
     paymentRoutes,
     chatRoutes,
+    rewardRoutes,
+    uploadRoutes,
     //   maleRoutes,
     //   femaleRoutes,
 };

@@ -68,6 +68,15 @@ export const getEnvConfig = () => {
     turnUris: process.env.TURN_URIS || '',
     turnUser: process.env.TURN_USER || '',
     turnPass: process.env.TURN_PASS || '',
+    // Cloudinary Config
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+    // SMS Hub Config
+    smsHubApiKey: process.env.SMS_HUB_API_KEY,
+    smsHubSenderId: process.env.SMS_HUB_SENDER_ID,
+    smsHubEntityId: process.env.SMS_HUB_ENTITY_ID,
+    smsHubOtpTemplateId: process.env.SMS_HUB_OTP_TEMPLATE_ID,
   };
 };
 

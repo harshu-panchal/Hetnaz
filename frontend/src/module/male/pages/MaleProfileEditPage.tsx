@@ -247,9 +247,9 @@ export const MaleProfileEditPage = () => {
               value={editedProfile.city || ''}
               onChange={(value, coords) => {
                 const updates = { ...editedProfile, city: value };
-                if (coords) {
-                  updates.latitude = coords.lat;
-                  updates.longitude = coords.lng;
+                if (coords && coords.coordinates) {
+                  updates.latitude = coords.coordinates.lat;
+                  updates.longitude = coords.coordinates.lng;
                 }
                 setEditedProfile(updates);
               }}

@@ -1,30 +1,44 @@
 import { useState, useRef, useEffect } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { AttachmentMenu } from './AttachmentMenu';
+import { ImagePicker, ImagePickerRef } from '../../../shared/components/ImagePicker';
+import { CameraCapture } from '../../../shared/components/CameraCapture';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
-  onSendPhoto?: () => void;
+  onSendPhoto?: (base64: string) => void;
+  onTypingStart?: () => void;
+  onTypingStop?: () => void;
   placeholder?: string;
   disabled?: boolean;
+  isSending?: boolean;
 }
 
 export const MessageInput = ({
   onSendMessage,
   onSendPhoto,
+  onTypingStart,
+  onTypingStop,
   placeholder = 'Type a message...',
   disabled = false,
+  isSending = false,
 }: MessageInputProps) => {
   const [message, setMessage] = useState('');
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const imagePickerRef = useRef<ImagePickerRef>(null);
 
   const handleSend = () => {
-    if (message.trim() && !disabled) {
+    if (message.trim() && !disabled && !isSending) {
       onSendMessage(message.trim());
       setMessage('');
       inputRef.current?.focus();
+      if (onTypingStop) {
+        onTypingStop();
+      }
     }
   };
 
@@ -34,6 +48,36 @@ export const MessageInput = ({
       handleSend();
     }
   };
+
+  // Handle typing indicator
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+
+    // Start typing indicator
+    if (value && onTypingStart) {
+      onTypingStart();
+    }
+
+    // Stop typing after 2 seconds of inactivity
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      if (onTypingStop) {
+        onTypingStop();
+      }
+    }, 2000);
+  };
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -59,20 +103,49 @@ export const MessageInput = ({
       id: 'photo',
       icon: 'image',
       label: 'Send Photo',
-      onClick: onSendPhoto,
+      onClick: () => {
+        setIsAttachmentMenuOpen(false);
+        imagePickerRef.current?.pickImage();
+      },
       color: 'bg-blue-500',
+    });
+    attachmentItems.push({
+      id: 'camera',
+      icon: 'photo_camera',
+      label: 'Take Photo',
+      onClick: () => {
+        setIsAttachmentMenuOpen(false);
+        setIsCameraOpen(true);
+      },
+      color: 'bg-green-500',
     });
   }
 
   return (
     <div className="px-4 pt-3 pb-1 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 relative">
+      {onSendPhoto && (
+        <>
+          <ImagePicker
+            ref={imagePickerRef}
+            onImageSelect={onSendPhoto}
+            disabled={disabled || isSending}
+            hidden
+          />
+          <CameraCapture
+            isOpen={isCameraOpen}
+            onClose={() => setIsCameraOpen(false)}
+            onCapture={onSendPhoto}
+          />
+        </>
+      )}
+
       <div className="flex items-end gap-2">
         {/* Attachment Menu Button (+ Button) */}
         {onSendPhoto && (
           <div className="relative shrink-0" ref={menuRef}>
             <button
               onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-              disabled={disabled}
+              disabled={disabled || isSending}
               className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95 disabled:opacity-50"
               aria-label="Attachments"
             >
@@ -92,10 +165,10 @@ export const MessageInput = ({
             ref={inputRef}
             type="text"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
-            disabled={disabled}
+            disabled={disabled || isSending}
             className="w-full h-10 px-4 bg-white dark:bg-[#2f151e] rounded-full border border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#cc8ea3]/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
           />
         </div>
@@ -103,11 +176,15 @@ export const MessageInput = ({
         {/* Send Button */}
         <button
           onClick={handleSend}
-          disabled={!message.trim() || disabled}
+          disabled={!message.trim() || disabled || isSending}
           className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white hover:bg-yellow-400 transition-colors active:scale-95 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Send message"
         >
-          <MaterialSymbol name="send" size={20} />
+          {isSending ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <MaterialSymbol name="send" size={20} />
+          )}
         </button>
       </div>
       <p className="text-xs text-gray-400 dark:text-[#cbbc90] mt-2 px-2 text-center">

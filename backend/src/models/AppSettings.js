@@ -33,6 +33,7 @@ const appSettingsSchema = new mongoose.Schema(
 
             // Special message types
             hiMessage: { type: Number, default: 5 },
+            imageMessage: { type: Number, default: 100 },
 
             // Video call cost
             videoCall: { type: Number, default: 500 },

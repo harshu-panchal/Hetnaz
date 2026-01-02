@@ -1,5 +1,13 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+
+interface SubItem {
+  id: string;
+  label: string;
+  path: string;
+  isActive?: boolean;
+  badgeCount?: number;
+}
 
 interface NavItem {
   id: string;
@@ -8,6 +16,7 @@ interface NavItem {
   isActive?: boolean;
   hasBadge?: boolean;
   badgeCount?: number;
+  subItems?: SubItem[];
 }
 
 interface AdminSidebarProps {
@@ -18,6 +27,17 @@ interface AdminSidebarProps {
 }
 
 export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSidebarProps) => {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['users', 'finance']));
+
+  useEffect(() => {
+    // Auto-expand parent if child is active
+    items.forEach(item => {
+      if (item.subItems?.some(sub => sub.isActive)) {
+        setExpandedItems(prev => new Set(prev).add(item.id));
+      }
+    });
+  }, [items]);
+
   useEffect(() => {
     // Only lock body scroll on mobile when sidebar is open
     const handleResize = () => {
@@ -47,11 +67,24 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isOpen, onClose]);
 
-  const handleItemClick = (itemId: string) => {
-    onItemClick?.(itemId);
-    // Only close sidebar on mobile
-    if (window.innerWidth < 1024) {
-      onClose();
+  const handleItemClick = (itemId: string, hasSubItems: boolean) => {
+    if (hasSubItems) {
+      // Toggle expansion
+      setExpandedItems(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(itemId)) {
+          newSet.delete(itemId);
+        } else {
+          newSet.add(itemId);
+        }
+        return newSet;
+      });
+    } else {
+      onItemClick?.(itemId);
+      // Only close sidebar on mobile
+      if (window.innerWidth < 1024) {
+        onClose();
+      }
     }
   };
 
@@ -65,91 +98,126 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - WordPress Style */}
       <div
         className={`
-          fixed top-0 h-full w-64 bg-white dark:bg-[#1a1a1a] z-[9999] transition-transform duration-300 ease-out
-          lg:left-0 lg:translate-x-0 lg:shadow-none lg:border-r lg:border-gray-200 lg:dark:border-gray-700
-          ${isOpen ? 'right-0 translate-x-0 shadow-2xl' : 'right-0 translate-x-full lg:translate-x-0'}
+          fixed top-0 h-full w-64 bg-[#1d2327] z-[9999] transition-transform duration-300 ease-out
+          lg:left-0 lg:translate-x-0 lg:shadow-none
+          ${isOpen ? 'left-0 translate-x-0 shadow-2xl' : 'left-0 -translate-x-full lg:translate-x-0'}
         `}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 h-[57px]">
+        {/* Header - WordPress Style */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2c3338] h-[57px] bg-[#1d2327]">
           <div className="flex items-center gap-2">
-            <MaterialSymbol name="admin_panel_settings" className="text-blue-600 dark:text-blue-400" size={20} filled />
-            <span className="text-base font-bold text-gray-900 dark:text-white">Admin Panel</span>
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
+              <MaterialSymbol name="admin_panel_settings" className="text-white" size={20} filled />
+            </div>
+            <span className="text-sm font-semibold text-white">MatchMint Admin</span>
           </div>
           {/* Close button - Only on mobile */}
           <button
             onClick={onClose}
-            className="flex items-center justify-center size-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-95 lg:hidden"
+            className="flex items-center justify-center size-8 rounded hover:bg-[#2c3338] transition-colors active:scale-95 lg:hidden"
             aria-label="Close menu"
           >
-            <MaterialSymbol name="close" size={20} className="text-gray-900 dark:text-white" />
+            <MaterialSymbol name="close" size={20} className="text-gray-400" />
           </button>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="flex flex-col px-3 py-4 overflow-y-auto max-h-[calc(100vh-110px)] custom-scrollbar">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleItemClick(item.id)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group relative active:scale-95 mb-0.5 ${item.isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/10'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-900/50'
-                }`}
-            >
-              <div
-                className={`flex items-center justify-center size-8 rounded-lg transition-all duration-200 ${item.isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 group-hover:bg-blue-600 group-hover:text-white'
-                  }`}
-              >
-                <MaterialSymbol
-                  name={item.icon}
-                  filled={item.isActive}
-                  size={18}
-                />
-              </div>
-              <div className="flex-1 text-left min-w-0">
-                <span
-                  className={`text-sm font-medium transition-colors duration-200 truncate block ${item.isActive
-                      ? 'text-blue-700 dark:text-blue-300'
-                      : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
+        {/* Navigation Items - WordPress Style */}
+        <nav className="flex flex-col py-2 overflow-y-auto max-h-[calc(100vh-110px)] wp-scrollbar">
+          {items.map((item) => {
+            const isExpanded = expandedItems.has(item.id);
+            const hasSubItems = (item.subItems?.length || 0) > 0;
+
+            return (
+              <div key={item.id} className="relative">
+                {/* Main Item */}
+                <button
+                  onClick={() => handleItemClick(item.id, hasSubItems)}
+                  className={`flex items-center gap-3 px-4 py-2.5 w-full transition-all duration-150 relative group ${item.isActive && !hasSubItems
+                      ? 'bg-[#2c3338] text-[#72aee6] border-l-4 border-[#72aee6]'
+                      : 'text-[#c3c4c7] hover:bg-[#2c3338] hover:text-white border-l-4 border-transparent'
                     }`}
                 >
-                  {item.label}
-                </span>
+                  <MaterialSymbol
+                    name={item.icon}
+                    filled={item.isActive && !hasSubItems}
+                    size={20}
+                    className="flex-shrink-0"
+                  />
+                  <span className="flex-1 text-left text-sm font-normal">
+                    {item.label}
+                  </span>
+                  {item.hasBadge && (
+                    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#d63638] text-white text-[10px] font-semibold">
+                      {item.badgeCount}
+                    </span>
+                  )}
+                  {hasSubItems && (
+                    <MaterialSymbol
+                      name="expand_more"
+                      size={18}
+                      className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                    />
+                  )}
+                </button>
+
+                {/* Sub Items */}
+                {hasSubItems && isExpanded && (
+                  <div className="bg-[#23282d] border-l-4 border-[#2c3338]">
+                    {item.subItems!.map((subItem) => (
+                      <button
+                        key={subItem.id}
+                        onClick={() => {
+                          onItemClick?.(subItem.id);
+                          if (window.innerWidth < 1024) onClose();
+                        }}
+                        className={`flex items-center gap-2 pl-12 pr-4 py-2 w-full text-sm transition-all duration-150 relative ${subItem.isActive
+                            ? 'text-[#72aee6] bg-[#1d2327]'
+                            : 'text-[#a7aaad] hover:text-[#72aee6] hover:bg-[#1d2327]'
+                          }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
+                        <span className="flex-1 text-left">{subItem.label}</span>
+                        {subItem.badgeCount && subItem.badgeCount > 0 && (
+                          <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#d63638] text-white text-[10px] font-semibold">
+                            {subItem.badgeCount}
+                          </span>
+                        )}
+                        {subItem.isActive && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#72aee6]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              {item.hasBadge && (
-                <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold shadow-sm">
-                  {item.badgeCount || ''}
-                </span>
-              )}
-              {item.isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-blue-600 rounded-r-full" />
-              )}
-            </button>
-          ))}
+            );
+          })}
         </nav>
 
-        {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a]">
-          <div className="text-[10px] text-gray-400 dark:text-gray-500 text-center">
-            MatchMint Admin © {new Date().getFullYear()}
+        {/* Footer - WordPress Style */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-[#2c3338] bg-[#1d2327]">
+          <div className="text-[10px] text-[#787c82] text-center">
+            © {new Date().getFullYear()} MatchMint Admin
           </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
+        .wp-scrollbar::-webkit-scrollbar {
+          width: 12px;
+        }
+        .wp-scrollbar::-webkit-scrollbar-track {
+          background: #23282d;
+        }
+        .wp-scrollbar::-webkit-scrollbar-thumb {
+          background: #3c434a;
+          border-radius: 6px;
+        }
+        .wp-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #50575e;
         }
         @keyframes fadeIn {
           from {
@@ -163,4 +231,3 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
     </>
   );
 };
-

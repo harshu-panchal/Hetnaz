@@ -90,6 +90,11 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Daily Reward Tracking (for daily login bonus)
+    lastDailyRewardDate: {
+      type: Date,
+      default: null,
+    },
     // Badges earned through various activities
     badges: [{
       id: {

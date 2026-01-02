@@ -5,9 +5,10 @@ import { GiftMessageBubble } from './GiftMessageBubble';
 
 interface MessageBubbleProps {
   message: Message;
+  onImageClick?: (imageUrl: string) => void;
 }
 
-export const MessageBubble = ({ message }: MessageBubbleProps) => {
+export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => {
   const isSent = message.isSent;
   const time = format(message.timestamp, 'h:mm a');
 
@@ -62,17 +63,21 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
   };
 
   if (message.type === 'image' || message.type === 'photo') {
+    // Get image URL from attachments or fallback to content
+    const imageUrl = (message as any).attachments?.[0]?.url || message.content;
+
     return (
       <div className={`flex ${isSent ? 'justify-end' : 'justify-start'} mb-3 px-4`}>
         <div className={`flex flex-col max-w-[75%] ${isSent ? 'items-end' : 'items-start'}`}>
           <div
-            className={`rounded-2xl overflow-hidden ${isSent
-                ? 'bg-primary rounded-tr-sm'
-                : 'bg-white dark:bg-[#342d18] rounded-tl-sm'
+            className={`rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${isSent
+              ? 'bg-primary rounded-tr-sm'
+              : 'bg-white dark:bg-[#342d18] rounded-tl-sm'
               }`}
+            onClick={() => onImageClick?.(imageUrl)}
           >
             <img
-              src={message.content}
+              src={imageUrl}
               alt="Shared photo"
               className="max-w-full h-auto max-h-64 object-cover"
             />
@@ -96,8 +101,8 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
       <div className={`flex flex-col max-w-[75%] ${isSent ? 'items-end' : 'items-start'}`}>
         <div
           className={`rounded-2xl px-4 py-2.5 ${isSent
-              ? 'bg-primary text-white rounded-tr-sm'
-              : 'bg-white dark:bg-[#342d18] text-gray-900 dark:text-white rounded-tl-sm'
+            ? 'bg-primary text-white rounded-tr-sm'
+            : 'bg-white dark:bg-[#342d18] text-gray-900 dark:text-white rounded-tl-sm'
             }`}
         >
           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">

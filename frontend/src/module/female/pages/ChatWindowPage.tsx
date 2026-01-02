@@ -4,7 +4,6 @@ import { ChatWindowHeader } from '../components/ChatWindowHeader';
 import { MessageBubble } from '../components/MessageBubble';
 import { GiftMessageBubble } from '../components/GiftMessageBubble';
 import { MessageInput } from '../components/MessageInput';
-import { PhotoPickerModal } from '../components/PhotoPickerModal';
 import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import chatService from '../../../core/services/chat.service';
@@ -13,6 +12,9 @@ import socketService from '../../../core/services/socket.service';
 import offlineQueueService from '../../../core/services/offlineQueue.service';
 import type { Chat as ApiChat, Message as ApiMessage } from '../../../core/types/chat.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { ImageModal } from '../../../shared/components/ImageModal';
+import apiClient from '../../../core/api/client';
+import { compressImage } from '../../../core/utils/image';
 
 export const ChatWindowPage = () => {
   const { t } = useTranslation();
@@ -29,11 +31,14 @@ export const ChatWindowPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [availableBalance, setAvailableBalance] = useState<number>(0);
 
-  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
   const [isBlockedByOther, setIsBlockedByOther] = useState(false);
+
+  // Image modal and upload
+  const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Pagination state
   const [hasMore, setHasMore] = useState(false);
@@ -153,10 +158,10 @@ export const ChatWindowPage = () => {
   // Socket event listeners
   useEffect(() => {
     const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
-      if (data.chatId === chatId) {
+      if (String(data.chatId) === String(chatId)) {
         setMessages(prev => {
           // 1. Permanent ID check
-          if (prev.some(m => m._id === data.message._id)) return prev;
+          if (prev.some(m => String(m._id) === String(data.message._id))) return prev;
 
           // 2. Deduplicate for sender (Optimistic UI)
           const senderIdVal = typeof data.message.senderId === 'object'
@@ -168,23 +173,18 @@ export const ChatWindowPage = () => {
           if (isSender) {
             const optimisticMsg = prev.find(m =>
               String(m._id).startsWith('temp_') &&
-              m.content === data.message.content
+              m.content === data.message.content &&
+              m.messageType === data.message.messageType
             );
 
             if (optimisticMsg) {
-              return prev.map(m => m._id === optimisticMsg._id ? data.message : m);
+              return prev.map(m => String(m._id) === String(optimisticMsg._id) ? data.message : m);
             }
           }
 
           return [...prev, data.message];
         });
         scrollToBottom();
-      }
-    };
-
-    const handleTyping = (data: { chatId: string; userId: string; isTyping: boolean }) => {
-      if (data.chatId === chatId && data.userId !== currentUserId) {
-        setIsOtherTyping(data.isTyping);
       }
     };
 
@@ -214,6 +214,12 @@ export const ChatWindowPage = () => {
       }
     };
 
+    const handleTyping = (data: { chatId: string; userId: string; isTyping: boolean }) => {
+      if (data.chatId === chatId && data.userId !== currentUserId) {
+        setIsOtherTyping(data.isTyping);
+      }
+    };
+
     socketService.on('message:new', handleNewMessage);
     socketService.on('chat:typing', handleTyping);
     socketService.on('user:online', handleUserOnline);
@@ -227,11 +233,74 @@ export const ChatWindowPage = () => {
       socketService.off('user:offline', handleUserOffline);
       socketService.off('user:blocked_by', handleBlockedBy);
     };
-  }, [chatId, chatInfo, currentUserId, scrollToBottom]);
+  }, [chatId, chatInfo, currentUserId, scrollToBottom, t]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  // Send image
+  const handleSendImage = async (base64Image: string) => {
+    if (!chatId || isSending || isUploadingImage) return;
+
+    try {
+      setIsUploadingImage(true);
+      setError(null);
+
+      // Compress image before upload
+      const compressedBase64 = await compressImage(base64Image, { maxWidth: 1000, maxHeight: 1000, quality: 0.75 });
+
+      // Upload to Cloudinary - increased timeout to 60s for direct upload
+      const response = await apiClient.post('/upload/chat-image',
+        { image: compressedBase64 },
+        { timeout: 60000 }
+      );
+      const { url } = response.data.data;
+
+      // Create optimistic message
+      const optimisticMessage: ApiMessage = {
+        _id: `temp_image_${Date.now()}`,
+        chatId: chatId,
+        senderId: currentUserId,
+        content: '',
+        messageType: 'image',
+        status: 'sending',
+        attachments: [{ type: 'image', url }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any;
+
+      setMessages(prev => [...prev, optimisticMessage]);
+
+      // Send via chat service
+      setIsSending(true);
+      const result = await chatService.sendMessage(chatId, '', 'image', url);
+
+      setMessages(prev => prev.map(m =>
+        m._id === optimisticMessage._id ? result.message : m
+      ));
+
+    } catch (err: any) {
+      console.error('Failed to send image:', err);
+      setError(err.response?.data?.message || t('errorFailedToSendImage'));
+    } finally {
+      setIsUploadingImage(false);
+      setIsSending(false);
+    }
+  };
+
+  // Typing indicator
+  const handleTypingStart = () => {
+    if (chatId) {
+      socketService.sendTyping(chatId, true);
+    }
+  };
+
+  const handleTypingStop = () => {
+    if (chatId) {
+      socketService.sendTyping(chatId, false);
+    }
+  };
 
   // Female users don't pay to send messages
   const handleSendMessage = async (content: string) => {
@@ -457,6 +526,7 @@ export const ChatWindowPage = () => {
           ) : (
             <MessageBubble
               key={message._id}
+              onImageClick={(url) => setSelectedImageModal(url)}
               message={{
                 id: message._id,
                 chatId: message.chatId,
@@ -467,6 +537,7 @@ export const ChatWindowPage = () => {
                 type: message.messageType as any,
                 isSent,
                 readStatus: message.status as any,
+                attachments: message.attachments as any,
               }}
             />
           );
@@ -488,19 +559,26 @@ export const ChatWindowPage = () => {
       </div>
 
       {/* Message Input - Females don't pay */}
-      <MessageInput
-        onSendMessage={handleSendMessage}
-        onSendPhoto={() => setIsPhotoPickerOpen(true)}
-        placeholder={isBlockedByMe ? t('unblockToSendMessage') : isBlockedByOther ? t('youAreBlocked') : t('typeMessage')}
-        disabled={isSending || isBlockedByMe || isBlockedByOther}
-      />
+      <div className="relative">
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          onSendPhoto={handleSendImage}
+          onTypingStart={handleTypingStart}
+          onTypingStop={handleTypingStop}
+          placeholder={isBlockedByMe ? t('unblockToSendMessage') : isBlockedByOther ? t('youAreBlocked') : t('typeMessage')}
+          disabled={isSending || isUploadingImage || isBlockedByMe || isBlockedByOther}
+          isSending={isSending || isUploadingImage}
+        />
+      </div>
 
-      {/* Photo Picker Modal */}
-      <PhotoPickerModal
-        isOpen={isPhotoPickerOpen}
-        onClose={() => setIsPhotoPickerOpen(false)}
-        onPhotoSelect={() => { }}
-      />
+      {/* Image Modal for full-screen view */}
+      {selectedImageModal && (
+        <ImageModal
+          isOpen={!!selectedImageModal}
+          imageUrl={selectedImageModal}
+          onClose={() => setSelectedImageModal(null)}
+        />
+      )}
 
       {/* More Options Modal */}
       <ChatMoreOptionsModal

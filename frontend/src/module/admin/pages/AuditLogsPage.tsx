@@ -56,7 +56,13 @@ export const AuditLogsPage = () => {
   }, [auditLogs]);
 
   const uniqueAdmins = useMemo(() => {
-    return Array.from(new Set(auditLogs.map((log) => ({ id: log.adminId, name: log.adminName }))));
+    const adminMap = new Map();
+    auditLogs.forEach((log) => {
+      if (log.adminId && !adminMap.has(log.adminId)) {
+        adminMap.set(log.adminId, log.adminName);
+      }
+    });
+    return Array.from(adminMap.entries()).map(([id, name]) => ({ id, name }));
   }, [auditLogs]);
 
   const getActionIcon = (action: string) => {
@@ -298,7 +304,11 @@ export const AuditLogsPage = () => {
                               {log.action.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{log.details}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {typeof log.details === 'object' && log.details !== null
+                              ? log.details.message || JSON.stringify(log.details)
+                              : log.details}
+                          </p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium text-gray-900 dark:text-white">

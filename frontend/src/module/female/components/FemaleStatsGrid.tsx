@@ -5,7 +5,6 @@ interface FemaleStatsGridProps {
   stats: {
     messagesReceived: number;
     activeConversations: number;
-    profileViews: number;
   };
 }
 
@@ -35,7 +34,7 @@ export const FemaleStatsGrid = ({ stats }: FemaleStatsGridProps) => {
   return (
     <div className="flex w-full flex-col px-4">
       <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-white">{t('yourStats')}</h2>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard
           icon="mail"
           value={stats.messagesReceived}
@@ -47,12 +46,6 @@ export const FemaleStatsGrid = ({ stats }: FemaleStatsGridProps) => {
           value={stats.activeConversations}
           label={t('chats')}
           color="bg-purple-100 dark:bg-purple-900/30 text-purple-500"
-        />
-        <StatCard
-          icon="visibility"
-          value={stats.profileViews}
-          label={t('views')}
-          color="bg-amber-100 dark:bg-amber-900/30 text-amber-500"
         />
       </div>
     </div>

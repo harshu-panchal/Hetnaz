@@ -129,7 +129,7 @@ export interface AdminTransaction {
   id: string;
   userId: string;
   userName: string;
-  type: 'purchase' | 'message_spent' | 'message_earned' | 'withdrawal' | 'adjustment' | 'gift_sent' | 'gift_received';
+  type: 'purchase' | 'message_spent' | 'message_earned' | 'image_spent' | 'image_earned' | 'withdrawal' | 'adjustment' | 'gift_sent' | 'gift_received';
   amountCoins: number;
   amountINR?: number;
   direction: 'credit' | 'debit';
@@ -164,6 +164,7 @@ export interface AdminSettings {
     platinum: number;
     // Special message types
     hiMessage: number;
+    imageMessage: number;
     // Video call cost
     videoCall: number;
   };

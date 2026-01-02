@@ -35,8 +35,19 @@ export const markChatAsRead = async (chatId: string) => {
     return response.data;
 };
 
-export const sendMessage = async (chatId: string, content: string) => {
-    const response = await apiClient.post('/chat/messages', { chatId, content });
+export const sendMessage = async (
+    chatId: string,
+    content: string,
+    messageType: 'text' | 'image' = 'text',
+    imageUrl?: string
+) => {
+    const payload: any = { chatId, content, messageType };
+
+    if (messageType === 'image' && imageUrl) {
+        payload.attachments = [{ type: 'image', url: imageUrl }];
+    }
+
+    const response = await apiClient.post('/chat/messages', payload);
     return response.data.data;
 };
 
