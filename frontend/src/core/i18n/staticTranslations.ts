@@ -53,6 +53,9 @@ export const staticTranslations: Record<string, Record<'en' | 'hi', string>> = {
     'Settings': { en: 'Settings', hi: 'सेटिंग्स' },
     'Notifications': { en: 'Notifications', hi: 'सूचनाएं' },
     'Logout': { en: 'Logout', hi: 'लॉगआउट' },
+    'Delete Account': { en: 'Delete Account', hi: 'खाता हटाएं' },
+    'Delete Account?': { en: 'Delete Account?', hi: 'खाता हटाएं?' },
+    'deleteAccountConfirm': { en: 'Are you sure you want to delete your account? This action cannot be undone.', hi: 'क्या आप वाकई अपना खाता हटाना चाहते हैं? यह क्रिया वापस नहीं ली जा सकती।' },
 
     // Chat
     'Send': { en: 'Send', hi: 'भेजें' },

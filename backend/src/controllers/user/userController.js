@@ -47,6 +47,54 @@ export const updateProfile = async (req, res, next) => {
     }
 };
 
+export const deleteAccount = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            const { NotFoundError } = await import('../../utils/errors.js');
+            throw new NotFoundError('User not found');
+        }
+
+        // Soft delete user
+        user.isActive = false;
+        user.isDeleted = true;
+
+        // Clear personal data (Privacy)
+        if (user.profile) {
+            user.profile.name = 'Deleted User';
+            user.profile.name_en = 'Deleted User';
+            user.profile.name_hi = 'डिलीट किया गया उपयोगकर्ता';
+            user.profile.bio = '';
+            user.profile.bio_en = '';
+            user.profile.bio_hi = '';
+            user.profile.photos = [];
+            user.profile.location = {
+                city: '',
+                state: '',
+                country: '',
+                coordinates: { type: 'Point', coordinates: [0, 0] }
+            };
+        }
+
+        user.phoneNumber = `deleted_${user._id}_${Date.now()}`; // Allow phone number reuse if needed
+
+        await user.save();
+
+        // Handle cascading deactivation (e.g., mark chats as inactive)
+        const { default: relationshipManager } = await import('../../core/relationships/relationshipManager.js');
+        await relationshipManager.handleCascadeDelete(userId, 'user');
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Account deleted successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 /**
  * Get approved female users for discover page - with caching
  */
@@ -71,11 +119,12 @@ export const discoverFemales = async (req, res, next) => {
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        // Base query: approved, active females
         const query = {
             role: 'female',
             approvalStatus: 'approved',
             isBlocked: { $ne: true },
+            isActive: true,
+            isDeleted: false,
         };
 
         // Filter and Sort options
@@ -182,7 +231,11 @@ export const getUserById = async (req, res, next) => {
     try {
         const { userId } = req.params;
 
-        const user = await User.findById(userId)
+        const user = await User.findOne({
+            _id: userId,
+            isActive: true,
+            isDeleted: false
+        })
             .select('profile isOnline lastSeen role approvalStatus phoneNumber verificationDocuments createdAt isVerified isBlocked')
             .lean();
 

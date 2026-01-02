@@ -34,7 +34,6 @@ const FemaleDashboardContent = () => {
   const quickActions = useMemo(() => [
     { id: 'earnings', icon: 'trending_up', label: t('viewEarnings') },
     { id: 'withdraw', icon: 'payments', label: t('withdraw') },
-    { id: 'trade-gifts', icon: 'redeem', label: t('tradeGifts') },
     { id: 'auto-messages', icon: 'auto_awesome', label: t('autoMessages') },
   ], [t]);
 
@@ -123,9 +122,6 @@ const FemaleDashboardContent = () => {
       case 'withdraw':
         navigate('/female/withdrawal');
         break;
-      case 'trade-gifts':
-        navigate('/female/trade-gifts');
-        break;
       case 'auto-messages':
         navigate('/female/auto-messages');
         break;
@@ -188,7 +184,7 @@ const FemaleDashboardContent = () => {
       <div className="flex p-4 pt-4 @container">
         <div className="flex w-full flex-col gap-4">
           <ProfileHeader
-            user={dashboardData?.user || { name: t('loading'), avatar: '', isPremium: false, isOnline: false }}
+            user={dashboardData?.user || { name: t('loading'), avatar: '', isPremium: false, isOnline: true }}
             onNotificationClick={handleNotificationClick}
           />
           <EarningsCard

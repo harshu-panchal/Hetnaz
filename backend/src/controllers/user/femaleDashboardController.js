@@ -18,7 +18,7 @@ export const getDashboardData = async (req, res, next) => {
         const currentUserId = new mongoose.Types.ObjectId(userId);
 
         // 1. Fetch User for Available Balance
-        const user = await User.findById(userId).select('coinBalance profile role');
+        const user = await User.findById(userId).select('coinBalance profile role isOnline');
 
         // 2. Aggregate Total Earnings (Total ever earned)
         const totalEarningsData = await Transaction.aggregate([

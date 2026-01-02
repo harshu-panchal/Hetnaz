@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Phone number is required'],
       unique: true,
       trim: true,
-      match: [/^\d{10}$/, 'Please provide a valid 10-digit phone number'],
+      match: [/^\d{12}$/, 'Please provide a valid 12-digit phone number with 91 prefix'],
       index: true,
     },
     role: {
@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
 
     // Chat-Related Fields (Harsh - Chat Domain)
@@ -213,6 +217,14 @@ const userSchema = new mongoose.Schema(
 
     // Timestamps
     lastLoginAt: Date,
+
+    // Relationships (Block System)
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     timestamps: true,

@@ -68,6 +68,26 @@ export const getFemaleDashboardData = async () => {
     return response.data.data;
 };
 
+export const blockUser = async (targetUserId: string) => {
+    const response = await apiClient.post('/users/block', { targetUserId });
+    return response.data;
+};
+
+export const unblockUser = async (targetUserId: string) => {
+    const response = await apiClient.post('/users/unblock', { targetUserId });
+    return response.data;
+};
+
+export const deleteChat = async (chatId: string) => {
+    const response = await apiClient.delete(`/users/chats/${chatId}`);
+    return response.data;
+};
+
+export const deleteMyAccount = async () => {
+    const response = await apiClient.delete('/users/me');
+    return response.data;
+};
+
 // Export as default object
 export default {
     getMeStats,
@@ -76,4 +96,8 @@ export default {
     getMyProfile,
     updateMyProfile,
     getFemaleDashboardData,
+    blockUser,
+    unblockUser,
+    deleteChat,
+    deleteMyAccount,
 };

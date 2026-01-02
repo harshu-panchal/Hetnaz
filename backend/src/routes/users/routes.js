@@ -2,6 +2,7 @@ import express from 'express';
 import * as userController from '../../controllers/user/userController.js';
 import * as statsController from '../../controllers/user/statsController.js';
 import * as femaleDashboardController from '../../controllers/user/femaleDashboardController.js';
+import * as relationshipController from '../../controllers/user/relationshipController.js';
 import autoMessageController from '../../controllers/user/autoMessageController.js';
 import { protect, restrictTo } from '../../middleware/auth.js';
 
@@ -27,6 +28,7 @@ router.delete('/female/auto-messages/:id', restrictTo('female'), autoMessageCont
 
 // Discovery and User Profiles
 router.patch('/me', userController.updateProfile);
+router.delete('/me', userController.deleteAccount);
 router.post('/resubmit-verification', userController.resubmitVerification);
 
 // Discover approved females (for male users)
@@ -34,5 +36,11 @@ router.get('/discover', userController.discoverFemales);
 
 // Get a specific user's profile
 router.get('/:userId', userController.getUserById);
+
+// Relationship Management
+router.post('/block', relationshipController.blockUser);
+router.post('/unblock', relationshipController.unblockUser);
+router.get('/block-list', relationshipController.getBlockedUsers);
+router.delete('/chats/:chatId', relationshipController.deleteChat);
 
 export default router;

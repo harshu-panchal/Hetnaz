@@ -62,11 +62,23 @@ export const sendMessage = async (req, res, next) => {
         );
         const receiverId = otherParticipant.userId;
 
+        // Block check
+        const [sender, receiver] = await Promise.all([
+            User.findById(senderId).select('blockedUsers memberTier profile'),
+            User.findById(receiverId).select('blockedUsers profile')
+        ]);
+
+        if (sender.blockedUsers.some(id => id.toString() === receiverId.toString())) {
+            throw new BadRequestError('You have blocked this user. Unblock to send messages.');
+        }
+        if (receiver.blockedUsers.some(id => id.toString() === senderId.toString())) {
+            throw new BadRequestError('You cannot send messages to this user as you have been blocked.');
+        }
+
         // If sender is male, deduct coins
         let transaction = null;
         if (req.user.role === 'male') {
             // Get message cost based on user's tier
-            const sender = await User.findById(senderId);
             const MESSAGE_COST = await getMessageCost(sender.memberTier);
 
             // Validate user has enough coins
@@ -224,6 +236,14 @@ export const sendHiMessage = async (req, res, next) => {
         const receiver = await User.findById(receiverId);
         if (!receiver) {
             throw new NotFoundError('User not found');
+        }
+
+        const sender = await User.findById(senderId);
+        if (sender.blockedUsers.some(id => id.toString() === receiverId.toString())) {
+            throw new BadRequestError('You have blocked this user. Unblock to send messages.');
+        }
+        if (receiver.blockedUsers.some(id => id.toString() === senderId.toString())) {
+            throw new BadRequestError('You cannot send messages to this user as you have been blocked.');
         }
 
         // Find or create chat
@@ -408,6 +428,19 @@ export const sendGift = async (req, res, next) => {
             p => p.userId.toString() !== senderId
         );
         const receiverId = otherParticipant.userId;
+
+        // Block check
+        const [sender, receiver] = await Promise.all([
+            User.findById(senderId).select('blockedUsers coinBalance profile'),
+            User.findById(receiverId).select('blockedUsers profile')
+        ]);
+
+        if (sender.blockedUsers.some(id => id.toString() === receiverId.toString())) {
+            throw new BadRequestError('You have blocked this user. Unblock to send gifts.');
+        }
+        if (receiver.blockedUsers.some(id => id.toString() === senderId.toString())) {
+            throw new BadRequestError('You cannot send gifts to this user as you have been blocked.');
+        }
 
         // Validate and deduct coins
         await dataValidation.validateMessageSend(senderId, totalCost);

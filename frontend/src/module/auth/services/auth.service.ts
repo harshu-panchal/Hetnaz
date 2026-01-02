@@ -63,7 +63,9 @@ export const formatSignupPayload = (onboardingData: {
 
 export const loginWithOtp = async (phoneNumber: string) => {
     try {
-        const response = await axios.post(`${API_URL}/auth/login-request`, { phoneNumber });
+        // Enforce 91 prefix for backend consistency
+        const formattedPhone = phoneNumber.length === 10 ? `91${phoneNumber}` : phoneNumber;
+        const response = await axios.post(`${API_URL}/auth/login-request`, { phoneNumber: formattedPhone });
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || 'Login failed');

@@ -158,6 +158,11 @@ class SocketService {
             this.emit('intimacy:levelup', data);
         });
 
+        // User blocked
+        this.socket.on('user:blocked_by', (data) => {
+            this.emit('user:blocked_by', data);
+        });
+
         // ==================== VIDEO CALL EVENTS ====================
         // Incoming call
         this.socket.on('call:incoming', (data) => {
@@ -208,6 +213,21 @@ class SocketService {
         // Call missed
         this.socket.on('call:missed', (data) => {
             this.emit('call:missed', data);
+        });
+
+        // Call rejoin proceed
+        this.socket.on('call:rejoin-proceed', (data) => {
+            this.emit('call:rejoin-proceed', data);
+        });
+
+        // Call waiting
+        this.socket.on('call:waiting', (data) => {
+            this.emit('call:waiting', data);
+        });
+
+        // Call peer rejoined
+        this.socket.on('call:peer-rejoined', (data) => {
+            this.emit('call:peer-rejoined', data);
         });
 
         // WebRTC signaling

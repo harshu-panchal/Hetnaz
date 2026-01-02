@@ -273,6 +273,7 @@ class VideoCallService {
     rejoinCall(): void {
         if (!this.callState.callId) return;
         console.log('🔄 Requesting to rejoin call:', this.callState.callId);
+        this.isJoining = false; // Reset guard for rejoin
         socketService.emitToServer('call:rejoin', { callId: this.callState.callId });
         this.updateState({ status: 'connecting' });
     }
@@ -696,6 +697,7 @@ class VideoCallService {
         console.log('📞 Call accepted with Agora credentials:', data);
 
         if (this.callState.status !== 'connected') {
+            this.isJoining = false; // Reset guard for rejoin
             this.updateState({ status: 'connecting' });
         }
 

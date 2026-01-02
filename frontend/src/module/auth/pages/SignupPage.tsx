@@ -124,14 +124,14 @@ export const SignupPage = () => {
       const age = calculateAge(formData.dateOfBirth); // Calculate age from DOB
 
       const payload = {
-        phoneNumber: formData.phone, // Backend expects 'phoneNumber' not 'phone'
+        phoneNumber: `91${formData.phone}`, // Enforce 91 prefix for backend consistency
         name: formData.fullName,
-        age: age, // Backend needs age
+        age: age,
         dateOfBirth: formData.dateOfBirth,
-        role: formData.gender, // Backend expects 'role' not 'gender'
+        role: formData.gender,
         photos: formData.profilePhoto ? [formData.profilePhoto] : [],
         ...(formData.gender === 'female' && {
-          aadhaarCardUrl: formData.aadhaarDocument, // Backend expects 'aadhaarCardUrl'
+          aadhaarCardUrl: formData.aadhaarDocument,
         }),
       };
 
@@ -144,7 +144,7 @@ export const SignupPage = () => {
       navigate('/otp-verification', {
         state: {
           mode: 'signup',
-          phoneNumber: formData.phone,
+          phoneNumber: `91${formData.phone}`,
           signupData: payload // For OTP resend if needed
         }
       });
@@ -198,27 +198,54 @@ export const SignupPage = () => {
             </div>
 
             {/* Phone */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label htmlFor="phone" className="block text-sm font-bold text-gray-700 ml-1">
                 {t('Contact Number')}
               </label>
-              <div className="flex">
-                <div className="px-4 py-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg flex items-center">
-                  <span className="text-gray-700 font-medium">+91</span>
+              <div className="relative group transition-all duration-300">
+                <div className={`flex items-center bg-white border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.phone ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500 focus-within:ring-4 focus-within:ring-pink-500/10'}`}>
+                  <div className="flex items-center gap-2 pl-4 pr-3 py-4 bg-gray-50/50 border-r border-gray-100">
+                    <img
+                      src="https://flagcdn.com/w40/in.png"
+                      srcSet="https://flagcdn.com/w80/in.png 2x"
+                      width="24"
+                      className="rounded-sm shadow-sm opacity-90"
+                      alt="India Flag"
+                    />
+                    <span className="text-gray-900 font-black text-lg tracking-tight">+91</span>
+                  </div>
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => {
+                      let val = e.target.value.replace(/\D/g, '');
+                      if (val.startsWith('91') && val.length > 10) val = val.slice(2);
+                      const final = val.length > 10 ? val.slice(-10) : val;
+                      handleChange('phone', final);
+                    }}
+                    className="w-full px-4 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-300 placeholder:font-medium focus:outline-none"
+                    placeholder="Mobile"
+                    maxLength={10}
+                    disabled={isSubmitting}
+                  />
+                  {formData.phone && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange('phone', '')}
+                      className="pr-4 text-gray-300 hover:text-gray-500 transition-colors"
+                    >
+                      <MaterialSymbol name="cancel" size={24} fill />
+                    </button>
+                  )}
                 </div>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className={`flex-1 px-4 py-3 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${errors.phone ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  placeholder="9876543210"
-                  maxLength={10}
-                  disabled={isSubmitting}
-                />
+                {errors.phone && (
+                  <div className="flex items-center gap-1.5 mt-2 ml-1 text-red-500 animate-in fade-in slide-in-from-top-1">
+                    <MaterialSymbol name="error" size={16} fill />
+                    <p className="text-xs font-bold leading-none">{errors.phone}</p>
+                  </div>
+                )}
               </div>
-              {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone}</p>}
             </div>
 
             {/* Date of Birth */}

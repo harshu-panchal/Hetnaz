@@ -17,6 +17,8 @@ export const MyProfilePage = () => {
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Local display state (synced with user)
   const [name, setName] = useState(user?.name || t('anonymous'));
@@ -78,6 +80,20 @@ export const MyProfilePage = () => {
       }
     }
   }, [user, t]);
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      await userService.deleteMyAccount();
+      logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      alert('Failed to delete account. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (isAuthLoading) {
     return (
@@ -420,16 +436,12 @@ export const MyProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => {
-                    if (window.confirm(t('deleteAccountConfirm'))) {
-                      alert('Account deletion functionality coming soon');
-                    }
-                  }}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <MaterialSymbol name="delete" className="text-red-500" />
-                    <span className="text-sm font-medium text-red-600 dark:text-red-400">{t('deleteAccount')}</span>
+                    <span className="text-sm font-medium text-red-600 dark:text-red-400">{t('Delete Account')}</span>
                   </div>
                   <MaterialSymbol name="chevron_right" className="text-gray-400" />
                 </button>
@@ -440,6 +452,46 @@ export const MyProfilePage = () => {
       </div>
 
       <FemaleBottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#2d1a24] rounded-2xl shadow-2xl w-full max-w-sm p-6 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20 mx-auto mb-4">
+              <MaterialSymbol name="delete_forever" className="text-red-600 dark:text-red-400" size={32} />
+            </div>
+
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+              {t('Delete Account?')}
+            </h3>
+
+            <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-6 leading-relaxed">
+              {t('deleteAccountConfirm')}
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                disabled={isDeleting}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-[#3d2530] transition-colors disabled:opacity-50"
+              >
+                {t('Cancel')}
+              </button>
+              <button
+                disabled={isDeleting}
+                onClick={handleDeleteAccount}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 flex items-center justify-center disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  t('Delete')
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

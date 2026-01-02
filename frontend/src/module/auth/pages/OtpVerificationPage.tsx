@@ -146,8 +146,10 @@ export const OtpVerificationPage = () => {
                     <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
                         {t('verifyYourPhone')}
                     </h2>
-                    <p className="mt-2 text-sm text-gray-600">
-                        {t('enterOTPSentTo')} +91 {state?.phoneNumber}
+                    <p className="mt-2 text-sm text-gray-600 font-medium">
+                        {t('enterOTPSentTo')} <span className="text-gray-900 font-bold">
+                            +91 {state?.phoneNumber?.startsWith('91') ? state.phoneNumber.slice(2) : state?.phoneNumber}
+                        </span>
                     </p>
                 </div>
 

@@ -11,7 +11,7 @@ import Transaction from '../models/Transaction.js';
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const FEMALE_PHONE = '4581331385'; // Female user phone number
+const FEMALE_PHONE = '914581331385'; // Female user phone number
 const COINS_TO_ADD = 5000; // Amount of test coins to add
 
 async function addTestCoins() {

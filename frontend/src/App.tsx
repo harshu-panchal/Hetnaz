@@ -60,8 +60,6 @@ const AutoMessageTemplatesPage = lazy(() => import('./module/female/pages/AutoMe
 const FemaleMyProfilePage = lazy(() => import('./module/female/pages/MyProfilePage').then(m => ({ default: m.MyProfilePage })));
 const FemaleNotificationsPage = lazy(() => import('./module/female/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const FemaleUserProfilePage = lazy(() => import('./module/female/pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })));
-const GiftTradingPage = lazy(() => import('./module/female/pages/GiftTradingPage').then(m => ({ default: m.GiftTradingPage })));
-const GiftTradeFlowPage = lazy(() => import('./module/female/pages/GiftTradeFlowPage').then(m => ({ default: m.GiftTradeFlowPage })));
 
 // Admin module - lazy loaded
 const AdminDashboard = lazy(() => import('./module/admin/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
@@ -130,8 +128,6 @@ function App() {
                     <Route path="/female/my-profile" element={<FemaleMyProfilePage />} />
                     <Route path="/female/notifications" element={<FemaleNotificationsPage />} />
                     <Route path="/female/profile/:profileId" element={<FemaleUserProfilePage />} />
-                    <Route path="/female/trade-gifts" element={<GiftTradingPage />} />
-                    <Route path="/female/trade-gifts/flow" element={<GiftTradeFlowPage />} />
                   </Route>
 
                   {/* Admin Routes */}

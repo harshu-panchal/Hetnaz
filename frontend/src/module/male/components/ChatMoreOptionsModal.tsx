@@ -9,6 +9,7 @@ interface ChatMoreOptionsModalProps {
   onDelete?: () => void;
   onViewProfile?: () => void;
   userName?: string;
+  isBlocked?: boolean;
 }
 
 export const ChatMoreOptionsModal = ({
@@ -19,6 +20,7 @@ export const ChatMoreOptionsModal = ({
   onDelete,
   onViewProfile,
   userName,
+  isBlocked = false,
 }: ChatMoreOptionsModalProps) => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showConfirmBlock, setShowConfirmBlock] = useState(false);
@@ -66,7 +68,7 @@ export const ChatMoreOptionsModal = ({
               {showConfirmDelete
                 ? 'Delete Chat'
                 : showConfirmBlock
-                  ? 'Block User'
+                  ? (isBlocked ? 'Unblock User' : 'Block User')
                   : 'More Options'}
             </h2>
             <button
@@ -104,8 +106,9 @@ export const ChatMoreOptionsModal = ({
           ) : showConfirmBlock ? (
             <div className="space-y-4">
               <p className="text-gray-700 dark:text-gray-300">
-                Are you sure you want to block {userName || 'this user'}? You won't be able to
-                message each other.
+                {isBlocked
+                  ? `Are you sure you want to unblock ${userName || 'this user'}?`
+                  : `Are you sure you want to block ${userName || 'this user'}? You won't be able to message each other.`}
               </p>
               <div className="flex gap-3">
                 <button
@@ -118,7 +121,7 @@ export const ChatMoreOptionsModal = ({
                   onClick={handleBlock}
                   className="flex-1 h-12 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-colors active:scale-95"
                 >
-                  Block
+                  {isBlocked ? 'Unblock' : 'Block'}
                 </button>
               </div>
             </div>
@@ -154,11 +157,11 @@ export const ChatMoreOptionsModal = ({
                 onClick={handleBlock}
                 className="w-full flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-[#342d18] hover:bg-gray-100 dark:hover:bg-[#3d2a1a] transition-colors active:scale-95"
               >
-                <div className="flex items-center justify-center size-10 rounded-full bg-red-500/10">
-                  <MaterialSymbol name="block" size={24} className="text-red-500" />
+                <div className={`flex items-center justify-center size-10 rounded-full ${isBlocked ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                  <MaterialSymbol name={isBlocked ? 'check_circle' : 'block'} size={24} className={isBlocked ? 'text-green-500' : 'text-red-500'} />
                 </div>
                 <span className="flex-1 text-left font-medium text-slate-900 dark:text-white">
-                  Block User
+                  {isBlocked ? 'Unblock User' : 'Block User'}
                 </span>
                 <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
               </button>

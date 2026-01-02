@@ -65,7 +65,7 @@ export const MessageInput = ({
   }
 
   return (
-    <div className="px-4 py-3 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 relative">
+    <div className="px-4 pt-3 pb-1 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 relative">
       <div className="flex items-end gap-2">
         {/* Attachment Menu Button (+ Button) */}
         {onSendPhoto && (

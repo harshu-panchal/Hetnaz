@@ -121,10 +121,15 @@ export const getOrCreateChat = async (req, res, next) => {
         // Get current user info
         const currentUser = await User.findById(userId).select('role');
 
-        // Check if other user exists
-        const otherUser = await User.findById(otherUserId).select('role');
+        // Check if other user exists and is active
+        const otherUser = await User.findOne({
+            _id: otherUserId,
+            isActive: true,
+            isDeleted: false
+        }).select('role');
+
         if (!otherUser) {
-            throw new NotFoundError('User not found');
+            throw new NotFoundError('User not found or account deleted');
         }
 
         // CRITICAL: Gender validation - prevent same-gender chats
@@ -212,7 +217,8 @@ export const getChatById = async (req, res, next) => {
 
         const chat = await Chat.findOne({
             _id: chatId,
-            'participants.userId': userId
+            'participants.userId': userId,
+            isActive: true
         })
             .populate('participants.userId', 'profile.name profile.photos profile.location phoneNumber isOnline lastSeen isVerified role')
             .populate('lastMessage')
@@ -235,6 +241,12 @@ export const getChatById = async (req, res, next) => {
         if (!otherParticipant || !myParticipant) {
             throw new NotFoundError('Invalid chat participants');
         }
+
+        // Check block status
+        const [me, other] = await Promise.all([
+            User.findById(userId).select('blockedUsers'),
+            User.findById(otherParticipant.userId._id).select('blockedUsers')
+        ]);
 
         const transformedChat = {
             _id: chat._id,
@@ -278,10 +290,11 @@ export const getChatMessages = async (req, res, next) => {
         const { chatId } = req.params;
         const { limit = 10, before } = req.query;
 
-        // Verify user is part of this chat
+        // Verify user is part of this chat and chat is active
         const chat = await Chat.findOne({
             _id: chatId,
-            'participants.userId': userId
+            'participants.userId': userId,
+            isActive: true
         });
 
         if (!chat) {

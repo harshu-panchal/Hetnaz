@@ -9,6 +9,7 @@ interface ChatMoreOptionsModalProps {
   onDelete?: () => void;
   onViewProfile?: () => void;
   userName?: string;
+  isBlocked?: boolean;
 }
 
 export const ChatMoreOptionsModal = ({
@@ -19,6 +20,7 @@ export const ChatMoreOptionsModal = ({
   onDelete,
   onViewProfile,
   userName,
+  isBlocked = false,
 }: ChatMoreOptionsModalProps) => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showConfirmBlock, setShowConfirmBlock] = useState(false);
@@ -87,7 +89,7 @@ export const ChatMoreOptionsModal = ({
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Block User?</h3>
               <p className="text-sm text-gray-500 dark:text-[#cbbc90]">
-                You will no longer receive messages from {userName || 'this user'}. You can unblock them later in settings.
+                You will no longer receive messages from {userName || 'this user'}. You can unblock them later.
               </p>
               <div className="flex gap-2">
                 <button
@@ -124,8 +126,8 @@ export const ChatMoreOptionsModal = ({
                   onClick={handleBlock}
                   className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-left"
                 >
-                  <MaterialSymbol name="block" />
-                  <span className="text-gray-900 dark:text-white">Block User</span>
+                  <MaterialSymbol name={isBlocked ? 'check_circle' : 'block'} />
+                  <span className="text-gray-900 dark:text-white">{isBlocked ? 'Unblock User' : 'Block User'}</span>
                 </button>
               )}
               {onReport && (

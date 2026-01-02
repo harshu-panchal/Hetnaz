@@ -12,6 +12,7 @@ import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { useVideoCall } from '../../../core/context/VideoCallContext';
 import chatService from '../../../core/services/chat.service';
+import userService from '../../../core/services/user.service';
 import socketService from '../../../core/services/socket.service';
 import offlineQueueService from '../../../core/services/offlineQueue.service';
 import type { Chat as ApiChat, Message as ApiMessage, IntimacyInfo } from '../../../core/types/chat.types';
@@ -48,6 +49,10 @@ export const ChatWindowPage = () => {
   // Typing indicator
   const [isOtherTyping, setIsOtherTyping] = useState(false);
 
+  // Block status
+  const [isBlockedByMe, setIsBlockedByMe] = useState(false);
+  const [isBlockedByOther, setIsBlockedByOther] = useState(false);
+
   // Pagination state
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -76,6 +81,8 @@ export const ChatWindowPage = () => {
         const chat = await chatService.getChatById(chatId);
         setChatInfo(chat);
         setIntimacy(chat.intimacy);
+        setIsBlockedByMe(!!chat.isBlockedByMe);
+        setIsBlockedByOther(!!chat.isBlockedByOther);
 
         // Get messages (limited to 10 initially)
         const { messages: msgData, hasMore: moreAvailable } = await chatService.getChatMessages(chatId, { limit: MESSAGES_PER_PAGE });
@@ -223,11 +230,19 @@ export const ChatWindowPage = () => {
       }
     };
 
+    const handleBlockedBy = (data: { blockedBy: string; blockedByName: string }) => {
+      if (chatInfo && data.blockedBy === chatInfo.otherUser._id) {
+        setIsBlockedByOther(true);
+        setError(t('youHaveBeenBlockedBy', { name: data.blockedByName }));
+      }
+    };
+
     socketService.on('message:new', handleNewMessage);
     socketService.on('chat:typing', handleTyping);
     socketService.on('intimacy:levelup', handleLevelUp);
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
+    socketService.on('user:blocked_by', handleBlockedBy);
 
     return () => {
       socketService.off('message:new', handleNewMessage);
@@ -235,6 +250,7 @@ export const ChatWindowPage = () => {
       socketService.off('intimacy:levelup', handleLevelUp);
       socketService.off('user:online', handleUserOnline);
       socketService.off('user:offline', handleUserOffline);
+      socketService.off('user:blocked_by', handleBlockedBy);
     };
   }, [chatId, chatInfo, currentUserId, scrollToBottom]);
 
@@ -405,6 +421,38 @@ export const ChatWindowPage = () => {
     }
   };
 
+  const handleBlockUser = async () => {
+    if (!chatInfo) return;
+    try {
+      await userService.blockUser(chatInfo.otherUser._id);
+      setIsBlockedByMe(true);
+      setError(t('userBlockedSuccessfully'));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t('failedToBlockUser'));
+    }
+  };
+
+  const handleUnblockUser = async () => {
+    if (!chatInfo) return;
+    try {
+      await userService.unblockUser(chatInfo.otherUser._id);
+      setIsBlockedByMe(false);
+      setError(t('userUnblockedSuccessfully'));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t('failedToUnblockUser'));
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!chatId) return;
+    try {
+      await userService.deleteChat(chatId);
+      navigate('/male/chats');
+    } catch (err: any) {
+      setError(err.response?.data?.message || t('failedToDeleteChat'));
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background-light dark:bg-background-dark">
@@ -443,6 +491,10 @@ export const ChatWindowPage = () => {
         onVideoCall={async () => {
           if (isInCall) {
             setError(t('errorAlreadyInCall'));
+            return;
+          }
+          if (isBlockedByMe || isBlockedByOther) {
+            setError(isBlockedByMe ? t('unblockToCall') : t('youAreBlocked'));
             return;
           }
           if (coinBalance < callPrice) {
@@ -569,9 +621,9 @@ export const ChatWindowPage = () => {
         onSendGift={() => setIsGiftSelectorOpen(true)}
         onTypingStart={handleTypingStart}
         onTypingStop={handleTypingStop}
-        placeholder={t('typeMessage')}
+        placeholder={isBlockedByMe ? t('unblockToSendMessage') : isBlockedByOther ? t('youAreBlocked') : t('typeMessage')}
         coinCost={MESSAGE_COST}
-        disabled={coinBalance < MESSAGE_COST || isSending}
+        disabled={coinBalance < MESSAGE_COST || isSending || isBlockedByMe || isBlockedByOther}
         isSending={isSending}
       />
 
@@ -585,9 +637,10 @@ export const ChatWindowPage = () => {
         isOpen={isMoreOptionsOpen}
         onClose={() => setIsMoreOptionsOpen(false)}
         onViewProfile={() => navigate(`/male/profile/${chatInfo.otherUser._id}`)}
-        onBlock={() => { }}
+        onBlock={isBlockedByMe ? handleUnblockUser : handleBlockUser}
+        isBlocked={isBlockedByMe}
         onReport={() => { }}
-        onDelete={() => navigate('/male/chats')}
+        onDelete={handleDeleteChat}
         userName={chatInfo.otherUser.name}
       />
 

@@ -6,10 +6,9 @@ import { GiftMessageBubble } from '../components/GiftMessageBubble';
 import { MessageInput } from '../components/MessageInput';
 import { PhotoPickerModal } from '../components/PhotoPickerModal';
 import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
-import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
-import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import chatService from '../../../core/services/chat.service';
+import userService from '../../../core/services/user.service';
 import socketService from '../../../core/services/socket.service';
 import offlineQueueService from '../../../core/services/offlineQueue.service';
 import type { Chat as ApiChat, Message as ApiMessage } from '../../../core/types/chat.types';
@@ -19,7 +18,6 @@ export const ChatWindowPage = () => {
   const { t } = useTranslation();
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
-  const { navigationItems, handleNavigationClick } = useFemaleNavigation();
   const { chatCache, saveToChatCache } = useGlobalState();
 
   const [messages, setMessages] = useState<ApiMessage[]>(() => {
@@ -34,6 +32,8 @@ export const ChatWindowPage = () => {
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [isBlockedByMe, setIsBlockedByMe] = useState(false);
+  const [isBlockedByOther, setIsBlockedByOther] = useState(false);
 
   // Pagination state
   const [hasMore, setHasMore] = useState(false);
@@ -92,6 +92,10 @@ export const ChatWindowPage = () => {
         setMessages(msgData);
         setHasMore(moreAvailable);
         saveToChatCache(chatId, msgData);
+
+        // Update block status
+        setIsBlockedByMe(!!chat.isBlockedByMe);
+        setIsBlockedByOther(!!chat.isBlockedByOther);
 
         // Join chat room
         socketService.connect();
@@ -203,16 +207,25 @@ export const ChatWindowPage = () => {
       }
     };
 
+    const handleBlockedBy = (data: { blockedBy: string; blockedByName: string }) => {
+      if (chatInfo && data.blockedBy === chatInfo.otherUser._id) {
+        setIsBlockedByOther(true);
+        setError(t('youHaveBeenBlockedBy', { name: data.blockedByName }));
+      }
+    };
+
     socketService.on('message:new', handleNewMessage);
     socketService.on('chat:typing', handleTyping);
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
+    socketService.on('user:blocked_by', handleBlockedBy);
 
     return () => {
       socketService.off('message:new', handleNewMessage);
       socketService.off('chat:typing', handleTyping);
       socketService.off('user:online', handleUserOnline);
       socketService.off('user:offline', handleUserOffline);
+      socketService.off('user:blocked_by', handleBlockedBy);
     };
   }, [chatId, chatInfo, currentUserId, scrollToBottom]);
 
@@ -288,6 +301,38 @@ export const ChatWindowPage = () => {
     }
   };
 
+  const handleBlockUser = async () => {
+    if (!chatInfo) return;
+    try {
+      await userService.blockUser(chatInfo.otherUser._id);
+      setIsBlockedByMe(true);
+      setError(t('userBlockedSuccessfully'));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t('failedToBlockUser'));
+    }
+  };
+
+  const handleUnblockUser = async () => {
+    if (!chatInfo) return;
+    try {
+      await userService.unblockUser(chatInfo.otherUser._id);
+      setIsBlockedByMe(false);
+      setError(t('userUnblockedSuccessfully'));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t('failedToUnblockUser'));
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!chatId) return;
+    try {
+      await userService.deleteChat(chatId);
+      navigate('/female/chats');
+    } catch (err: any) {
+      setError(err.response?.data?.message || t('failedToDeleteChat'));
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -312,7 +357,7 @@ export const ChatWindowPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden pb-20">
+    <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden">
       {/* Header */}
       <ChatWindowHeader
         userName={chatInfo.otherUser.name}
@@ -446,8 +491,8 @@ export const ChatWindowPage = () => {
       <MessageInput
         onSendMessage={handleSendMessage}
         onSendPhoto={() => setIsPhotoPickerOpen(true)}
-        placeholder={t('typeMessage')}
-        disabled={isSending}
+        placeholder={isBlockedByMe ? t('unblockToSendMessage') : isBlockedByOther ? t('youAreBlocked') : t('typeMessage')}
+        disabled={isSending || isBlockedByMe || isBlockedByOther}
       />
 
       {/* Photo Picker Modal */}
@@ -462,14 +507,13 @@ export const ChatWindowPage = () => {
         isOpen={isMoreOptionsOpen}
         onClose={() => setIsMoreOptionsOpen(false)}
         onViewProfile={handleViewProfile}
-        onBlock={() => { }}
+        onBlock={isBlockedByMe ? handleUnblockUser : handleBlockUser}
+        isBlocked={isBlockedByMe}
         onReport={() => { }}
-        onDelete={() => navigate('/female/chats')}
+        onDelete={handleDeleteChat}
         userName={chatInfo.otherUser.name}
       />
 
-      {/* Bottom Navigation */}
-      <FemaleBottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
     </div>
   );
 };

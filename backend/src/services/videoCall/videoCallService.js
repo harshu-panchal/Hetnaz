@@ -56,7 +56,15 @@ export const validateCallRequest = async (callerId, receiverId) => {
         throw new ForbiddenError('Video calls can only be made to female users');
     }
 
-    // 3. Check if either user is already on a call
+    // 3. Check for blocks
+    if (caller.blockedUsers.some(id => id.toString() === receiverId.toString())) {
+        throw new ForbiddenError('You have blocked this user. Unblock to make a video call.');
+    }
+    if (receiver.blockedUsers.some(id => id.toString() === callerId.toString())) {
+        throw new ForbiddenError('You cannot call this user as you have been blocked.');
+    }
+
+    // 4. Check if either user is already on a call
     if (caller.isOnCall) {
         throw new BadRequestError('You are already on a call');
     }

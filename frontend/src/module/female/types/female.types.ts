@@ -121,14 +121,5 @@ export interface Notification {
   actionUrl?: string;
 }
 
-export interface GiftTrade {
-  id: string;
-  giftId: string;
-  giftName: string;
-  giftIcon: string;
-  tradeValue: number;
-  tradedAt: Date;
-  status: 'completed';
-}
 
 

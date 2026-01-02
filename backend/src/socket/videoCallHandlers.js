@@ -482,9 +482,10 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
 
                 // Fetch call just to get IDs (no need to run full rejoin logic if just resuming)
                 const videoCall = await videoCallService.getCall(callId);
-                const otherUserId = videoCall.callerId.toString() === userId
-                    ? videoCall.receiverId.toString()
-                    : videoCall.callerId.toString();
+                const callerId = videoCall.callerId._id ? videoCall.callerId._id.toString() : videoCall.callerId.toString();
+                const receiverId = videoCall.receiverId._id ? videoCall.receiverId._id.toString() : videoCall.receiverId.toString();
+
+                const otherUserId = callerId === userId ? receiverId : callerId;
 
                 // Reset DB state - wrapped in try-catch
                 try {
@@ -525,8 +526,8 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
     const setupCallResumption = async (videoCall, remainingSeconds, requestingUserId) => {
         const callId = videoCall._id.toString();
         const channelName = callId;
-        const callerId = videoCall.callerId.toString();
-        const receiverId = videoCall.receiverId.toString();
+        const callerId = videoCall.callerId._id ? videoCall.callerId._id.toString() : videoCall.callerId.toString();
+        const receiverId = videoCall.receiverId._id ? videoCall.receiverId._id.toString() : videoCall.receiverId.toString();
 
         // Start NEW timer with remaining duration using helper
         const durationMs = remainingSeconds * 1000;
