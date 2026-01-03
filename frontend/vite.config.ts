@@ -38,10 +38,8 @@ export default defineConfig({
           if (id.includes('/agora-rtc-sdk-ng')) {
             return 'vendor-agora';
           }
-          // i18n - separate for caching
-          if (id.includes('/i18next') || id.includes('/react-i18next')) {
-            return 'vendor-i18n';
-          }
+          // REMOVED: i18n chunk causes initialization errors
+          // i18next depends on React, must be in main bundle
         },
       },
     },
