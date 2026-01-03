@@ -32,6 +32,14 @@ export const OtpVerificationPage = () => {
             return;
         }
 
+        // OTP AUTO-BYPASS FOR TEST NUMBERS
+        const bypassNumbers = ['911234567899', '911234567895'];
+        if (bypassNumbers.includes(state.phoneNumber)) {
+            console.log('🛡️ Bypass number detected, auto-filling OTP...');
+            setOtp(['1', '2', '3', '4', '5', '6']);
+            return;
+        }
+
         const interval = setInterval(() => {
             setTimer((prev) => (prev > 0 ? prev - 1 : 0));
         }, 1000);
@@ -135,6 +143,19 @@ export const OtpVerificationPage = () => {
             setIsLoading(false);
         }
     };
+
+    // Auto-verify effect for bypass numbers
+    useEffect(() => {
+        const bypassNumbers = ['911234567899', '911234567895'];
+        if (state?.phoneNumber && bypassNumbers.includes(state.phoneNumber) && !isLoading && !error) {
+            console.log('⚡ Auto-verifying for bypass number');
+            const bypassTimeout = setTimeout(() => {
+                const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
+                handleVerify(fakeEvent);
+            }, 500);
+            return () => clearTimeout(bypassTimeout);
+        }
+    }, [state?.phoneNumber, isLoading, error]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

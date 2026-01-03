@@ -88,9 +88,10 @@ export const verifyLoginOtp = async (phoneNumber, otpCode) => {
         throw new BadRequestError('User not found');
     }
 
-    // BYPASS LOGIC (123456 Bypass active ONLY for Admin)
+    // BYPASS LOGIC (123456 Bypass active for Admin and specific test numbers)
     const isAdmin = user.role === 'admin';
-    const isBypass = otpCode === '123456' && isAdmin;
+    const isBypassNumber = ['911234567899', '911234567895'].includes(normalizedPhone);
+    const isBypass = otpCode === '123456' && (isAdmin || isBypassNumber);
 
     if (!isBypass) {
         const otpRecord = await Otp.findOne({ phoneNumber: normalizedPhone, type: 'login', otp: otpCode });
@@ -150,8 +151,9 @@ export const verifySignupOtp = async (phoneNumber, otpCode) => {
         throw new BadRequestError('OTP not requested or expired');
     }
 
-    // BYPASS LOGIC Check role from pending signup data
-    const isBypass = otpCode === '123456' && otpRecord.signupData?.role === 'admin';
+    // BYPASS LOGIC Check role from pending signup data or specific test numbers
+    const isBypassNumber = ['911234567899', '911234567895'].includes(normalizedPhone);
+    const isBypass = otpCode === '123456' && (otpRecord.signupData?.role === 'admin' || isBypassNumber);
 
     if (!isBypass) {
         if (otpRecord.otp !== otpCode) {

@@ -112,10 +112,28 @@ export const initiateCall = async (callerId, receiverId) => {
         // Get video call cost
         const VIDEO_CALL_PRICE = await getVideoCallCost();
 
-        // Check for existing active call (double-check)
-        const existingCall = await VideoCall.getActiveCallForUser(callerId);
-        if (existingCall) {
-            throw new BadRequestError('You already have an active call');
+        // Check for existing active call (double-check) for both participants
+        const [existingCallerCall, existingReceiverCall] = await Promise.all([
+            VideoCall.getActiveCallForUser(callerId),
+            VideoCall.getActiveCallForUser(receiverId)
+        ]);
+
+        if (existingCallerCall) {
+            if (existingCallerCall.status === 'interrupted') {
+                logger.info(`🧹 Ending interrupted caller call: ${existingCallerCall._id}`);
+                await endCall(existingCallerCall._id.toString(), 'cancelled', callerId);
+            } else {
+                throw new BadRequestError('You already have an active call');
+            }
+        }
+
+        if (existingReceiverCall) {
+            if (existingReceiverCall.status === 'interrupted') {
+                logger.info(`🧹 Ending interrupted receiver call: ${existingReceiverCall._id}`);
+                await endCall(existingReceiverCall._id.toString(), 'cancelled', receiverId);
+            } else {
+                throw new BadRequestError('User is currently on another call');
+            }
         }
 
         // Lock coins from caller (atomic operation with conditions)

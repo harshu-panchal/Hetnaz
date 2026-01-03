@@ -3,7 +3,7 @@ import { Suspense, lazy } from 'react';
 import { AuthProvider } from './core/context/AuthContext';
 import { SocketProvider } from './core/context/SocketContext';
 import { GlobalStateProvider } from './core/context/GlobalStateContext';
-import { VideoCallProvider } from './core/context/VideoCallContext';
+import { VideoCallProvider } from './core/context/VideoCallContextXState';
 import './core/i18n/i18n.config'; // Initialize i18next
 import { VideoCallModal } from './shared/components/VideoCallModal';
 import { InAppNotificationToast } from './shared/components/InAppNotificationToast';

@@ -84,6 +84,7 @@ const videoCallSchema = new mongoose.Schema(
                 'timeout',           // No answer timeout
                 'rejected',          // Receiver rejected
                 'cancelled',         // Caller cancelled
+                'interruption_timeout', // Rejoin grace period expired
             ],
         },
 

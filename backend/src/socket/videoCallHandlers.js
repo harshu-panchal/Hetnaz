@@ -83,6 +83,10 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             const { receiverId, chatId } = data;
             logger.info(`📞 Call request from ${userId} to ${receiverId}`);
 
+            // STEP 0: Force-clear any previous call UI traces on both clients
+            io.to(userId).emit('call:clear-all');
+            io.to(receiverId).emit('call:clear-all');
+
             // Initiate call (validates and locks coins)
             const videoCall = await videoCallService.initiateCall(userId, receiverId);
 
@@ -404,17 +408,28 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 setCallTimer(callId, 'interruption', 60000, async () => {
                     try {
                         logger.info(`❌ Interruption (Soft End) timeout expired: ${callId}`);
-                        const videoCall = await videoCallService.endCall(callId, 'interruption_timeout', userId);
+                        const reason = 'interruption_timeout'; // Define reason here
+                        const videoCall = await videoCallService.endCall(callId, reason, userId);
 
+                        // Notify both users
                         const endData = {
                             callId,
-                            reason: 'interruption_timeout',
-                            canRejoin: false,
+                            reason,
+                            canRejoin: false, // Hard end
                         };
-                        io.to(otherUserId).emit('call:ended', endData);
-                        io.to(userId).emit('call:ended', endData);
 
-                        activeCallTimers.delete(`${callId}_interruption`);
+                        io.to(videoCall.callerId.toString()).emit('call:ended', endData);
+                        io.to(videoCall.receiverId.toString()).emit('call:ended', endData);
+
+                        // Clean up timers
+                        activeCallTimers.delete(callId); // This clears the main call timer if it somehow wasn't cleared before.
+                        activeCallTimers.delete(`${callId}_interruption`); // This clears the interruption timer.
+
+                        // FORCE CLEAR after a hard end to be absolutely sure
+                        setTimeout(() => {
+                            io.to(videoCall.callerId.toString()).emit('call:clear-all');
+                            io.to(videoCall.receiverId.toString()).emit('call:clear-all');
+                        }, 2000);
                     } catch (err) {
                         logger.error(`Soft end timeout error: ${err.message}`);
                     }
@@ -452,6 +467,12 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
 
                 io.to(videoCall.callerId.toString()).emit('call:ended', endData);
                 io.to(videoCall.receiverId.toString()).emit('call:ended', endData);
+
+                // FORCE CLEAR after a hard end
+                setTimeout(() => {
+                    io.to(videoCall.callerId.toString()).emit('call:clear-all');
+                    io.to(videoCall.receiverId.toString()).emit('call:clear-all');
+                }, 2000);
             }
         } catch (error) {
             logger.error(`Call end error: ${error.message}`);
@@ -540,6 +561,12 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 io.to(callerId).emit('call:force-end', forceEndData);
                 io.to(receiverId).emit('call:force-end', forceEndData);
                 activeCallTimers.delete(callId);
+
+                // FORCE CLEAR after a hard end to be absolutely sure
+                setTimeout(() => {
+                    io.to(callerId).emit('call:clear-all');
+                    io.to(receiverId).emit('call:clear-all');
+                }, 2000);
             } catch (error) {
                 logger.error(`Rejoin timer end error: ${error.message}`);
             }
@@ -574,22 +601,17 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
         // BUT they might need a token refresh if token expired? 
         // For simplicity, send updated state to both.
 
-        io.to(callerId).emit('call:rejoin-proceed', {
-            ...rejoinData,
-            agora: {
-                channelName,
-                token: callerToken,
-                uid: callerUid,
-                appId: agoraService.getAppId(),
-            },
-        });
+        // Notify ONLY the person who requested the rejoin
+        const targetRoom = requestingUserId === callerId ? callerId : receiverId;
+        const targetToken = requestingUserId === callerId ? callerToken : receiverToken;
+        const targetUid = requestingUserId === callerId ? callerUid : receiverUid;
 
-        io.to(receiverId).emit('call:rejoin-proceed', {
+        io.to(targetRoom).emit('call:rejoin-proceed', {
             ...rejoinData,
             agora: {
                 channelName,
-                token: receiverToken,
-                uid: receiverUid,
+                token: targetToken,
+                uid: targetUid,
                 appId: agoraService.getAppId(),
             },
         });
@@ -669,6 +691,12 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             // Notify both users using rooms
             io.to(videoCall.callerId.toString()).emit('call:ended', failData);
             io.to(videoCall.receiverId.toString()).emit('call:ended', failData);
+
+            // FORCE CLEAR traces
+            setTimeout(() => {
+                io.to(videoCall.callerId.toString()).emit('call:clear-all');
+                io.to(videoCall.receiverId.toString()).emit('call:clear-all');
+            }, 2000);
         } catch (error) {
             logger.error(`Connection failed handling error: ${error.message}`);
         }

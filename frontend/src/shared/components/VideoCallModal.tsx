@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useVideoCall } from '../../core/context/VideoCallContext';
+import { useVideoCall } from '../../core/context/VideoCallContextXState';
 
 // Format time as mm:ss
 const formatTime = (seconds: number): string => {
@@ -45,34 +45,30 @@ export const VideoCallModal = () => {
     // Permission checking state
     const [isCheckingPermissions, setIsCheckingPermissions] = useState(false);
     const [permissionError, setPermissionError] = useState<string | null>(null);
+    const [isInternalProcessing, setIsInternalProcessing] = useState(false); // UI lock
 
     // Request media permissions before accepting call
     const handleAcceptCall = async () => {
+        if (isInternalProcessing) return;
         setIsCheckingPermissions(true);
+        setIsInternalProcessing(true);
         setPermissionError(null);
 
         try {
-            // Request camera and microphone access
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
                 audio: true,
             });
-
-            // Stop the test stream immediately - we just needed to trigger permission
             stream.getTracks().forEach(track => track.stop());
-
-            // Permissions granted, proceed with accepting the call
             await acceptCall();
         } catch (error: any) {
             console.error('Permission error:', error);
-
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                setPermissionError('Camera and microphone access is required for video calls. Please allow access and try again.');
-            } else if (error.name === 'NotFoundError') {
-                setPermissionError('No camera or microphone found on your device.');
+                setPermissionError('Camera and microphone access is required for video calls.');
             } else {
-                setPermissionError('Failed to access camera/microphone. Please check your device settings.');
+                setPermissionError(error.message || 'Failed to access camera/microphone.');
             }
+            setIsInternalProcessing(false);
         } finally {
             setIsCheckingPermissions(false);
         }
@@ -113,13 +109,18 @@ export const VideoCallModal = () => {
             if (isActive) playTracks();
         }, 300);
 
+        // Reset internal processing if state becomes connected or idle
+        if (callState.status === 'connected' || callState.status === 'idle') {
+            setIsInternalProcessing(false);
+        }
+
         return () => {
             isActive = false;
             clearTimeout(timer);
             if (callState.localVideoTrack) callState.localVideoTrack.stop();
             if (callState.remoteVideoTrack) callState.remoteVideoTrack.stop();
         };
-    }, [callState.localVideoTrack, callState.remoteVideoTrack, isFullScreen, isSwapped, callState.status]);
+    }, [callState.localVideoTrack, callState.remoteVideoTrack, isFullScreen, isSwapped, callState.status, callState.isPeerDisconnected]);
 
     const handleToggleSwap = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -603,8 +604,13 @@ export const VideoCallModal = () => {
                         </button>
 
                         <button
-                            onClick={endCall}
-                            className="w-16 h-16 rounded-3xl bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-2xl shadow-red-600/30 transition-all hover:scale-105 active:scale-90 group"
+                            onClick={async () => {
+                                if (isInternalProcessing) return;
+                                setIsInternalProcessing(true);
+                                await endCall();
+                            }}
+                            className={`w-16 h-16 rounded-3xl bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-2xl shadow-red-600/30 transition-all hover:scale-105 active:scale-90 group ${isInternalProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={isInternalProcessing}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 rotate-[135deg] transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57-.35-.11-.74-.03-1.02.24l-2.2 2.2c-2.83-1.44-5.15-3.75-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C8.7 6.45 8.5 5.25 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z" />
@@ -630,10 +636,40 @@ export const VideoCallModal = () => {
             );
         }
 
+        // Rejoining UI - waiting for backend to send REJOIN_PROCEED
+        if (callState.status === 'rejoining') {
+            return (
+                <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-in fade-in">
+                    <div className="bg-gray-900 border border-white/10 rounded-[2.5rem] p-10 max-w-sm w-full mx-4 text-center shadow-[0_30px_100px_rgba(0,0,0,0.8)] relative overflow-hidden">
+                        {/* Decorative background element */}
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
+
+                        {/* Spinning loader */}
+                        <div className="w-20 h-20 rounded-full bg-white/5 mx-auto mb-6 flex items-center justify-center border border-white/10">
+                            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+
+                        <h2 className="text-2xl font-bold text-white tracking-tight mb-2">
+                            Rejoining Call...
+                        </h2>
+
+                        <p className="text-gray-400 text-sm mb-6">
+                            Reconnecting to your call. Please wait...
+                        </p>
+
+                        <p className="text-indigo-400 font-bold text-lg">
+                            {formatTime(remainingTime)} remaining
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
         // Call ended UI
         if (callState.status === 'ended') {
             const hasTimeLeft = remainingTime > 10;
-            const canRejoin = hasTimeLeft && !callState.wasRejoined;
+            // XState context maintains canRejoin state directly
+            const canRejoin = callState.canRejoin || (hasTimeLeft && !callState.wasRejoined);
 
             console.log('🛑 Call Ended UI Check:');
             console.log('   - Status:', callState.status);
@@ -665,16 +701,26 @@ export const VideoCallModal = () => {
                                 </p>
                                 <div className="flex flex-col gap-3">
                                     <button
-                                        onClick={rejoinCall}
-                                        className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+                                        onClick={async () => {
+                                            if (isInternalProcessing) return;
+                                            setIsInternalProcessing(true);
+                                            await rejoinCall();
+                                        }}
+                                        disabled={isInternalProcessing}
+                                        className={`w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${isInternalProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
                                         </svg>
-                                        REJOIN CALL
+                                        {isInternalProcessing ? 'REJOINING...' : 'REJOIN CALL'}
                                     </button>
                                     <button
-                                        onClick={endCall}
+                                        onClick={async () => {
+                                            if (isInternalProcessing) return;
+                                            setIsInternalProcessing(true);
+                                            await endCall();
+                                        }}
+                                        disabled={isInternalProcessing}
                                         className="w-full h-14 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-2xl font-bold transition-all active:scale-95 border border-white/5 uppercase text-[10px] tracking-[0.2em]"
                                     >
                                         End Permanently

@@ -37,6 +37,9 @@ export interface CallState {
     agoraChannel: string | null;
     agoraToken: string | null;
     agoraUid: number | null;
+    // Server determined rejoin state
+    canRejoinFromServer?: boolean;
+    remainingTimeFromServer?: number;
 }
 
 interface AgoraCredentials {
@@ -58,6 +61,7 @@ class VideoCallService {
     private listeners: Map<string, Set<CallEventCallback>> = new Map();
     private listenersInitialized = false;
     private isJoining = false;
+    private isProcessing = false; // Action lock
 
     constructor() {
         // Configure Agora SDK
@@ -136,6 +140,11 @@ class VideoCallService {
         // Rejoin proceed
         socketService.on('call:rejoin-proceed', this.handleRejoinProceed.bind(this));
 
+        // Global Clear - Emergency trace removal
+        socketService.on('call:clear-all', () => {
+            console.log('🚨 EMERGENCY CLEAR ALL RECEIVED');
+            this.cleanup();
+        });
         // Peer waiting/rejoined events
         socketService.on('call:waiting', this.handlePeerWaiting.bind(this));
         socketService.on('call:peer-rejoined', this.handlePeerRejoined.bind(this));
@@ -155,47 +164,49 @@ class VideoCallService {
         console.log('   Chat ID:', chatId);
         console.log('   Current Status:', this.callState.status);
 
-        // Guardrail: Cleanup if we are in 'ended' state before a new call
-        if (this.callState.status === 'ended') {
-            console.log('🧹 Cleaning up previous ended session before new request');
+        // Guardrail: Force cleanup if we are not idle
+        if (this.callState.status !== 'idle') {
+            console.log(`🧹 Force cleaning up status "${this.callState.status}" before new request`);
             await this.cleanup();
         }
 
-        if (this.callState.status !== 'idle') {
-            console.error('❌ MALE - Cannot initiate call - already in call:', this.callState.status);
-            throw new Error('Already in a call');
-        }
+        if (this.isProcessing) return;
+        this.isProcessing = true;
 
-        console.log('🔵 MALE - STEP 2: Setting status to requesting');
-        this.updateState({
-            status: 'requesting',
-            remoteUserId: receiverId,
-            remoteUserName: receiverName,
-            remoteUserAvatar: receiverAvatar,
-            isIncoming: false,
-        });
-
-        // Pre-initialize local media
         try {
-            console.log('🔵 MALE - STEP 3: Initializing camera and microphone...');
-            await this.initializeLocalMedia();
-            console.log('✅ MALE - STEP 3 COMPLETE: Camera/mic ready');
-        } catch (error: any) {
-            console.error('❌ MALE - STEP 3 FAILED:', error.message);
-            const errorMsg = error.message || 'Camera/Microphone access denied';
-            this.updateState({ status: 'idle', error: errorMsg });
-            throw new Error(errorMsg);
-        }
+            console.log('🔵 MALE - STEP 2: Setting status to requesting');
+            this.updateState({
+                status: 'requesting',
+                remoteUserId: receiverId,
+                remoteUserName: receiverName,
+                remoteUserAvatar: receiverAvatar,
+                isIncoming: false,
+            });
 
-        console.log('🔵 MALE - STEP 4: Sending call request to backend...');
-        // Send call request via socket
-        socketService.emitToServer('call:request', {
-            receiverId,
-            chatId,
-            callerName,
-            callerAvatar,
-        });
-        console.log('✅ MALE - STEP 4 COMPLETE: Request sent to backend');
+            // Pre-initialize local media
+            try {
+                console.log('🔵 MALE - STEP 3: Initializing camera and microphone...');
+                await this.initializeLocalMedia();
+                console.log('✅ MALE - STEP 3 COMPLETE: Camera/mic ready');
+            } catch (error: any) {
+                console.error('❌ MALE - STEP 3 FAILED:', error.message);
+                const errorMsg = error.message || 'Camera/Microphone access denied';
+                this.updateState({ status: 'idle', error: errorMsg });
+                throw new Error(errorMsg);
+            }
+
+            console.log('🔵 MALE - STEP 4: Sending call request to backend...');
+            // Send call request via socket
+            socketService.emitToServer('call:request', {
+                receiverId,
+                chatId,
+                callerName,
+                callerAvatar,
+            });
+            console.log('✅ MALE - STEP 4 COMPLETE: Request sent to backend');
+        } finally {
+            this.isProcessing = false;
+        }
     }
 
     /**
@@ -213,25 +224,32 @@ class VideoCallService {
             throw new Error('No incoming call to accept');
         }
 
-        console.log('🟣 FEMALE - STEP 2: Setting status to connecting');
-        this.updateState({ status: 'connecting' });
+        if (this.isProcessing) return;
+        this.isProcessing = true;
 
-        // Initialize local media
         try {
-            console.log('🟣 FEMALE - STEP 3: Initializing camera and microphone...');
-            await this.initializeLocalMedia();
-            console.log('✅ FEMALE - STEP 3 COMPLETE: Camera/mic ready');
-        } catch (error: any) {
-            console.error('❌ FEMALE - STEP 3 FAILED:', error);
-            const errorMsg = error.message || 'Camera/Microphone access denied';
-            this.updateState({ status: 'idle', error: errorMsg });
-            throw new Error(errorMsg);
-        }
+            console.log('🟣 FEMALE - STEP 2: Setting status to connecting');
+            this.updateState({ status: 'connecting' });
 
-        console.log('🟣 FEMALE - STEP 4: Sending call:accept to backend');
-        // Accept call via socket - backend will send Agora credentials
-        socketService.emitToServer('call:accept', { callId });
-        console.log('✅ FEMALE - STEP 4 COMPLETE: Acceptance sent to backend');
+            // Initialize local media
+            try {
+                console.log('🟣 FEMALE - STEP 3: Initializing camera and microphone...');
+                await this.initializeLocalMedia();
+                console.log('✅ FEMALE - STEP 3 COMPLETE: Camera/mic ready');
+            } catch (error: any) {
+                console.error('❌ FEMALE - STEP 3 FAILED:', error);
+                const errorMsg = error.message || 'Camera/Microphone access denied';
+                this.updateState({ status: 'idle', error: errorMsg });
+                throw new Error(errorMsg);
+            }
+
+            console.log('🟣 FEMALE - STEP 4: Sending call:accept to backend');
+            // Accept call via socket - backend will send Agora credentials
+            socketService.emitToServer('call:accept', { callId });
+            console.log('✅ FEMALE - STEP 4 COMPLETE: Acceptance sent to backend');
+        } finally {
+            this.isProcessing = false;
+        }
     }
 
     /**
@@ -422,6 +440,12 @@ class VideoCallService {
             return;
         }
 
+        if (this.agoraClient && this.agoraClient.connectionState === 'CONNECTED' && this.callState.agoraChannel === credentials.channelName) {
+            console.log('✅ Already connected to Agora channel:', credentials.channelName);
+            this.isJoining = false;
+            return;
+        }
+
         this.isJoining = true;
         try {
             console.log('🎥 Joining Agora channel:', credentials.channelName);
@@ -568,7 +592,9 @@ class VideoCallService {
             }
         } catch (error: any) {
             console.error('Failed to join Agora channel:', error);
-            if (this.callState.status !== 'connected') {
+            if (this.callState.status === 'connected') {
+                console.log('🎯 Ignoring connection failure reporting - status is already connected');
+            } else {
                 console.log('❌ Reporting connection failure to backend');
                 socketService.emitToServer('call:connection-failed', { callId: this.callState.callId });
             }
@@ -578,7 +604,13 @@ class VideoCallService {
         }
     }
 
-    public async cleanup(): Promise<void> {
+    public async cleanup(callId?: string): Promise<void> {
+        // Safety check: if a callId is provided, ONLY cleanup if it matches current callState.callId
+        if (callId && this.callState.callId !== callId) {
+            console.log(`🧹 Ignoring cleanup for stale callId: ${callId}. Currently active: ${this.callState.callId}`);
+            return;
+        }
+
         console.log('🧹 Cleaning up video call resources (Hard Cleanup)...');
 
         this.isJoining = false;
@@ -624,13 +656,21 @@ class VideoCallService {
             }
         }
 
-        // 3. Reset tracks
+        // 3. Reset Tracks & Internal variables
+        this.localVideoTrack = null;
+        this.localAudioTrack = null;
         this.remoteVideoTrack = null;
         this.remoteAudioTrack = null;
+        this.isJoining = false;
+        this.isProcessing = false;
 
-        // 4. Reset state to IDLE
-        this.callState = this.getInitialState();
-        this.notifyListeners('stateChange', this.callState);
+        // 4. Force Reset State
+        const initialState = this.getInitialState();
+        this.callState = initialState;
+        this.notifyListeners('stateChange', initialState);
+
+        // Emergency DOM Cleanup for any dangling Agora elements
+        document.querySelectorAll('[id^="agora-video-"]').forEach(el => el.remove());
 
         console.log('🧹 Cleanup complete. System idle.');
     }
@@ -792,12 +832,22 @@ class VideoCallService {
         if (data.reason === 'rejected') errorMessage = 'Call rejected';
         else if (data.reason === 'connection_failed') errorMessage = 'Connection failed. Please try again.';
 
+        const canRejoin = data.canRejoin === true;
+
+        // CRITICAL PROTECTION: If we are already connected/connecting and receive a 
+        // "soft end" signal (canRejoin: true), ignore it as it might be a stale signal
+        // from a previous interruption or a race condition during a successful rejoin.
+        if (canRejoin && (this.callState.status === 'connected' || this.callState.status === 'connecting')) {
+            console.log('🛡️ Ignoring soft-end signal as we are already connecting/connected');
+            return;
+        }
+
         this.updateState({
             status: 'ended',
             error: errorMessage,
+            canRejoinFromServer: canRejoin,
+            remainingTimeFromServer: data.remainingTime,
         });
-
-        const canRejoin = data.canRejoin === true;
 
         if (canRejoin) {
             console.log('⏳ REJOIN WINDOW OPEN: Soft leave active.');
@@ -811,14 +861,14 @@ class VideoCallService {
             setTimeout(() => {
                 if (this.callState.status === 'ended') {
                     console.log('⏳ Rejoin window safety timeout. Hard cleaning up.');
-                    this.cleanup();
+                    this.cleanup(data.callId);
                 }
             }, 70000);
         } else {
             console.log('🧹 No rejoin possible. Hard cleaning up in 1s.');
             setTimeout(() => {
                 if (this.callState.status === 'ended') {
-                    this.cleanup();
+                    this.cleanup(data.callId);
                 }
             }, 1000);
         }
@@ -831,7 +881,7 @@ class VideoCallService {
             status: 'ended',
             error: data.reason === 'timer_expired' ? 'Call time limit reached' : 'Call ended',
         });
-        setTimeout(() => this.cleanup(), 1500);
+        setTimeout(() => this.cleanup(data.callId), 1500);
     }
 
     private handleCallError(data: any): void {
@@ -852,11 +902,11 @@ class VideoCallService {
         if (canRejoin) {
             setTimeout(() => {
                 if (this.callState.status === 'ended') {
-                    this.cleanup();
+                    this.cleanup(data.callId);
                 }
             }, 70000);
         } else {
-            setTimeout(() => this.cleanup(), 1500);
+            setTimeout(() => this.cleanup(data.callId), 1500);
         }
     }
 
@@ -867,7 +917,7 @@ class VideoCallService {
             status: 'ended',
             error: 'Call missed. Coins refunded.',
         });
-        setTimeout(() => this.cleanup(), 1500);
+        setTimeout(() => this.cleanup(data.callId), 1500);
     }
 
     private handlePeerWaiting(data: any): void {
@@ -883,7 +933,17 @@ class VideoCallService {
     }
 }
 
-// Singleton instance
-const videoCallService = new VideoCallService();
+
+// Singleton instance with HMR support
+let videoCallService: VideoCallService;
+
+if (import.meta.env.DEV) {
+    if (!(globalThis as any).__videoCallService) {
+        (globalThis as any).__videoCallService = new VideoCallService();
+    }
+    videoCallService = (globalThis as any).__videoCallService;
+} else {
+    videoCallService = new VideoCallService();
+}
 
 export default videoCallService;

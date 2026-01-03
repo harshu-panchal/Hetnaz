@@ -12,7 +12,7 @@ import apiClient from '../../../core/api/client';
 import { compressImage } from '../../../core/utils/image';
 
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
-import { useVideoCall } from '../../../core/context/VideoCallContext';
+import { useVideoCall } from '../../../core/context/VideoCallContextXState';
 import chatService from '../../../core/services/chat.service';
 import userService from '../../../core/services/user.service';
 import socketService from '../../../core/services/socket.service';

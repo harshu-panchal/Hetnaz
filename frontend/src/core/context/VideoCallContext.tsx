@@ -72,8 +72,14 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
                     clearInterval(timerRef.current);
                     timerRef.current = null;
                 }
+
+                // Sync with server's remaining time if provided
+                if (newState.remainingTimeFromServer !== undefined) {
+                    setRemainingTime(newState.remainingTimeFromServer);
+                }
+
                 // Do NOT reset remainingTime here so UI can show it
-                console.log('🛑 Call ended in Context - Keeping remaining time:', remainingTime);
+                console.log('🛑 Call ended in Context - Final Time:', newState.remainingTimeFromServer ?? remainingTime);
             }
         });
 
