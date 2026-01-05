@@ -20,6 +20,9 @@ import offlineQueueService from '../../../core/services/offlineQueue.service';
 import type { Chat as ApiChat, Message as ApiMessage, IntimacyInfo } from '../../../core/types/chat.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 
+import { useQueryClient } from '@tanstack/react-query';
+import { CHAT_KEYS } from '../../../core/queries/useChatQuery';
+
 // Message cost constant
 const MESSAGE_COST = 50;
 const IMAGE_MESSAGE_COST = 100;
@@ -35,7 +38,13 @@ export const ChatWindowPage = () => {
   const currentMessageCost = appSettings?.messageCosts?.[user?.memberTier || 'basic'] || MESSAGE_COST;
   const currentImageCost = appSettings?.messageCosts?.imageMessage || IMAGE_MESSAGE_COST;
 
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ApiMessage[]>(() => {
+    // 1. Try React Query cache first (fastest)
+    const queryData = queryClient.getQueryData<ApiMessage[]>(CHAT_KEYS.messages(chatId || ''));
+    if (queryData) return queryData;
+
+    // 2. Fallback to legacy GlobalState cache (if migrated from old version)
     return (chatId && chatCache[chatId]) ? chatCache[chatId] : [];
   });
   const [chatInfo, setChatInfo] = useState<ApiChat | null>(null);
@@ -265,10 +274,14 @@ export const ChatWindowPage = () => {
     };
   }, [chatId, chatInfo, currentUserId, scrollToBottom]);
 
-  // Auto-scroll on new messages
+  // Auto-scroll on new messages & Sync to Cache
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (messages.length > 0 && chatId) {
+      // Sync local state to React Query cache for instant load next time
+      queryClient.setQueryData(CHAT_KEYS.messages(chatId), messages);
+    }
+  }, [messages, scrollToBottom, chatId, queryClient]);
 
   // Send text message
   const handleSendMessage = async (content: string) => {

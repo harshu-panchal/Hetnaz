@@ -16,13 +16,22 @@ import { ImageModal } from '../../../shared/components/ImageModal';
 import apiClient from '../../../core/api/client';
 import { compressImage } from '../../../core/utils/image';
 
+import { useQueryClient } from '@tanstack/react-query';
+import { CHAT_KEYS } from '../../../core/queries/useChatQuery';
+
 export const ChatWindowPage = () => {
   const { t } = useTranslation();
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
   const { chatCache, saveToChatCache } = useGlobalState();
+  const queryClient = useQueryClient();
 
   const [messages, setMessages] = useState<ApiMessage[]>(() => {
+    // 1. Try React Query cache first
+    const queryData = queryClient.getQueryData<ApiMessage[]>(CHAT_KEYS.messages(chatId || ''));
+    if (queryData) return queryData;
+
+    // 2. Fallback to legacy cache
     return (chatId && chatCache[chatId]) ? chatCache[chatId] : [];
   });
   const [chatInfo, setChatInfo] = useState<ApiChat | null>(null);
@@ -237,7 +246,10 @@ export const ChatWindowPage = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (messages.length > 0 && chatId) {
+      queryClient.setQueryData(CHAT_KEYS.messages(chatId), messages);
+    }
+  }, [messages, scrollToBottom, chatId, queryClient]);
 
   // Send image
   const handleSendImage = async (base64Image: string) => {

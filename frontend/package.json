@@ -13,6 +13,7 @@
     "@cloudinary/react": "^1.11.3",
     "@cloudinary/url-gen": "^1.11.2",
     "@hookform/resolvers": "^3.3.2",
+    "@tanstack/react-query": "^5.90.16",
     "@xstate/react": "^6.0.0",
     "agora-rtc-sdk-ng": "^4.24.2",
     "axios": "^1.6.2",

@@ -9,37 +9,16 @@ import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { PermissionPrompt } from '../../../shared/components/PermissionPrompt';
 import { usePermissions } from '../../../core/hooks/usePermissions';
-import userService from '../../../core/services/user.service';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
+import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { BadgeDisplay } from '../../../shared/components/BadgeDisplay';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 
-interface MaleDashboardData {
-  nearbyUsers: Array<{
-    id: string;
-    name: string;
-    avatar: string;
-  }>;
-  activeChats: Array<{
-    id: string;
-    userId: string;
-    userName: string;
-    userAvatar: string;
-    lastMessage: string;
-    timestamp: string;
-    isOnline: boolean;
-    hasUnread: boolean;
-    distance?: string;
-  }>;
-  rawChats: any[];
-}
 
 export const MaleDashboard = () => {
   const { t } = useTranslation();
-  const [nearbyUsers, setNearbyUsers] = useState<MaleDashboardData['nearbyUsers']>([]);
-  const [isNearbyLoading, setIsNearbyLoading] = useState(true);
 
   // Use optimized chat hook - loads from cache immediately
   const { chats: rawChats, isLoading: isChatsLoading, refreshChats } = useOptimizedChatList();
@@ -55,7 +34,7 @@ export const MaleDashboard = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     refreshChats();
-    fetchNearbyUsers();
+    // Nearby users fetched via hook automatically
 
     // Show permission prompt on first app open
     if (!hasRequestedPermissions()) {
@@ -63,21 +42,23 @@ export const MaleDashboard = () => {
     }
   }, []);
 
-  const fetchNearbyUsers = async () => {
-    try {
-      setIsNearbyLoading(true);
-      const nearbyResponse = await userService.discoverFemales('all', 1, 10);
-      setNearbyUsers(nearbyResponse.profiles?.map((p: any) => ({
-        id: p.id,
-        name: p.name || 'User',
-        avatar: p.avatar || ''
-      })) || []);
-    } catch (error) {
-      console.error('Failed to fetch nearby users:', error);
-    } finally {
-      setIsNearbyLoading(false);
-    }
-  };
+  // Use optimized hooks which share cache
+  const { data: nearbyUsersRaw = [] } = useDiscoveryProfiles('all');
+
+  // Transform for dashboard display
+  const nearbyUsers = useMemo(() => {
+    return nearbyUsersRaw.slice(0, 10).map((p: any) => ({
+      id: p.id,
+      name: p.name || 'User',
+      avatar: p.avatar || ''
+    }));
+  }, [nearbyUsersRaw]);
+
+  // Loading state derived from hooks
+  const isNearbyLoading = false; // Query handles background loading, we default to showing cached or empty
+
+  // Note: We don't need manual fetchNearbyUsers anymore
+
 
 
   const formatTimestamp = (date: string | Date): string => {

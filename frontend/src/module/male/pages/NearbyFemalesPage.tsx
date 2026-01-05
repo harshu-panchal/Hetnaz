@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
-import userService, { DiscoverProfile } from '../../../core/services/user.service';
 import chatService from '../../../core/services/chat.service';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
@@ -10,9 +9,8 @@ import { HiSentModal } from '../components/HiSentModal';
 import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
 import offlineQueueService from '../../../core/services/offlineQueue.service';
 import apiClient from '../../../core/api/client';
+import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
 
-import { useAuth } from '../../../core/context/AuthContext';
-import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 
 type FilterType = 'all' | 'online' | 'new' | 'popular';
@@ -23,11 +21,19 @@ export const NearbyFemalesPage = () => {
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
   const { coinBalance, updateBalance } = useGlobalState();
 
-  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // React Query Hook
+  const {
+    data: profiles = [],
+    isLoading: isQueryLoading,
+    error: queryError,
+    refetch
+  } = useDiscoveryProfiles(activeFilter);
+
+  const error = queryError ? (queryError as any).message || 'Failed to load profiles' : null;
+  const isLoading = isQueryLoading;
+
   const [sendingHiTo, setSendingHiTo] = useState<string | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [requiredCoins, setRequiredCoins] = useState(5);
@@ -69,62 +75,8 @@ export const NearbyFemalesPage = () => {
         console.log('[DailyReward] Failed to claim:', error);
       }
     };
-
     checkDailyReward();
   }, [updateBalance]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  const fetchProfiles = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Map filter to API parameter
-      let apiFilter = activeFilter;
-
-      const data = await userService.discoverFemales(apiFilter);
-      // DEFENSIVE: Ensure profiles is always an array and handle missing properties
-      const sanitizedProfiles = (data.profiles || []).map((p: any) => {
-        const profileCoords = p.profile?.location?.coordinates || [p.longitude, p.latitude];
-        const profileLat = profileCoords[1];
-        const profileLng = profileCoords[0];
-
-        let distanceStr = p.distance;
-
-        const userCoord = { lat: user?.latitude || 0, lng: user?.longitude || 0 };
-        const profileCoord = { lat: profileLat || 0, lng: profileLng || 0 };
-
-        if (areCoordinatesValid(userCoord) && areCoordinatesValid(profileCoord)) {
-          const dist = calculateDistance(userCoord, profileCoord);
-          distanceStr = formatDistance(dist);
-        }
-
-        return {
-          ...p,
-          id: p.id || p._id,
-          name: p.name || 'Anonymous',
-          avatar: p.avatar || p.profile?.photos?.[0]?.url || '',
-          bio: p.bio || p.profile?.bio || '',
-          location: p.location || p.profile?.location?.city || '',
-          age: p.age || p.profile?.age,
-          distance: distanceStr
-        };
-      });
-      setProfiles(sanitizedProfiles);
-    } catch (err: any) {
-      console.error('Failed to fetch profiles:', err);
-      setError(err.response?.data?.message || 'Failed to load profiles');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeFilter]);
-
-  useEffect(() => {
-    fetchProfiles();
-  }, [fetchProfiles]);
 
   // Process offline queue when back online
   useEffect(() => {
@@ -251,7 +203,7 @@ export const NearbyFemalesPage = () => {
               {t('popularTab')}
             </button>
           </div>
-          <button onClick={fetchProfiles} className="text-primary p-1">
+          <button onClick={() => refetch()} className="text-primary p-1">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
