@@ -669,15 +669,33 @@ export const VideoCallModal = () => {
         // Call ended UI
         if (callState.status === 'ended') {
             const hasTimeLeft = remainingTime > 10;
-            // XState context maintains canRejoin state directly
-            const canRejoin = callState.canRejoin || (hasTimeLeft && !callState.wasRejoined);
+
+            // CRITICAL FIX: Respect backend's authoritative decision
+            // If backend explicitly says canRejoin=false (via canRejoinFromServer), 
+            // don't allow rejoin regardless of local time calculation
+            const canRejoin = callState.canRejoinFromServer !== false &&
+                (callState.canRejoin || (hasTimeLeft && !callState.wasRejoined));
 
             console.log('🛑 Call Ended UI Check:');
             console.log('   - Status:', callState.status);
             console.log('   - Remaining Time:', remainingTime);
             console.log('   - Has Time Left (>10s):', hasTimeLeft);
             console.log('   - Was Rejoined:', callState.wasRejoined);
-            console.log('   - Can Rejoin:', canRejoin);
+            console.log('   - canRejoinFromServer:', callState.canRejoinFromServer);
+            console.log('   - Can Rejoin (computed):', canRejoin);
+
+            // Auto-close effect for permanent end
+            useEffect(() => {
+                if (!canRejoin && callState.status === 'ended') {
+                    console.log('⏰ Setting 5-second auto-close timer for permanent end');
+                    const timer = setTimeout(() => {
+                        console.log('⏰ Auto-closing modal and returning to dashboard');
+                        closeModal();
+                    }, 5000);
+
+                    return () => clearTimeout(timer);
+                }
+            }, [canRejoin, callState.status, closeModal]);
 
             return (
                 <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-in fade-in">
@@ -736,6 +754,9 @@ export const VideoCallModal = () => {
                             <div className="flex flex-col gap-4 w-full">
                                 <p className="text-gray-400 text-sm leading-relaxed px-4 mt-2">
                                     {callState.error || 'The call session has concluded.'}
+                                </p>
+                                <p className="text-indigo-400/60 text-xs">
+                                    Returning to dashboard in 5 seconds...
                                 </p>
                                 <button
                                     onClick={() => closeModal()}

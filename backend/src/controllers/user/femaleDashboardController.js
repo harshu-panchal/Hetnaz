@@ -102,14 +102,25 @@ export const getDashboardData = async (req, res, next) => {
             .limit(5);
 
         const transformedChats = chats.map(chat => {
-            const otherParticipant = chat.participants.find(
+            // Safety check: Filter out participants with null/undefined userId (deleted users)
+            const validParticipants = chat.participants.filter(p => p.userId && p.userId._id);
+
+            if (validParticipants.length < 2) {
+                console.warn(`[FEMALE-DASHBOARD] Chat ${chat._id} has invalid participants`);
+                return null; // Skip chats with invalid participants
+            }
+
+            const otherParticipant = validParticipants.find(
                 p => p.userId._id.toString() !== userId
             );
-            const myParticipant = chat.participants.find(
+            const myParticipant = validParticipants.find(
                 p => p.userId._id.toString() === userId
             );
 
-            if (!otherParticipant) return null;
+            if (!otherParticipant || !otherParticipant.userId) {
+                console.warn(`[FEMALE-DASHBOARD] Chat ${chat._id} missing other participant`);
+                return null;
+            }
 
             return {
                 id: chat._id,

@@ -60,6 +60,7 @@ export interface VideoCallContext {
     // Rejoin tracking
     wasRejoined: boolean;
     canRejoin: boolean;
+    canRejoinFromServer?: boolean; // Server's authoritative rejoin decision
 
     // Error state
     error: string | null;
@@ -219,12 +220,14 @@ const actions = {
 
     setCallEnded: assign({
         canRejoin: ({ event }) => (event as any).canRejoin || false,
+        canRejoinFromServer: ({ event }) => (event as any).canRejoin, // Preserve server's explicit decision
         remainingTime: ({ context, event }) => (event as any).remainingTime ?? context.remainingTime,
         error: ({ event }) => {
             const reason = (event as any).reason;
             if (reason === 'timer_expired') return 'Call time limit reached';
             if (reason === 'rejected') return 'Call rejected';
             if (reason === 'soft_end') return null; // No error for soft end
+            if (reason === 'caller_ended' || reason === 'receiver_ended') return 'The other user ended the call';
             return 'Call ended';
         },
     }),
