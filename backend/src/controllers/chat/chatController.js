@@ -50,15 +50,24 @@ export const getMyChatList = async (req, res, next) => {
             // Ensure userId is compared as string
             const currentUserId = userId.toString();
 
-            const otherParticipant = chat.participants.find(
+            // Safety check: Filter out participants with null/undefined userId (deleted users)
+            const validParticipants = chat.participants.filter(p => p.userId && p.userId._id);
+
+            if (validParticipants.length < 2) {
+                console.warn(`[CHAT-LIST] Chat ${chat._id} has invalid participants - skipping`);
+                return null;
+            }
+
+            const otherParticipant = validParticipants.find(
                 p => p.userId._id.toString() !== currentUserId
             );
-            const myParticipant = chat.participants.find(
+            const myParticipant = validParticipants.find(
                 p => p.userId._id.toString() === currentUserId
             );
 
             // Safety check - if no other participant found, skip this chat
             if (!otherParticipant || !myParticipant) {
+                console.warn(`[CHAT-LIST] Chat ${chat._id} missing valid participants - skipping`);
                 return null;
             }
 
@@ -84,7 +93,7 @@ export const getMyChatList = async (req, res, next) => {
                 createdAt: chat.createdAt,
                 // Intimacy level based ONLY on male messages
                 intimacy: (() => {
-                    const maleParticipant = chat.participants.find(p => p.role === 'male');
+                    const maleParticipant = validParticipants.find(p => p.role === 'male');
                     const maleUserId = maleParticipant?.userId._id.toString();
                     // When using lean(), Map becomes a plain object
                     const maleMessageCount = maleUserId ? (chat.messageCountByUser?.[maleUserId] || 0) : 0;
@@ -167,10 +176,13 @@ export const getOrCreateChat = async (req, res, next) => {
         // Transform for frontend - ensure string comparison
         const currentUserId = userId.toString();
 
-        const otherParticipant = chat.participants.find(
+        // Safety check: Filter out participants with null/undefined userId
+        const validParticipants = chat.participants.filter(p => p.userId && p.userId._id);
+
+        const otherParticipant = validParticipants.find(
             p => p.userId._id.toString() !== currentUserId
         );
-        const myParticipant = chat.participants.find(
+        const myParticipant = validParticipants.find(
             p => p.userId._id.toString() === currentUserId
         );
 
@@ -231,10 +243,13 @@ export const getChatById = async (req, res, next) => {
         // Transform for frontend - ensure string comparison
         const currentUserId = userId.toString();
 
-        const otherParticipant = chat.participants.find(
+        // Safety check: Filter out participants with null/undefined userId
+        const validParticipants = chat.participants.filter(p => p.userId && p.userId._id);
+
+        const otherParticipant = validParticipants.find(
             p => p.userId._id.toString() !== currentUserId
         );
-        const myParticipant = chat.participants.find(
+        const myParticipant = validParticipants.find(
             p => p.userId._id.toString() === currentUserId
         );
 
