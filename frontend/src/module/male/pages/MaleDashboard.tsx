@@ -15,6 +15,9 @@ import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { BadgeDisplay } from '../../../shared/components/BadgeDisplay';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
+import apiClient from '../../../core/api/client';
 
 
 export const MaleDashboard = () => {
@@ -22,14 +25,52 @@ export const MaleDashboard = () => {
 
   // Use optimized chat hook - loads from cache immediately
   const { chats: rawChats, isLoading: isChatsLoading, refreshChats } = useOptimizedChatList();
+  const { updateBalance } = useGlobalState();
 
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
+  // Daily Reward Modal
+  const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState(false);
+  const [dailyRewardData, setDailyRewardData] = useState({ amount: 0, newBalance: 0 });
+
   // Permission management
   const { hasRequestedPermissions } = usePermissions();
+
+  // Check and claim daily reward on dashboard load
+  useEffect(() => {
+    const checkDailyReward = async () => {
+      try {
+        console.log('[DailyReward] Attempting to claim on dashboard load...');
+        const response = await apiClient.post('/rewards/daily/claim');
+        console.log('[DailyReward] Response:', response.data);
+        const result = response.data.data;
+        console.log('[DailyReward] Result:', result);
+
+        if (result.claimed) {
+          console.log('[DailyReward] Reward claimed! Amount:', result.amount, 'New Balance:', result.newBalance);
+          // Show celebration modal
+          setDailyRewardData({
+            amount: result.amount,
+            newBalance: result.newBalance
+          });
+          setIsDailyRewardModalOpen(true);
+          console.log('[DailyReward] Modal state set to true');
+          // Update global balance
+          updateBalance(result.newBalance);
+        } else {
+          console.log('[DailyReward] Not claimed. Reason:', result.reason);
+        }
+      } catch (error) {
+        // Silently fail - don't disrupt user experience
+        console.log('[DailyReward] Failed to claim:', error);
+      }
+    };
+
+    checkDailyReward();
+  }, [updateBalance]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -218,6 +259,14 @@ export const MaleDashboard = () => {
       <BottomNavigation
         items={navigationItems}
         onItemClick={handleNavigationClick}
+      />
+
+      {/* Daily Reward Modal */}
+      <DailyRewardModal
+        isOpen={isDailyRewardModalOpen}
+        onClose={() => setIsDailyRewardModalOpen(false)}
+        coinsAwarded={dailyRewardData.amount}
+        newBalance={dailyRewardData.newBalance}
       />
     </div>
   );

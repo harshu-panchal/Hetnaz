@@ -95,7 +95,8 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
                             }
                         }
 
-                        const locationString = foundCity && foundState ? `${foundCity}, ${foundState}` : foundCity || data.results[0].formatted_address;
+                        // Use EXACT formatted address to preserve detailed location
+                        const locationString = data.results[0].formatted_address;
                         setLocation(locationString);
                         setCity(foundCity || locationString);
                         setStateName(foundState);
@@ -176,13 +177,13 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
                 {/* Input */}
                 <div className="mb-6">
                     <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Location (City, Area)
+                        Exact Location
                     </label>
                     <GoogleMapsAutocomplete
                         id="location"
                         value={location}
                         onChange={handleLocationChange}
-                        placeholder="e.g., Mumbai, Andheri"
+                        placeholder="e.g., 123 Main St, Andheri West, Mumbai"
                         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-[#2f151e] dark:text-white ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                             }`}
                         disabled={isLoading}

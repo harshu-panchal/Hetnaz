@@ -77,7 +77,7 @@ export const ChatListPage = () => {
 
   // Transform API chats to component format
   const transformedChats = useMemo(() => {
-    return chats.map(chat => {
+    return chats.map((chat: any) => {
       // Check if the last message was sent by the current user (female)
       // senderId can be either a string or an object with _id
       const lastMessageSenderId = typeof chat.lastMessage?.senderId === 'string'
@@ -120,7 +120,7 @@ export const ChatListPage = () => {
     if (!searchQuery.trim()) return transformedChats;
     const query = searchQuery.toLowerCase();
     return transformedChats.filter(
-      (chat) =>
+      (chat: any) =>
         chat.userName.toLowerCase().includes(query) ||
         chat.lastMessage.toLowerCase().includes(query)
     );
@@ -172,7 +172,7 @@ export const ChatListPage = () => {
         )}
 
         {/* Chat List */}
-        {!isLoading && !error && filteredChats.map((chat) => (
+        {!isLoading && !error && filteredChats.map((chat: any) => (
           <ChatListItem key={chat.id} chat={chat as any} onClick={handleChatClick} />
         ))}
       </div>

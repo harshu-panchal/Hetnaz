@@ -241,7 +241,7 @@ export const MaleProfileEditPage = () => {
 
           <div>
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
-              {t('city')}
+              {t('location')}
             </label>
             <GoogleMapsAutocomplete
               value={editedProfile.city || ''}
@@ -254,7 +254,7 @@ export const MaleProfileEditPage = () => {
                 setEditedProfile(updates);
               }}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-[#2f151e] border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder={t('cityPlaceholder')}
+              placeholder="Your exact location (e.g., 123 Main St, Andheri, Mumbai)"
             />
           </div>
 

@@ -77,7 +77,7 @@ export const useSendMessage = (chatId: string) => {
 
             return { previousMessages };
         },
-        onError: (err, newTodo, context) => {
+        onError: (_err, _newTodo, context) => {
             // Rollback on error
             queryClient.setQueryData(CHAT_KEYS.messages(chatId), context?.previousMessages);
         },

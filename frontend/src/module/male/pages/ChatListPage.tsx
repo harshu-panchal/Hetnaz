@@ -64,7 +64,7 @@ export const ChatListPage = () => {
   };
 
   const transformedChats = useMemo(() => {
-    return chats.map(chat => {
+    return chats.map((chat: any) => {
       const otherUser = (chat.otherUser || {}) as any;
       const lastMsg = (chat.lastMessage || {}) as any;
 
@@ -103,7 +103,7 @@ export const ChatListPage = () => {
     }
     const query = searchQuery.toLowerCase();
     return transformedChats.filter(
-      (chat) =>
+      (chat: any) =>
         chat.userName.toLowerCase().includes(query) ||
         chat.lastMessage.toLowerCase().includes(query)
     );
@@ -156,7 +156,7 @@ export const ChatListPage = () => {
         )}
 
         {!isLoading && !error && filteredChats.length > 0 && (
-          filteredChats.map((chat) => (
+          filteredChats.map((chat: any) => (
             <ChatListItem
               key={chat.id}
               chat={chat as any}

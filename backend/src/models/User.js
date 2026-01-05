@@ -172,6 +172,7 @@ const userSchema = new mongoose.Schema(
       ],
       // Consolidated location structure (GeoJSON for MongoDB geospatial queries)
       location: {
+        fullAddress: String, // Complete formatted address from Google Maps (e.g., "123 Main St, Andheri West, Mumbai, Maharashtra 400053, India")
         city: String,
         state: String,
         country: String,

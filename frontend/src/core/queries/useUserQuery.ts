@@ -10,7 +10,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import userService from '../services/user.service';
 import { mapUserToProfile } from '../utils/auth';
-import { UserProfile } from '../../types/global';
+import { UserProfile } from '../types/global';
 
 export const USER_KEYS = {
     me: ['user', 'me'] as const,

@@ -239,7 +239,7 @@ export const NearbyFemalesPage = () => {
         )}
 
         {/* Profile List */}
-        {!isLoading && !error && profiles.map((profile) => (
+        {!isLoading && !error && profiles.map((profile: any) => (
           <div
             key={profile.id}
             onClick={() => handleProfileClick(profile.id)}

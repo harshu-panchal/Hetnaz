@@ -159,9 +159,9 @@ export const GoogleMapsAutocomplete = ({
                         coordinates
                     };
 
-                    const locationString = details.city && details.state
-                        ? `${details.city}, ${details.state}`
-                        : details.city || place.formatted_address;
+                    // Use the EXACT formatted address from Google Maps instead of normalizing
+                    // This preserves detailed location like "123 Main St, Andheri West, Mumbai, Maharashtra"
+                    const locationString = place.formatted_address || place.name || '';
 
                     console.log('Location extracted:', { locationString, locationDetails });
 

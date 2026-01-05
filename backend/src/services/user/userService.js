@@ -69,6 +69,7 @@ export const updateUserProfile = async (userId, data) => {
     if (data.city || data.location || (data.latitude !== undefined && data.longitude !== undefined)) {
         if (!user.profile.location) {
             user.profile.location = {
+                fullAddress: '',
                 city: '',
                 coordinates: {
                     type: 'Point',
@@ -77,9 +78,15 @@ export const updateUserProfile = async (userId, data) => {
             };
         }
 
-        // Update city/state/country
-        if (data.city) user.profile.location.city = data.city;
-        else if (data.location) user.profile.location.city = data.location;
+        // Update full address - prioritize 'location' field which contains complete address
+        if (data.location) {
+            user.profile.location.fullAddress = data.location;
+            // Also set city for backward compatibility (extract first part before comma)
+            user.profile.location.city = data.location.split(',')[0].trim();
+        } else if (data.city) {
+            user.profile.location.city = data.city;
+            user.profile.location.fullAddress = data.city; // Fallback
+        }
 
         if (data.state) user.profile.location.state = data.state;
         if (data.country) user.profile.location.country = data.country;
