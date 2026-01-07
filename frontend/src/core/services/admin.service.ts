@@ -15,10 +15,7 @@ export const listTransactions = async (filters: any = {}, page = 1, limit = 20) 
     return response.data.data;
 };
 
-export const getAuditLogs = async (filters: any = {}, page = 1, limit = 50) => {
-    const response = await apiClient.get('/admin/audit-logs', { params: { ...filters, page, limit } });
-    return response.data.data;
-};
+
 
 export const getAppSettings = async () => {
     const response = await apiClient.get('/admin/settings');
@@ -106,22 +103,66 @@ export const deleteUser = async (userId: string) => {
     return response.data;
 };
 
+// ============== GIFT MANAGEMENT ==============
+export const createGift = async (giftData: {
+    name: string;
+    category: string;
+    imageUrl: string;
+    cost: number;
+    description?: string;
+}) => {
+    const response = await apiClient.post('/admin/gifts', giftData);
+    return response.data.data.gift;
+};
+
+export const deleteGift = async (giftId: string) => {
+    const response = await apiClient.delete(`/admin/gifts/${giftId}`);
+    return response.data;
+};
+
+// ============== ADMIN PROFILE MANAGEMENT ==============
+export const getAdminProfile = async () => {
+    const response = await apiClient.get('/admin/profile');
+    return response.data.data;
+};
+
+export const requestAdminOtp = async (phoneNumber: string, action: 'add_phone' | 'change_secret') => {
+    const response = await apiClient.post('/admin/profile/request-otp', { phoneNumber, action });
+    return response.data;
+};
+
+export const updateAdminPhone = async (phoneNumber: string, otp: string) => {
+    const response = await apiClient.patch('/admin/profile/update-phone', { phoneNumber, otp });
+    return response.data;
+};
+
+export const updateAdminSecret = async (phoneNumber: string, otp: string, newSecret: string) => {
+    const response = await apiClient.patch('/admin/profile/update-secret', { phoneNumber, otp, newSecret });
+    return response.data;
+};
+
 export const adminService = {
     getDashboardStats,
     listUsers,
     listTransactions,
-    getAuditLogs,
+
     getAppSettings,
     updateAppSettings,
     listGifts,
     updateGiftCost,
+    createGift,
+    deleteGift,
     getPendingFemales,
     approveFemale,
     rejectFemale,
     requestResubmit,
     toggleBlockUser,
     toggleVerifyUser,
-    deleteUser
+    deleteUser,
+    getAdminProfile,
+    requestAdminOtp,
+    updateAdminPhone,
+    updateAdminSecret
 };
 
 export default adminService;

@@ -151,6 +151,8 @@ export const mapUserToProfile = (user: any): UserProfile => {
     latitude: user.profile?.location?.coordinates?.coordinates?.[1] || 0,
     longitude: user.profile?.location?.coordinates?.coordinates?.[0] || 0,
     badges: user.badges || user.profile?.badges || [],
+    referralId: user.referralId,
+    referralCount: user.referralCount || 0,
   };
 };
 

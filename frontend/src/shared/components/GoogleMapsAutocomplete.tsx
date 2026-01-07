@@ -223,9 +223,12 @@ export const GoogleMapsAutocomplete = ({
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
-                    className={className}
+                    className={`${className} pr-10`}
                     disabled={disabled}
                 />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <MaterialSymbol name="location_on" size={20} className="text-gray-400" />
+                </div>
                 {apiFailed && (
                     <p className="mt-1 text-xs text-gray-500">
                         Autocomplete unavailable, please enter location manually
@@ -244,7 +247,7 @@ export const GoogleMapsAutocomplete = ({
                     id={id}
                     value={value}
                     placeholder="Loading autocomplete..."
-                    className={className}
+                    className={`${className} pr-10`}
                     disabled
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -264,7 +267,7 @@ export const GoogleMapsAutocomplete = ({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className={className}
+                className={`${className} pr-10`}
                 disabled={disabled}
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">

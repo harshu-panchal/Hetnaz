@@ -284,57 +284,7 @@ export const getEarningsSummary = async (req, res, next) => {
         const userId = req.user.id;
         const currentUserId = new mongoose.Types.ObjectId(userId);
 
-        // 1. Total Earnings (Sum of all credit earnings)
-        const totalEarningsData = await Transaction.aggregate([
-            {
-                $match: {
-                    userId: currentUserId,
-                    direction: 'credit',
-                    type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] },
-                    status: 'completed'
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    total: { $sum: '$amountCoins' }
-                }
-            }
-        ]);
-        const totalEarnings = totalEarningsData.length > 0 ? totalEarningsData[0].total : 0;
-
-        // 2. Earnings by Type
-        const earningsByTypeData = await Transaction.aggregate([
-            {
-                $match: {
-                    userId: currentUserId,
-                    direction: 'credit',
-                    type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] },
-                    status: 'completed'
-                }
-            },
-            {
-                $group: {
-                    _id: '$type',
-                    amount: { $sum: '$amountCoins' }
-                }
-            }
-        ]);
-
-        const earningsByType = {
-            message_earned: 0,
-            video_call_earned: 0,
-            gift_received: 0
-        };
-
-        earningsByTypeData.forEach(item => {
-            earningsByType[item._id] = item.amount;
-        });
-
-        // 3. User Balance
-        const user = await User.findById(userId).select('coinBalance');
-
-        // 4. Period Stats
+        // Calculate time ranges
         const now = new Date();
         const startOfDay = new Date(new Date().setHours(0, 0, 0, 0));
 
@@ -346,59 +296,73 @@ export const getEarningsSummary = async (req, res, next) => {
 
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const monthlyEarningsData = await Transaction.aggregate([
-            {
-                $match: {
-                    userId: currentUserId,
-                    direction: 'credit',
-                    type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] },
-                    status: 'completed',
-                    createdAt: { $gte: startOfMonth }
-                }
-            },
-            {
-                $group: { _id: null, total: { $sum: '$amountCoins' } }
-            }
+        // 1-7. Execute all queries in PARALLEL
+        const [
+            totalEarningsData,
+            withdrawalsData,
+            earningsByTypeData,
+            user,
+            monthlyEarningsData,
+            weeklyEarningsData,
+            dailyEarningsData
+        ] = await Promise.all([
+            // 1. Total Earnings
+            Transaction.aggregate([
+                { $match: { userId: currentUserId, direction: 'credit', type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] }, status: 'completed' } },
+                { $group: { _id: null, total: { $sum: '$amountCoins' } } }
+            ]),
+            // 2. Withdrawals
+            Withdrawal.aggregate([
+                { $match: { userId: currentUserId, status: { $in: ['pending', 'approved', 'paid'] } } },
+                { $group: { _id: null, total: { $sum: '$coinsRequested' } } }
+            ]),
+            // 3. Earnings by Type
+            Transaction.aggregate([
+                { $match: { userId: currentUserId, direction: 'credit', type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] }, status: 'completed' } },
+                { $group: { _id: '$type', amount: { $sum: '$amountCoins' } } }
+            ]),
+            // 4. User Balance
+            User.findById(userId).select('coinBalance').lean(),
+            // 5. Monthly Earnings
+            Transaction.aggregate([
+                { $match: { userId: currentUserId, direction: 'credit', type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] }, status: 'completed', createdAt: { $gte: startOfMonth } } },
+                { $group: { _id: null, total: { $sum: '$amountCoins' } } }
+            ]),
+            // 6. Weekly Earnings
+            Transaction.aggregate([
+                { $match: { userId: currentUserId, direction: 'credit', type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] }, status: 'completed', createdAt: { $gte: startOfWeek } } },
+                { $group: { _id: null, total: { $sum: '$amountCoins' } } }
+            ]),
+            // 7. Daily Earnings
+            Transaction.aggregate([
+                { $match: { userId: currentUserId, direction: 'credit', type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] }, status: 'completed', createdAt: { $gte: startOfDay } } },
+                { $group: { _id: null, total: { $sum: '$amountCoins' } } }
+            ])
         ]);
+
+        // Process results
+        const totalEarnings = totalEarningsData.length > 0 ? totalEarningsData[0].total : 0;
+        const totalWithdrawals = withdrawalsData.length > 0 ? withdrawalsData[0].total : 0;
+        const availableBalance = Math.max(0, totalEarnings - totalWithdrawals);
+
+        const earningsByType = {
+            message_earned: 0,
+            video_call_earned: 0,
+            gift_received: 0
+        };
+        earningsByTypeData.forEach(item => {
+            earningsByType[item._id] = item.amount;
+        });
+
         const monthlyEarnings = monthlyEarningsData.length > 0 ? monthlyEarningsData[0].total : 0;
-
-        const weeklyEarningsData = await Transaction.aggregate([
-            {
-                $match: {
-                    userId: currentUserId,
-                    direction: 'credit',
-                    type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] },
-                    status: 'completed',
-                    createdAt: { $gte: startOfWeek }
-                }
-            },
-            {
-                $group: { _id: null, total: { $sum: '$amountCoins' } }
-            }
-        ]);
         const weeklyEarnings = weeklyEarningsData.length > 0 ? weeklyEarningsData[0].total : 0;
-
-        const dailyEarningsData = await Transaction.aggregate([
-            {
-                $match: {
-                    userId: currentUserId,
-                    direction: 'credit',
-                    type: { $in: ['message_earned', 'video_call_earned', 'gift_received'] },
-                    status: 'completed',
-                    createdAt: { $gte: startOfDay }
-                }
-            },
-            {
-                $group: { _id: null, total: { $sum: '$amountCoins' } }
-            }
-        ]);
         const dailyEarnings = dailyEarningsData.length > 0 ? dailyEarningsData[0].total : 0;
 
         res.status(200).json({
             status: 'success',
             data: {
                 totalEarnings,
-                availableBalance: user.coinBalance,
+                availableBalance,
                 earningsByType,
                 periodStats: {
                     daily: dailyEarnings,
@@ -413,17 +377,16 @@ export const getEarningsSummary = async (req, res, next) => {
 };
 
 /**
- * Get user's current balance
+ * Get user's current balance (OPTIMIZED - uses cached req.user)
  */
 export const getMyBalance = async (req, res, next) => {
     try {
-        const user = await User.findById(req.user.id).select('coinBalance memberTier');
-
+        // req.user is already populated by auth middleware (cached)
         res.status(200).json({
             status: 'success',
             data: {
-                balance: user.coinBalance,
-                memberTier: user.memberTier
+                balance: req.user.coinBalance || 0,
+                memberTier: req.user.memberTier || 'basic'
             }
         });
     } catch (error) {

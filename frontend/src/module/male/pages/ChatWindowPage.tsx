@@ -8,6 +8,7 @@ import { ChatGiftSelectorModal } from '../components/ChatGiftSelectorModal';
 import { LevelUpModal } from '../components/LevelUpModal';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
 import { ImageModal } from '../../../shared/components/ImageModal';
+import { ReportModal } from '../../../shared/components/ReportModal';
 import apiClient from '../../../core/api/client';
 import { compressImage } from '../../../core/utils/image';
 
@@ -60,6 +61,7 @@ export const ChatWindowPage = () => {
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [requiredCoinsModal, setRequiredCoinsModal] = useState(MESSAGE_COST);
   const [modalAction, setModalAction] = useState(t('actionPerform'));
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Typing indicator
   const [isOtherTyping, setIsOtherTyping] = useState(false);
@@ -112,6 +114,10 @@ export const ChatWindowPage = () => {
         // Join chat room
         socketService.connect();
         socketService.joinChat(chatId);
+
+        // Mark as read and update global list (for badges)
+        await chatService.markChatAsRead(chatId);
+        queryClient.invalidateQueries({ queryKey: CHAT_KEYS.lists() });
 
         setError(null);
       } catch (err: any) {
@@ -182,8 +188,10 @@ export const ChatWindowPage = () => {
     }
   }, [chatId]);
 
-  // Socket event listeners
+  // Socket listener for new messages - MUST be separate and early
   useEffect(() => {
+    if (!chatId) return;
+
     const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
       if (String(data.chatId) === String(chatId)) {
         setMessages(prev => {
@@ -216,12 +224,9 @@ export const ChatWindowPage = () => {
           return [...prev, data.message];
         });
         scrollToBottom();
-      }
-    };
 
-    const handleTyping = (data: { chatId: string; userId: string; isTyping: boolean }) => {
-      if (data.chatId === chatId && data.userId !== currentUserId) {
-        setIsOtherTyping(data.isTyping);
+        // Mark incoming message as read if we are in this chat
+        chatService.markChatAsRead(chatId);
       }
     };
 
@@ -232,8 +237,29 @@ export const ChatWindowPage = () => {
       }
     };
 
+    socketService.on('message:new', handleNewMessage);
+    socketService.on('chat:message', handleNewMessage);
+    socketService.on('intimacy:levelup', handleLevelUp);
+
+    return () => {
+      socketService.off('message:new', handleNewMessage);
+      socketService.off('chat:message', handleNewMessage);
+      socketService.off('intimacy:levelup', handleLevelUp);
+    };
+  }, [chatId, currentUserId, scrollToBottom, queryClient]);
+
+  // Socket listeners for user status, typing, blocking (requires chatInfo)
+  useEffect(() => {
+    if (!chatInfo) return;
+
+    const handleTyping = (data: { chatId: string; userId: string; isTyping: boolean }) => {
+      if (data.chatId === chatId && data.userId !== currentUserId) {
+        setIsOtherTyping(data.isTyping);
+      }
+    };
+
     const handleUserOnline = (data: { userId: string }) => {
-      if (chatInfo && data.userId === chatInfo.otherUser._id) {
+      if (data.userId === chatInfo.otherUser._id) {
         setChatInfo(prev => prev ? {
           ...prev,
           otherUser: { ...prev.otherUser, isOnline: true }
@@ -242,7 +268,7 @@ export const ChatWindowPage = () => {
     };
 
     const handleUserOffline = (data: { userId: string; lastSeen: string }) => {
-      if (chatInfo && data.userId === chatInfo.otherUser._id) {
+      if (data.userId === chatInfo.otherUser._id) {
         setChatInfo(prev => prev ? {
           ...prev,
           otherUser: { ...prev.otherUser, isOnline: false, lastSeen: data.lastSeen }
@@ -251,28 +277,24 @@ export const ChatWindowPage = () => {
     };
 
     const handleBlockedBy = (data: { blockedBy: string; blockedByName: string }) => {
-      if (chatInfo && data.blockedBy === chatInfo.otherUser._id) {
+      if (data.blockedBy === chatInfo.otherUser._id) {
         setIsBlockedByOther(true);
         setError(t('youHaveBeenBlockedBy', { name: data.blockedByName }));
       }
     };
 
-    socketService.on('message:new', handleNewMessage);
     socketService.on('chat:typing', handleTyping);
-    socketService.on('intimacy:levelup', handleLevelUp);
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
     socketService.on('user:blocked_by', handleBlockedBy);
 
     return () => {
-      socketService.off('message:new', handleNewMessage);
       socketService.off('chat:typing', handleTyping);
-      socketService.off('intimacy:levelup', handleLevelUp);
       socketService.off('user:online', handleUserOnline);
       socketService.off('user:offline', handleUserOffline);
       socketService.off('user:blocked_by', handleBlockedBy);
     };
-  }, [chatId, chatInfo, currentUserId, scrollToBottom]);
+  }, [chatId, chatInfo, currentUserId, t]);
 
   // Auto-scroll on new messages & Sync to Cache
   useEffect(() => {
@@ -735,7 +757,10 @@ export const ChatWindowPage = () => {
         onViewProfile={() => navigate(`/male/profile/${chatInfo.otherUser._id}`)}
         onBlock={isBlockedByMe ? handleUnblockUser : handleBlockUser}
         isBlocked={isBlockedByMe}
-        onReport={() => { }}
+        onReport={() => {
+          setIsMoreOptionsOpen(false);
+          setIsReportModalOpen(true);
+        }}
         onDelete={handleDeleteChat}
         userName={chatInfo.otherUser.name}
       />
@@ -771,6 +796,17 @@ export const ChatWindowPage = () => {
           onClose={() => setSelectedImageModal(null)}
         />
       )}
+
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        reportedId={chatInfo.otherUser._id}
+        userName={chatInfo.otherUser.name}
+        chatId={chatId}
+        onSuccess={() => {
+          setError(t('reportSubmittedSuccess') || 'Report submitted successfully');
+        }}
+      />
     </div>
   );
 };

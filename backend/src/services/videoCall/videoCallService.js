@@ -17,6 +17,7 @@ import Transaction from '../../models/Transaction.js';
 import AppSettings from '../../models/AppSettings.js';
 import logger from '../../utils/logger.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../../utils/errors.js';
+import earningBatchService from '../wallet/earningBatchService.js';
 
 // Environment config
 const VIDEO_CALL_DURATION = parseInt(process.env.VIDEO_CALL_DURATION_SECONDS, 10) || 300;
@@ -257,13 +258,16 @@ export const markCallConnected = async (callId) => {
             await caller.save();
         }
 
-        // Credit coins to receiver
-        await User.findByIdAndUpdate(videoCall.receiverId, {
-            $inc: { coinBalance: videoCall.coinAmount },
+        // Batch Credit to Receiver (Optimized)
+        earningBatchService.addEarning(videoCall.receiverId.toString(), {
+            amount: videoCall.coinAmount,
+            type: 'video_call_earned',
+            relatedUserId: videoCall.callerId,
+            relatedChatId: videoCall.chatId,
+            description: `Video call earnings (${VIDEO_CALL_DURATION / 60} min)`,
         });
 
-        // Create transaction records
-        // Debit transaction for caller
+        // Create transaction record for Caller (Immediate)
         await Transaction.create({
             userId: videoCall.callerId,
             type: 'video_call_spent',
@@ -273,19 +277,6 @@ export const markCallConnected = async (callId) => {
             relatedChatId: videoCall.chatId,
             status: 'completed',
             description: `Video call (${VIDEO_CALL_DURATION / 60} min)`,
-            metadata: { videoCallId: videoCall._id },
-        });
-
-        // Credit transaction for receiver
-        await Transaction.create({
-            userId: videoCall.receiverId,
-            type: 'video_call_earned',
-            direction: 'credit',
-            amountCoins: videoCall.coinAmount,
-            relatedUserId: videoCall.callerId,
-            relatedChatId: videoCall.chatId,
-            status: 'completed',
-            description: `Video call earnings (${VIDEO_CALL_DURATION / 60} min)`,
             metadata: { videoCallId: videoCall._id },
         });
 
@@ -421,8 +412,14 @@ export const rejoinCall = async (callId, userId) => {
             throw new BadRequestError('Call already reached its time limit');
         }
 
-        if (videoCall.rejoinCount >= 1) {
-            throw new BadRequestError('Rejoin is allowed only once per call');
+        // PER-USER REJOIN LIMIT: Only one rejoin per participant
+        const userAlreadyRejoined = (videoCall.rejoinedUserIds || []).includes(userId);
+        if (userAlreadyRejoined) {
+            throw new BadRequestError('You have already used your rejoin attempt for this call.');
+        }
+
+        if ((videoCall.rejoinCount || 0) >= 4) { // Multi-rejoin safety limit
+            throw new BadRequestError('Maximum rejoin attempts for this call exceeded');
         }
 
         // Calculate remaining seconds
@@ -448,7 +445,12 @@ export const rejoinCall = async (callId, userId) => {
 
         // Update call record
         videoCall.status = 'connected';
-        videoCall.rejoinCount += 1;
+        videoCall.rejoinCount = (videoCall.rejoinCount || 0) + 1;
+
+        if (!videoCall.rejoinedUserIds.includes(userId)) {
+            videoCall.rejoinedUserIds.push(userId);
+        }
+
         videoCall.endedAt = null;
         videoCall.endReason = null;
         await videoCall.save();

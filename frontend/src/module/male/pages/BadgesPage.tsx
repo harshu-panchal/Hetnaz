@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { useAuth } from '../../../core/context/AuthContext';
 import type { Badge } from '../../../core/types/global';
@@ -13,7 +12,7 @@ export const BadgesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { navigationItems, handleNavigationClick } = useMaleNavigation();
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -177,15 +176,7 @@ export const BadgesPage = () => {
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
       {/* Top Navbar */}
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      {/* Sidebar */}
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <MaleTopNavbar />
 
       {/* Header */}
       <header className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
-import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import type { AutoMessageTemplate } from '../types/female.types';
 import autoMessageService from '../../../core/services/autoMessage.service';
@@ -13,7 +12,7 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 export const AutoMessageTemplatesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
+  const { navigationItems, handleNavigationClick } = useFemaleNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -147,15 +146,7 @@ export const AutoMessageTemplatesPage = () => {
   return (
     <div className="flex flex-col bg-background-light dark:bg-background-dark min-h-screen pb-20">
       {/* Top Navbar */}
-      <FemaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      {/* Sidebar */}
-      <FemaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <FemaleTopNavbar />
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-white/5">

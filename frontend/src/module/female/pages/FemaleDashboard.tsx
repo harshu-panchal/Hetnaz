@@ -1,19 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { ProfileHeader } from '../components/ProfileHeader';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { EarningsCard } from '../components/EarningsCard';
 import { FemaleStatsGrid } from '../components/FemaleStatsGrid';
 import { ActiveChatsList } from '../components/ActiveChatsList';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
-import { FemaleSidebar } from '../components/FemaleSidebar';
 import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { PermissionPrompt } from '../../../shared/components/PermissionPrompt';
 import { usePermissions } from '../../../core/hooks/usePermissions';
 import userService from '../../../core/services/user.service';
-import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import type { FemaleDashboardData } from '../types/female.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 
@@ -24,9 +23,8 @@ const FemaleDashboardContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
-
-  // Permission management
+  const { addNotification } = useGlobalState();
+  const { navigationItems, handleNavigationClick } = useFemaleNavigation();
   const { hasRequestedPermissions } = usePermissions();
 
   const quickActions = useMemo(() => [
@@ -35,17 +33,7 @@ const FemaleDashboardContent = () => {
     { id: 'auto-messages', icon: 'auto_awesome', label: t('autoMessages') },
   ], [t]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    fetchDashboardData();
-
-    // Show permission prompt on first app open
-    if (!hasRequestedPermissions()) {
-      setTimeout(() => setShowPermissionPrompt(true), 1000);
-    }
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await userService.getFemaleDashboardData();
@@ -55,89 +43,82 @@ const FemaleDashboardContent = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Protect route: Redirect if not approved
+    window.scrollTo(0, 0);
+    fetchDashboardData();
+
+    // Refetch data when page becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchDashboardData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Show permission prompt on first app open (deferred)
+    if (!hasRequestedPermissions()) {
+      setTimeout(() => setShowPermissionPrompt(true), 2000);
+    }
+
+    // Welcome notification (deferred to not block main thread)
+    if (user?.role === 'female' && user?.approvalStatus === 'approved') {
+      const welcomeShown = localStorage.getItem('matchmint_female_welcome_shown');
+      if (!welcomeShown) {
+        localStorage.setItem('matchmint_female_welcome_shown', 'true');
+        setTimeout(() => {
+          addNotification({
+            title: 'Welcome to Match Mint',
+            message: 'Your journey begins here. Explore and connect seamlessly.',
+            type: 'system'
+          });
+        }, 3000);
+      }
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, addNotification, hasRequestedPermissions, fetchDashboardData]);
+
+  useEffect(() => {
     if (user && user.role === 'female' && user.approvalStatus !== 'approved') {
       navigate('/verification-pending');
     }
   }, [user, navigate]);
 
   const activeChatsForDisplay = useMemo(() => {
-    if (!dashboardData?.activeChats) return [];
-    return dashboardData.activeChats.map((chat: any) => {
-      const otherUser = chat.otherUser || {};
-      const profileLat = otherUser.profile?.location?.coordinates?.[1] || otherUser.latitude;
-      const profileLng = otherUser.profile?.location?.coordinates?.[0] || otherUser.longitude;
-
-      let distanceStr = undefined;
-      const userCoord = { lat: user?.latitude || 0, lng: user?.longitude || 0 };
-      const profileCoord = { lat: profileLat || 0, lng: profileLng || 0 };
-
-      if (areCoordinatesValid(userCoord) && areCoordinatesValid(profileCoord)) {
-        const dist = calculateDistance(userCoord, profileCoord);
-        distanceStr = formatDistance(dist);
-      }
-
-      return { ...chat, distance: distanceStr };
-    });
-  }, [dashboardData?.activeChats, user?.latitude, user?.longitude]);
-
-  const handleNotificationClick = () => {
-    navigate('/female/notifications');
-  };
-
-  const handleViewEarningsClick = () => {
-    navigate('/female/earnings');
-  };
-
-  const handleWithdrawClick = () => {
-    navigate('/female/withdrawal');
-  };
-
-  const handleChatClick = (chatId: string) => {
-    navigate(`/female/chat/${chatId}`);
-  };
-
-  const handleSeeAllChatsClick = () => {
-    navigate('/female/chats');
-  };
+    return dashboardData?.activeChats || [];
+  }, [dashboardData?.activeChats]);
 
   const handleQuickActionClick = (actionId: string) => {
     switch (actionId) {
-      case 'earnings':
-        navigate('/female/earnings');
-        break;
-      case 'withdraw':
-        navigate('/female/withdrawal');
-        break;
-      case 'auto-messages':
-        navigate('/female/auto-messages');
-        break;
-      default:
-        break;
+      case 'earnings': navigate('/female/earnings'); break;
+      case 'withdraw': navigate('/female/withdrawal'); break;
+      case 'auto-messages': navigate('/female/auto-messages'); break;
     }
   };
 
-
-  if (isLoading) {
+  // Show lightweight skeleton instead of blocking spinner
+  if (isLoading && !dashboardData) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background-light dark:bg-background-dark">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-        <p className="mt-4 text-gray-500 dark:text-gray-400">{t('loadingDashboard')}</p>
+      <div className="flex h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+        <FemaleTopNavbar />
+        <div className="flex-1 p-4 space-y-4 animate-pulse">
+          <div className="h-20 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+          <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+          <div className="h-24 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="relative flex w-full flex-col bg-background-light dark:bg-background-dark overflow-x-hidden pb-20">
-      {/* Permission Prompt - Shows on first app open */}
       {showPermissionPrompt && (
         <PermissionPrompt
-          onRequestPermissions={() => {
-            setShowPermissionPrompt(false);
-          }}
+          onRequestPermissions={() => setShowPermissionPrompt(false)}
           onDismiss={() => {
             localStorage.setItem('matchmint_permissions_requested', 'true');
             setShowPermissionPrompt(false);
@@ -145,27 +126,19 @@ const FemaleDashboardContent = () => {
         />
       )}
 
-      <FemaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      <FemaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <FemaleTopNavbar />
 
       <div className="flex p-4 pt-4 @container">
         <div className="flex w-full flex-col gap-4">
           <ProfileHeader
             user={dashboardData?.user || { name: t('loading'), avatar: '', isPremium: false, isOnline: true }}
-            onNotificationClick={handleNotificationClick}
           />
           <EarningsCard
             totalEarnings={dashboardData?.earnings.totalEarnings || 0}
             availableBalance={dashboardData?.earnings.availableBalance || 0}
             pendingWithdrawals={dashboardData?.earnings.pendingWithdrawals || 0}
-            onViewEarningsClick={handleViewEarningsClick}
-            onWithdrawClick={handleWithdrawClick}
+            onViewEarningsClick={() => navigate('/female/earnings')}
+            onWithdrawClick={() => navigate('/female/withdrawal')}
           />
         </div>
       </div>
@@ -179,8 +152,8 @@ const FemaleDashboardContent = () => {
 
       <ActiveChatsList
         chats={activeChatsForDisplay}
-        onChatClick={handleChatClick}
-        onSeeAllClick={handleSeeAllChatsClick}
+        onChatClick={(id) => navigate(`/female/chat/${id}`)}
+        onSeeAllClick={() => navigate('/female/chats')}
       />
 
       <FemaleBottomNavigation

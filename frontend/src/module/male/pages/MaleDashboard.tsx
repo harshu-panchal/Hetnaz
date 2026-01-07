@@ -5,14 +5,12 @@ import { DiscoverNearbyCard } from '../components/DiscoverNearbyCard';
 import { ActiveChatsList } from '../components/ActiveChatsList';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { PermissionPrompt } from '../../../shared/components/PermissionPrompt';
 import { usePermissions } from '../../../core/hooks/usePermissions';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
 import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
-import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { BadgeDisplay } from '../../../shared/components/BadgeDisplay';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
@@ -30,7 +28,7 @@ export const MaleDashboard = () => {
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { navigationItems, handleNavigationClick } = useMaleNavigation();
 
   // Daily Reward Modal
   const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState(false);
@@ -39,37 +37,29 @@ export const MaleDashboard = () => {
   // Permission management
   const { hasRequestedPermissions } = usePermissions();
 
-  // Check and claim daily reward on dashboard load
+  // PHASED BOOT: Check and claim daily reward 3 seconds AFTER dashboard mount
+  // This ensures the initial paint and critical chat list fetch have priority
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
     const checkDailyReward = async () => {
       try {
-        console.log('[DailyReward] Attempting to claim on dashboard load...');
+        console.log('[DailyReward] Phase III: Background claim check...');
         const response = await apiClient.post('/rewards/daily/claim');
-        console.log('[DailyReward] Response:', response.data);
         const result = response.data.data;
-        console.log('[DailyReward] Result:', result);
 
         if (result.claimed) {
-          console.log('[DailyReward] Reward claimed! Amount:', result.amount, 'New Balance:', result.newBalance);
-          // Show celebration modal
-          setDailyRewardData({
-            amount: result.amount,
-            newBalance: result.newBalance
-          });
+          setDailyRewardData({ amount: result.amount, newBalance: result.newBalance });
           setIsDailyRewardModalOpen(true);
-          console.log('[DailyReward] Modal state set to true');
-          // Update global balance
           updateBalance(result.newBalance);
-        } else {
-          console.log('[DailyReward] Not claimed. Reason:', result.reason);
         }
       } catch (error) {
-        // Silently fail - don't disrupt user experience
-        console.log('[DailyReward] Failed to claim:', error);
+        // Silently fail - background task
       }
     };
 
-    checkDailyReward();
+    timeoutId = setTimeout(checkDailyReward, 3000);
+    return () => clearTimeout(timeoutId);
   }, [updateBalance]);
 
   useEffect(() => {
@@ -123,17 +113,6 @@ export const MaleDashboard = () => {
   const activeChatsForDisplay = useMemo(() => {
     return rawChats.map((chat: any) => {
       const otherUser = chat.otherUser || {};
-      const profileLat = otherUser.profile?.location?.coordinates?.[1] || otherUser.latitude;
-      const profileLng = otherUser.profile?.location?.coordinates?.[0] || otherUser.longitude;
-
-      let distanceStr = undefined;
-      const userCoord = { lat: user?.latitude || 0, lng: user?.longitude || 0 };
-      const profileCoord = { lat: profileLat || 0, lng: profileLng || 0 };
-
-      if (areCoordinatesValid(userCoord) && areCoordinatesValid(profileCoord)) {
-        const dist = calculateDistance(userCoord, profileCoord);
-        distanceStr = formatDistance(dist);
-      }
 
       return {
         id: chat._id,
@@ -144,10 +123,10 @@ export const MaleDashboard = () => {
         timestamp: formatTimestamp(chat.lastMessageAt),
         isOnline: !!otherUser.isOnline,
         hasUnread: (chat.unreadCount || 0) > 0,
-        distance: distanceStr
+        distance: otherUser.distance // Use distance from backend
       };
     });
-  }, [rawChats, user?.latitude, user?.longitude, t]);
+  }, [rawChats, t]);
 
   const handleChatClick = (chatId: string) => {
     navigate(`/male/chat/${chatId}`);
@@ -192,14 +171,7 @@ export const MaleDashboard = () => {
         />
       )}
 
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <MaleTopNavbar />
 
       <DiscoverNearbyCard
         nearbyUsers={nearbyUsers}

@@ -157,16 +157,12 @@ export const UserProfilePage = () => {
                 <MaterialSymbol name="verified" filled size={24} className="text-blue-500" />
               )}
             </div>
-            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
               {profile.age && <span>{t('yearsOld', { count: profile.age })}</span>}
-              {/* Only show distance, never show exact location */}
-              {profile.distance ? (
+              {profile.age && profile.distance && <span>•</span>}
+              {profile.distance && (
                 <span className="flex items-center gap-1 font-medium text-primary">
-                  • <MaterialSymbol name="location_on" size={14} /> {profile.distance}
-                </span>
-              ) : (
-                <span className="text-gray-400 dark:text-gray-500 italic">
-                  • {t('locationNotSetFemale')}
+                  <MaterialSymbol name="location_on" size={14} /> {profile.distance}
                 </span>
               )}
             </div>
@@ -218,8 +214,8 @@ export const UserProfilePage = () => {
                       className="w-full h-full object-cover"
                     />
                     {photo.isPrimary && (
-                      <div className="absolute top-1 right-1 bg-primary text-slate-900 px-2 py-0.5 rounded text-xs font-bold">
-                        {t('primary')}
+                      <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-0.5 shadow-sm flex items-center justify-center">
+                        <MaterialSymbol name="star" size={12} filled />
                       </div>
                     )}
                   </div>

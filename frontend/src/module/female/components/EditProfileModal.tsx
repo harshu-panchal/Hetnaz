@@ -75,13 +75,21 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        Array.from(files).forEach((file) => {
+        const remainingSlots = 4 - photos.length;
+        if (remainingSlots <= 0) return;
+
+        Array.from(files).slice(0, remainingSlots).forEach((file) => {
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const result = event.target?.result as string;
                     if (result) {
-                        setPhotos((prev) => [...prev, result]);
+                        setPhotos((prev) => {
+                            if (prev.length < 4) {
+                                return [...prev, result];
+                            }
+                            return prev;
+                        });
                     }
                 };
                 reader.readAsDataURL(file);
@@ -94,7 +102,9 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
     };
 
     const handleDeletePhoto = (index: number) => {
-        setPhotos((prev) => prev.filter((_, i) => i !== index));
+        if (window.confirm('Are you sure you want to delete this photo?')) {
+            setPhotos((prev) => prev.filter((_, i) => i !== index));
+        }
     };
 
     const handleSetProfilePhoto = (index: number) => {
@@ -126,15 +136,15 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
                     <div>
                         <div className="flex items-center justify-between mb-3">
                             <label className="text-sm font-medium text-gray-700 dark:text-[#cbbc90]">Photos</label>
-                            <span className="text-xs text-gray-500">{photos.length}/9 items</span>
+                            <span className="text-xs text-gray-500">{photos.length}/4 items</span>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
                             {photos.map((photo, index) => (
                                 <div key={index} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-[#2a2515]">
                                     <img src={photo} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
                                     {index === 0 && (
-                                        <div className="absolute top-1 left-1 bg-primary text-slate-900 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                                            Main
+                                        <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-0.5 shadow-sm flex items-center justify-center">
+                                            <MaterialSymbol name="star" size={12} filled />
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -157,7 +167,7 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
                                     </div>
                                 </div>
                             ))}
-                            {photos.length < 9 && (
+                            {photos.length < 4 && (
                                 <button
                                     onClick={handlePhotoUpload}
                                     className="aspect-square rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center hover:border-primary dark:hover:border-primary transition-colors bg-gray-50 dark:bg-transparent"

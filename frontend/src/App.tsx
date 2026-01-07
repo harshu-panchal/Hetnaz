@@ -9,6 +9,8 @@ import { VideoCallProvider } from './core/context/VideoCallContextXState';
 import './core/i18n/i18n.config'; // Initialize i18next
 import { VideoCallModal } from './shared/components/VideoCallModal';
 import { InAppNotificationToast } from './shared/components/InAppNotificationToast';
+import { FCMInitializer } from './core/components/FCMInitializer';
+import { ErrorBoundary } from './shared/components/ErrorBoundary';
 
 import { ProtectedRoute } from './core/components/ProtectedRoute';
 
@@ -51,6 +53,7 @@ const MaleMyProfilePage = lazy(() => import('./module/male/pages/MyProfilePage')
 const MaleProfileEditPage = lazy(() => import('./module/male/pages/MaleProfileEditPage').then(m => ({ default: m.MaleProfileEditPage })));
 const GiftsPage = lazy(() => import('./module/male/pages/GiftsPage').then(m => ({ default: m.GiftsPage })));
 const BadgesPage = lazy(() => import('./module/male/pages/BadgesPage').then(m => ({ default: m.BadgesPage })));
+const ReferralPage = lazy(() => import('./module/male/pages/ReferralPage').then(m => ({ default: m.ReferralPage })));
 
 // Female module - lazy loaded
 const FemaleDashboard = lazy(() => import('./module/female/pages/FemaleDashboard').then(m => ({ default: m.FemaleDashboard })));
@@ -75,105 +78,110 @@ const WithdrawalManagementPage = lazy(() => import('./module/admin/pages/Withdra
 const RejectWithdrawalPage = lazy(() => import('./module/admin/pages/RejectWithdrawalPage').then(m => ({ default: m.RejectWithdrawalPage })));
 const CoinEconomyPage = lazy(() => import('./module/admin/pages/CoinEconomyPage').then(m => ({ default: m.CoinEconomyPage })));
 const TransactionsPage = lazy(() => import('./module/admin/pages/TransactionsPage').then(m => ({ default: m.TransactionsPage })));
-const AuditLogsPage = lazy(() => import('./module/admin/pages/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
 const SettingsPage = lazy(() => import('./module/admin/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const ReportsManagementPage = lazy(() => import('./module/admin/pages/ReportsManagementPage').then(m => ({ default: m.ReportsManagementPage })));
+
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SocketProvider>
-          <GlobalStateProvider>
-            <VideoCallProvider>
-              <BrowserRouter>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    {/* Landing page → default to language selection */}
-                    <Route path="/" element={<Navigate to="/select-language" replace />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <FCMInitializer />
+          <SocketProvider>
+            <GlobalStateProvider>
+              <VideoCallProvider>
+                <BrowserRouter>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      {/* Landing page → default to language selection */}
+                      <Route path="/" element={<Navigate to="/select-language" replace />} />
 
-                    {/* Language Selection (First screen) */}
-                    <Route path="/select-language" element={<LanguageSelectionPage />} />
+                      {/* Language Selection (First screen) */}
+                      <Route path="/select-language" element={<LanguageSelectionPage />} />
 
-                    {/* Auth routes */}
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/otp-verification" element={<OtpVerificationPage />} />
-                    <Route path="/verification-pending" element={<VerificationPendingPage />} />
-                    <Route path="/onboarding/basic-profile" element={<BasicProfilePage />} />
-                    <Route path="/onboarding/interests" element={<InterestsPage />} />
+                      {/* Auth routes */}
+                      <Route path="/signup" element={<SignupPage />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/otp-verification" element={<OtpVerificationPage />} />
+                      <Route path="/verification-pending" element={<VerificationPendingPage />} />
+                      <Route path="/onboarding/basic-profile" element={<BasicProfilePage />} />
+                      <Route path="/onboarding/interests" element={<InterestsPage />} />
 
-                    {/* Male Routes */}
-                    <Route element={<ProtectedRoute allowedRoles={['male']} />}>
-                      <Route path="/male/dashboard" element={<MaleDashboard />} />
-                      <Route path="/male/discover" element={<NearbyFemalesPage />} />
-                      <Route path="/male/chats" element={<MaleChatListPage />} />
-                      <Route path="/male/chat/:chatId" element={<MaleChatWindowPage />} />
-                      <Route path="/male/wallet" element={<WalletPage />} />
-                      <Route path="/male/buy-coins" element={<CoinPurchasePage />} />
-                      <Route path="/male/profile/:profileId" element={<UserProfilePage />} />
-                      <Route path="/male/notifications" element={<MaleNotificationsPage />} />
-                      <Route path="/male/purchase-history" element={<PurchaseHistoryPage />} />
-                      <Route path="/male/payment/:planId" element={<PaymentPage />} />
-                      <Route path="/male/my-profile" element={<MaleMyProfilePage />} />
-                      <Route path="/male/my-profile/profile" element={<MaleProfileEditPage />} />
-                      <Route path="/male/gifts" element={<GiftsPage />} />
-                      <Route path="/male/badges" element={<BadgesPage />} />
-                    </Route>
+                      {/* Male Routes */}
+                      <Route element={<ProtectedRoute allowedRoles={['male']} />}>
+                        <Route path="/male/dashboard" element={<MaleDashboard />} />
+                        <Route path="/male/discover" element={<NearbyFemalesPage />} />
+                        <Route path="/male/chats" element={<MaleChatListPage />} />
+                        <Route path="/male/chat/:chatId" element={<MaleChatWindowPage />} />
+                        <Route path="/male/wallet" element={<WalletPage />} />
+                        <Route path="/male/buy-coins" element={<CoinPurchasePage />} />
+                        <Route path="/male/profile/:profileId" element={<UserProfilePage />} />
+                        <Route path="/male/notifications" element={<MaleNotificationsPage />} />
+                        <Route path="/male/purchase-history" element={<PurchaseHistoryPage />} />
+                        <Route path="/male/payment/:planId" element={<PaymentPage />} />
+                        <Route path="/male/my-profile" element={<MaleMyProfilePage />} />
+                        <Route path="/male/my-profile/profile" element={<MaleProfileEditPage />} />
+                        <Route path="/male/gifts" element={<GiftsPage />} />
+                        <Route path="/male/badges" element={<BadgesPage />} />
+                        <Route path="/male/my-profile/referral" element={<ReferralPage />} />
+                      </Route>
 
-                    {/* Female Routes */}
-                    <Route element={<ProtectedRoute allowedRoles={['female']} />}>
-                      <Route path="/female/dashboard" element={<FemaleDashboard />} />
-                      <Route path="/female/chats" element={<FemaleChatListPage />} />
-                      <Route path="/female/chat/:chatId" element={<FemaleChatWindowPage />} />
-                      <Route path="/female/earnings" element={<EarningsPage />} />
-                      <Route path="/female/withdrawal" element={<WithdrawalPage />} />
-                      <Route path="/female/auto-messages" element={<AutoMessageTemplatesPage />} />
-                      <Route path="/female/my-profile" element={<FemaleMyProfilePage />} />
-                      <Route path="/female/notifications" element={<FemaleNotificationsPage />} />
-                      <Route path="/female/profile/:profileId" element={<FemaleUserProfilePage />} />
-                    </Route>
+                      {/* Female Routes */}
+                      <Route element={<ProtectedRoute allowedRoles={['female']} />}>
+                        <Route path="/female/dashboard" element={<FemaleDashboard />} />
+                        <Route path="/female/chats" element={<FemaleChatListPage />} />
+                        <Route path="/female/chat/:chatId" element={<FemaleChatWindowPage />} />
+                        <Route path="/female/earnings" element={<EarningsPage />} />
+                        <Route path="/female/withdrawal" element={<WithdrawalPage />} />
+                        <Route path="/female/auto-messages" element={<AutoMessageTemplatesPage />} />
+                        <Route path="/female/my-profile" element={<FemaleMyProfilePage />} />
+                        <Route path="/female/notifications" element={<FemaleNotificationsPage />} />
+                        <Route path="/female/profile/:profileId" element={<FemaleUserProfilePage />} />
+                      </Route>
 
-                    {/* Admin Routes */}
-                    <Route path="/admin/login" element={<AdminLoginPage />} />
+                      {/* Admin Routes */}
+                      <Route path="/admin/login" element={<AdminLoginPage />} />
 
-                    <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-                      <Route
-                        path="/admin/*"
-                        element={
-                          <AdminStatsProvider>
-                            <Routes>
-                              <Route path="dashboard" element={<AdminDashboard />} />
-                              <Route path="users" element={<UsersManagementPage />} />
-                              <Route path="users/:userId" element={<UserDetailPage />} />
-                              <Route path="female-approval" element={<FemaleApprovalPage />} />
-                              <Route path="female-approval/:userId" element={<FemaleApprovalDetailPage />} />
-                              <Route path="female-approval/reject/:userId" element={<RejectApprovalPage />} />
-                              <Route path="withdrawals" element={<WithdrawalManagementPage />} />
-                              <Route path="withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
-                              <Route path="coin-economy" element={<CoinEconomyPage />} />
-                              <Route path="transactions" element={<TransactionsPage />} />
-                              <Route path="audit-logs" element={<AuditLogsPage />} />
-                              <Route path="settings" element={<SettingsPage />} />
-                            </Routes>
-                          </AdminStatsProvider>
-                        }
-                      />
-                    </Route>
+                      <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                        <Route
+                          path="/admin/*"
+                          element={
+                            <AdminStatsProvider>
+                              <Routes>
+                                <Route path="dashboard" element={<AdminDashboard />} />
+                                <Route path="users" element={<UsersManagementPage />} />
+                                <Route path="users/:userId" element={<UserDetailPage />} />
+                                <Route path="female-approval" element={<FemaleApprovalPage />} />
+                                <Route path="female-approval/:userId" element={<FemaleApprovalDetailPage />} />
+                                <Route path="female-approval/reject/:userId" element={<RejectApprovalPage />} />
+                                <Route path="withdrawals" element={<WithdrawalManagementPage />} />
+                                <Route path="withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
+                                <Route path="coin-economy" element={<CoinEconomyPage />} />
+                                <Route path="transactions" element={<TransactionsPage />} />
+                                <Route path="reports" element={<ReportsManagementPage />} />
+                                <Route path="settings" element={<SettingsPage />} />
+                              </Routes>
+                            </AdminStatsProvider>
+                          }
+                        />
+                      </Route>
 
 
-                    {/* Catch-all route for 404 */}
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Routes>
-                </Suspense>
-                {/* Global Overlays */}
-                <VideoCallModal />
-                <InAppNotificationToast />
-              </BrowserRouter>
-            </VideoCallProvider>
-          </GlobalStateProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+                      {/* Catch-all route for 404 */}
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </Suspense>
+                  {/* Global Overlays */}
+                  <VideoCallModal />
+                  <InAppNotificationToast />
+                </BrowserRouter>
+              </VideoCallProvider>
+            </GlobalStateProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

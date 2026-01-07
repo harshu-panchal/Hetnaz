@@ -15,6 +15,7 @@ interface OnboardingFormData {
   gender: 'male' | 'female';
   profilePhoto: string | null;
   aadhaarDocument: string | null;
+  referralCode: string;
 }
 
 export const SignupPage = () => {
@@ -30,10 +31,12 @@ export const SignupPage = () => {
     gender: 'male',
     profilePhoto: null,
     aadhaarDocument: null,
+    referralCode: '',
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof OnboardingFormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const calculateAge = (dob: string): number => {
     const today = new Date();
@@ -142,6 +145,7 @@ export const SignupPage = () => {
         ...(formData.gender === 'female' && {
           aadhaarCardUrl: formData.aadhaarDocument,
         }),
+        referralCode: formData.referralCode,
       };
 
       const response = await axios.post(`${API_URL}/auth/signup-request`, payload);
@@ -159,8 +163,10 @@ export const SignupPage = () => {
       });
     } catch (error: any) {
       console.error('Signup error:', error);
-      const errorMessage = error.response?.data?.message || t('Signup failed. Please try again.');
-      setErrors({ fullName: errorMessage });
+      // Convert technical errors to user-friendly messages
+      const rawError = error.response?.data?.message || error.message || '';
+      const userFriendlyError = getUserFriendlyError(rawError, t);
+      setSubmitError(userFriendlyError);
     } finally {
       setIsSubmitting(false);
     }
@@ -171,6 +177,43 @@ export const SignupPage = () => {
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
+    // Clear submit error when user starts editing
+    if (submitError) {
+      setSubmitError(null);
+    }
+  };
+
+  // Helper function to convert technical errors to user-friendly messages
+  const getUserFriendlyError = (errorMessage: string, t: (key: string) => string): string => {
+    const lowerError = errorMessage.toLowerCase();
+
+    // Network/Connection errors
+    if (lowerError.includes('network') || lowerError.includes('timeout') || lowerError.includes('econnrefused') || lowerError.includes('fetch')) {
+      return t('signupErrorNetwork');
+    }
+
+    // Phone number already exists
+    if (lowerError.includes('already') || lowerError.includes('exists') || lowerError.includes('duplicate') || lowerError.includes('registered')) {
+      return t('signupErrorPhoneExists');
+    }
+
+    // Server errors
+    if (lowerError.includes('500') || lowerError.includes('server') || lowerError.includes('internal')) {
+      return t('signupErrorServer');
+    }
+
+    // Validation errors from backend
+    if (lowerError.includes('invalid') || lowerError.includes('valid')) {
+      return t('signupErrorInvalidData');
+    }
+
+    // Rate limiting
+    if (lowerError.includes('too many') || lowerError.includes('rate') || lowerError.includes('limit')) {
+      return t('signupErrorTooManyAttempts');
+    }
+
+    // Default fallback
+    return t('signupErrorGeneric');
   };
 
   return (
@@ -213,7 +256,7 @@ export const SignupPage = () => {
               </label>
               <div className="relative group transition-all duration-300">
                 <div className={`flex items-center bg-white border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.phone ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500 focus-within:ring-4 focus-within:ring-pink-500/10'}`}>
-                  <div className="flex items-center gap-2 pl-4 pr-3 py-4 bg-gray-50/50 border-r border-gray-100">
+                  <div className="flex items-center shrink-0 gap-2 pl-4 pr-3 py-4 bg-gray-50/50 border-r border-gray-100">
                     <img
                       src="https://flagcdn.com/w40/in.png"
                       srcSet="https://flagcdn.com/w80/in.png 2x"
@@ -254,6 +297,30 @@ export const SignupPage = () => {
                     <p className="text-xs font-bold leading-none">{errors.phone}</p>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Referral Code (Optional) */}
+            <div className="space-y-2">
+              <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700 ml-1">
+                {t('Have a referral ID?')} <span className="text-gray-400 font-normal">({t('Optional')})</span>
+              </label>
+              <div className="relative group transition-all duration-300">
+                <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl overflow-hidden group-hover:border-pink-200 focus-within:border-pink-500 transition-all">
+                  <div className="flex items-center pl-4 pr-2 text-gray-400">
+                    <MaterialSymbol name="redeem" size={24} />
+                  </div>
+                  <input
+                    id="referralCode"
+                    type="text"
+                    value={formData.referralCode}
+                    onChange={(e) => handleChange('referralCode', e.target.value.toUpperCase().replace(/\s/g, ''))}
+                    className="w-full px-2 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-300 placeholder:font-normal focus:outline-none"
+                    placeholder={t('Enter Referral ID')}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1 ml-1">{t('Case and spaces are ignored automatically.')}</p>
               </div>
             </div>
 
@@ -397,6 +464,14 @@ export const SignupPage = () => {
                 />
                 {errors.aadhaarDocument && <p className="mt-1 text-sm text-red-500">{errors.aadhaarDocument}</p>}
                 <p className="mt-2 text-xs text-gray-500">{t('Required for female account verification')}</p>
+              </div>
+            )}
+
+            {/* Submit Error - Displayed just above the button */}
+            {submitError && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-1">
+                <MaterialSymbol name="error" size={20} className="text-red-500 flex-shrink-0" filled />
+                <p className="text-sm text-red-600 font-medium">{submitError}</p>
               </div>
             )}
 

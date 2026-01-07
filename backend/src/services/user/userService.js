@@ -1,5 +1,6 @@
 import User from '../../models/User.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
+import { invalidateUserCache } from '../../middleware/auth.js';
 
 /**
  * Resubmit verification document
@@ -124,5 +125,9 @@ export const updateUserProfile = async (userId, data) => {
     }
 
     await user.save();
+
+    // Invalidate auth cache so next request gets fresh data
+    invalidateUserCache(userId);
+
     return user;
 };

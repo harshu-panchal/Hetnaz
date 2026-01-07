@@ -75,30 +75,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         initAuth();
     }, []);
 
-    const login = (newToken: string, rawUser: any) => {
+    const login = React.useCallback((newToken: string, rawUser: any) => {
         const newUser = mapUserToProfile(rawUser);
         setAuthToken(newToken);
         setStorageUser(newUser);
         setToken(newToken);
         setUserState(newUser);
         setIsAuthenticated(true);
-    };
+    }, []);
 
-    const logout = () => {
+    const logout = React.useCallback(() => {
         clearAuth();
         setToken(null);
         setUserState(null);
         setIsAuthenticated(false);
-    };
+    }, []);
 
-    const updateUser = (updates: Partial<UserProfile>) => {
+    const updateUser = React.useCallback((updates: Partial<UserProfile>) => {
         setUserState((prev) => {
             if (!prev) return null;
             const updated = { ...prev, ...updates };
             setStorageUser(updated);
             return updated;
         });
-    };
+    }, []);
 
     return (
         <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout, updateUser }}>

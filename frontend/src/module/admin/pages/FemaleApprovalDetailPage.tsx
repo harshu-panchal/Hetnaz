@@ -124,6 +124,27 @@ export const FemaleApprovalDetailPage = () => {
         }
     };
 
+    const handleBlockToggle = async () => {
+        if (!approval) return;
+        const action = approval.user.isBlocked ? 'unblock' : 'block';
+        if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+
+        setIsProcessing(true);
+        try {
+            await adminService.toggleBlockUser(approval.userId);
+            // Update local state
+            setApproval(prev => prev ? {
+                ...prev,
+                user: { ...prev.user, isBlocked: !prev.user.isBlocked }
+            } : null);
+        } catch (error) {
+            console.error(error);
+            alert(`Failed to ${action} user`);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="relative flex h-full min-h-screen w-full flex-col bg-gray-50 dark:bg-[#0a0a0a] overflow-x-hidden">
@@ -173,10 +194,28 @@ export const FemaleApprovalDetailPage = () => {
                                 <p className="text-gray-600 dark:text-gray-400">Review details and verification documents</p>
                             </div>
                             <div className="flex gap-2">
-                                <span className="px-4 py-2 bg-orange-100 text-orange-700 rounded-full font-medium text-sm flex items-center gap-2">
-                                    <MaterialSymbol name="pending" size={18} />
-                                    Pending Status
+                                <span className={`px-4 py-2 rounded-full font-medium text-sm flex items-center gap-2 ${approval.approvalStatus === 'approved'
+                                    ? 'bg-green-100 text-green-700'
+                                    : approval.approvalStatus === 'rejected'
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                    <MaterialSymbol name={
+                                        approval.approvalStatus === 'approved'
+                                            ? 'check_circle'
+                                            : approval.approvalStatus === 'rejected'
+                                                ? 'cancel'
+                                                : 'pending'
+                                    } size={18} />
+                                    {approval.approvalStatus === 'approved' ? 'Approved' :
+                                        approval.approvalStatus === 'rejected' ? 'Rejected' : 'Pending Review'}
                                 </span>
+                                {approval.user.isBlocked && (
+                                    <span className="px-4 py-2 bg-red-100 text-red-700 rounded-full font-medium text-sm flex items-center gap-2">
+                                        <MaterialSymbol name="block" size={18} />
+                                        Blocked
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -294,33 +333,54 @@ export const FemaleApprovalDetailPage = () => {
                             <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-800 sticky top-24">
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Actions</h2>
                                 <div className="space-y-3">
-                                    <button
-                                        onClick={handleApprove}
-                                        disabled={isProcessing}
-                                        className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-lg shadow-green-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <MaterialSymbol name="check_circle" className="group-hover:scale-110 transition-transform" />
-                                        Approve Application
-                                    </button>
+                                    {/* Show Block/Unblock for approved users */}
+                                    {approval.approvalStatus === 'approved' ? (
+                                        <button
+                                            onClick={handleBlockToggle}
+                                            disabled={isProcessing}
+                                            className={`w-full py-3 px-4 rounded-xl font-semibold shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed ${approval.user.isBlocked
+                                                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-600/20'
+                                                    : 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/20'
+                                                }`}
+                                        >
+                                            <MaterialSymbol
+                                                name={approval.user.isBlocked ? 'lock_open' : 'block'}
+                                                className="group-hover:scale-110 transition-transform"
+                                            />
+                                            {approval.user.isBlocked ? 'Unblock User' : 'Block User'}
+                                        </button>
+                                    ) : (
+                                        <>
+                                            {/* Show Approve/Reject/Resubmit for pending users */}
+                                            <button
+                                                onClick={handleApprove}
+                                                disabled={isProcessing}
+                                                className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold shadow-lg shadow-green-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <MaterialSymbol name="check_circle" className="group-hover:scale-110 transition-transform" />
+                                                Approve Application
+                                            </button>
 
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            onClick={handleResubmitRequest}
-                                            disabled={isProcessing}
-                                            className="py-3 px-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-xl font-medium active:scale-95 transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <MaterialSymbol name="refresh" size={24} />
-                                            <span className="text-xs">Request Resubmit</span>
-                                        </button>
-                                        <button
-                                            onClick={handleReject}
-                                            disabled={isProcessing}
-                                            className="py-3 px-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-xl font-medium active:scale-95 transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <MaterialSymbol name="cancel" size={24} />
-                                            <span className="text-xs">Reject</span>
-                                        </button>
-                                    </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    onClick={handleResubmitRequest}
+                                                    disabled={isProcessing}
+                                                    className="py-3 px-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-xl font-medium active:scale-95 transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <MaterialSymbol name="refresh" size={24} />
+                                                    <span className="text-xs">Request Resubmit</span>
+                                                </button>
+                                                <button
+                                                    onClick={handleReject}
+                                                    disabled={isProcessing}
+                                                    className="py-3 px-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-xl font-medium active:scale-95 transition-all flex flex-col items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <MaterialSymbol name="cancel" size={24} />
+                                                    <span className="text-xs">Reject</span>
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

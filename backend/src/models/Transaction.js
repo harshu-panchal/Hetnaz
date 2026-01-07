@@ -29,6 +29,7 @@ const transactionSchema = new mongoose.Schema(
         'withdrawal', // Withdrawal request
         'adjustment', // Admin adjustment
         'bonus', // Bonus coins
+        'referral_bonus', // Referral reward
       ],
       required: true,
       index: true,
@@ -106,10 +107,11 @@ const transactionSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// Indexes for performance
+transactionSchema.index({ userId: 1, direction: 1, type: 1, status: 1 });
 transactionSchema.index({ userId: 1, createdAt: -1 });
 transactionSchema.index({ type: 1, createdAt: -1 });
-// transactionSchema.index({ status: 1 });
+transactionSchema.index({ status: 1 });
 transactionSchema.index({ 'payment.razorpayOrderId': 1 });
 transactionSchema.index({ 'payment.razorpayPaymentId': 1 });
 
@@ -127,7 +129,7 @@ transactionSchema.methods.getSummary = function () {
 // Before save: Validate transaction data
 transactionSchema.pre('save', async function (next) {
   // Validate direction matches type
-  const creditTypes = ['purchase', 'message_earned', 'image_earned', 'video_call_earned', 'gift_received', 'bonus'];
+  const creditTypes = ['purchase', 'message_earned', 'image_earned', 'video_call_earned', 'gift_received', 'bonus', 'referral_bonus'];
   const debitTypes = ['message_spent', 'image_spent', 'video_call_spent', 'gift_sent', 'withdrawal', 'adjustment'];
 
   if (this.direction === 'credit' && !creditTypes.includes(this.type)) {

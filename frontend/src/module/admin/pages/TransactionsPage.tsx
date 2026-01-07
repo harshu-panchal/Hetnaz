@@ -19,6 +19,9 @@ export const TransactionsPage = () => {
   const [filters, setFilters] = useState({ search: '', type: 'all', status: 'all' });
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
 
+  // Transaction details modal state
+  const [selectedTransaction, setSelectedTransaction] = useState<AdminTransaction | null>(null);
+
   const updateFilters = (newFilters: Partial<typeof filters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
     setPage(1);
@@ -80,8 +83,11 @@ export const TransactionsPage = () => {
   };
 
   const handleViewDetails = (transaction: AdminTransaction) => {
-    // TODO: Open transaction details modal
-    console.log('View transaction details:', transaction);
+    setSelectedTransaction(transaction);
+  };
+
+  const closeModal = () => {
+    setSelectedTransaction(null);
   };
 
   return (
@@ -231,6 +237,111 @@ export const TransactionsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Transaction Details Modal */}
+      {selectedTransaction && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={closeModal}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div
+              className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-xl max-w-lg w-full p-6 pointer-events-auto max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Transaction Details</h2>
+                <button
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <MaterialSymbol name="close" size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Transaction ID</p>
+                    <p className="text-sm font-mono font-medium text-gray-900 dark:text-white break-all">{selectedTransaction.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${selectedTransaction.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
+                        selectedTransaction.status === 'pending' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' :
+                          'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                      }`}>
+                      {selectedTransaction.status.charAt(0).toUpperCase() + selectedTransaction.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">User</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedTransaction.userName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{selectedTransaction.userId}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Type</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {selectedTransaction.type.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Amount (Coins)</p>
+                    <p className={`text-lg font-bold ${selectedTransaction.direction === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                      {selectedTransaction.direction === 'credit' ? '+' : '-'}{selectedTransaction.amountCoins.toLocaleString()}
+                    </p>
+                  </div>
+                  {selectedTransaction.amountINR && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Amount (INR)</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        {formatCurrency(selectedTransaction.amountINR)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Direction</p>
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${selectedTransaction.direction === 'credit'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                    }`}>
+                    <MaterialSymbol name={selectedTransaction.direction === 'credit' ? 'arrow_upward' : 'arrow_downward'} size={14} />
+                    {selectedTransaction.direction === 'credit' ? 'Credit' : 'Debit'}
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Timestamp</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {selectedTransaction.timestamp.toLocaleString('en-IN', {
+                      dateStyle: 'full',
+                      timeStyle: 'short'
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-white rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

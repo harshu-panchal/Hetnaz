@@ -1,12 +1,28 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../../core/context/AuthContext';
+import { useChatList } from '../../../core/queries/useChatQuery';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 
 export const useMaleNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user } = useAuth();
+  const { data: chats = [] } = useChatList();
+
+  // Calculate if there are any unread chats where the last message was NOT sent by me
+  const hasUnreadMessages = chats.some((chat: any) => {
+    const unreadCount = chat.unreadCount || 0;
+    if (unreadCount === 0) return false;
+
+    // Safety check for user identity
+    const currentUserId = user?.id || (user as any)?._id;
+    const lastMessageSenderId = typeof chat.lastMessage?.senderId === 'string'
+      ? chat.lastMessage?.senderId
+      : (chat.lastMessage?.senderId as any)?._id;
+
+    return lastMessageSenderId !== currentUserId;
+  });
 
   const navigationItems = [
     {
@@ -19,8 +35,9 @@ export const useMaleNavigation = () => {
       id: 'chats',
       icon: 'chat_bubble',
       label: t('chats'),
-      hasBadge: true,
-      isActive: location.pathname.startsWith('/male/chats') || location.pathname.startsWith('/male/chat/')
+      hasBadge: hasUnreadMessages,
+      // Include /male/profile/ (viewing other user's profile from chat context)
+      isActive: location.pathname.startsWith('/male/chats') || location.pathname.startsWith('/male/chat/') || location.pathname.startsWith('/male/profile/')
     },
     {
       id: 'wallet',
@@ -32,7 +49,8 @@ export const useMaleNavigation = () => {
       id: 'profile',
       icon: 'person',
       label: t('profile'),
-      isActive: location.pathname === '/male/my-profile' || location.pathname.startsWith('/male/profile/') || location.pathname === '/male/notifications' || location.pathname === '/male/gifts' || location.pathname === '/male/badges'
+      // Only /male/my-profile for the user's own profile
+      isActive: location.pathname === '/male/my-profile' || location.pathname === '/male/notifications' || location.pathname === '/male/gifts' || location.pathname === '/male/badges'
     },
   ];
 
@@ -56,8 +74,6 @@ export const useMaleNavigation = () => {
   };
 
   return {
-    isSidebarOpen,
-    setIsSidebarOpen,
     navigationItems,
     handleNavigationClick,
   };

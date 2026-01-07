@@ -21,6 +21,8 @@ export interface UserProfile {
   latitude?: number;
   longitude?: number;
   badges?: Badge[];
+  referralId?: string;
+  referralCount?: number;
 }
 
 export interface Badge {

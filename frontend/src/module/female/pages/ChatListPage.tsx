@@ -5,7 +5,6 @@ import { SearchBar } from '../components/SearchBar';
 import { ChatListItem } from '../components/ChatListItem';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 
-import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import socketService from '../../../core/services/socket.service';
@@ -17,7 +16,7 @@ import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
 export const ChatListPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
+  const { navigationItems, handleNavigationClick } = useFemaleNavigation();
   const { coinBalance } = useGlobalState();
   const { user: currentUser } = useAuth();
 
@@ -135,12 +134,6 @@ export const ChatListPage = () => {
 
 
       {/* Sidebar */}
-      <FemaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
 
       <ChatListHeader coinBalance={availableBalance} />
       <SearchBar onSearch={setSearchQuery} placeholder={t('searchChats')} />

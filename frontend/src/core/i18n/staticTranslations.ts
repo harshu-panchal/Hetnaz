@@ -106,6 +106,8 @@ export const staticTranslations: Record<string, Record<'en' | 'hi', string>> = {
     'End Call': { en: 'End Call', hi: 'कॉल समाप्त करें' },
     'Accept': { en: 'Accept', hi: 'स्वीकार करें' },
     'Reject': { en: 'Reject', hi: 'अस्वीकार करें' },
+    'logoutSuccess': { en: 'Logged Out', hi: 'लॉगआउट हो गया' },
+    'logoutSuccessMessage': { en: 'You have been successfully logged out.', hi: 'आप सफलतापूर्वक लॉगआउट हो गए हैं।' },
 };
 
 /**

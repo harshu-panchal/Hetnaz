@@ -4,6 +4,7 @@ import * as adminService from '../../../core/services/admin.service';
 interface AdminStats {
     pendingWithdrawals: number;
     pendingFemaleApprovals: number;
+    pendingReports: number;
 }
 
 interface AdminStatsContextType {
@@ -17,6 +18,7 @@ export const AdminStatsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [stats, setStats] = useState<AdminStats>({
         pendingWithdrawals: 0,
         pendingFemaleApprovals: 0,
+        pendingReports: 0,
     });
 
     const refreshStats = useCallback(async () => {
@@ -25,6 +27,7 @@ export const AdminStatsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             setStats({
                 pendingWithdrawals: data.stats.pendingWithdrawals || 0,
                 pendingFemaleApprovals: data.stats.pendingFemaleApprovals || 0,
+                pendingReports: data.stats.pendingReports || 0,
             });
         } catch (error) {
             console.error('Failed to fetch admin stats:', error);

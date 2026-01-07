@@ -90,7 +90,8 @@ const withdrawalSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// Indexes for performance
+withdrawalSchema.index({ userId: 1, status: 1 });
 withdrawalSchema.index({ userId: 1, createdAt: -1 });
 withdrawalSchema.index({ status: 1, createdAt: -1 });
 withdrawalSchema.index({ payoutMethod: 1 });

@@ -19,6 +19,7 @@
     "axios": "^1.6.2",
     "cloudinary": "^1.41.3",
     "date-fns": "^2.30.0",
+    "firebase": "^12.7.0",
     "i18next": "^25.7.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

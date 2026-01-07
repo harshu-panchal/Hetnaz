@@ -8,6 +8,7 @@ import Transaction from '../../models/Transaction.js';
 import Withdrawal from '../../models/Withdrawal.js';
 import AuditLog from '../../models/AuditLog.js';
 import AppSettings from '../../models/AppSettings.js';
+import Report from '../../models/Report.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
 
 /**
@@ -37,6 +38,7 @@ export const getDashboardStats = async () => {
         },
         pendingWithdrawals: 0,
         pendingFemaleApprovals: 0,
+        pendingReports: 0,
         totalTransactions: 0
     };
 
@@ -160,6 +162,9 @@ export const getDashboardStats = async () => {
 
     // Pending female approvals
     stats.pendingFemaleApprovals = await User.countDocuments({ role: 'female', approvalStatus: 'pending' });
+
+    // Pending reports
+    stats.pendingReports = await Report.countDocuments({ status: 'pending' });
 
     // Total transactions
     stats.totalTransactions = await Transaction.countDocuments();
@@ -399,51 +404,7 @@ export const listTransactions = async (filters, pagination) => {
     };
 };
 
-/**
- * Get audit logs
- */
-export const getAuditLogs = async (filters, pagination) => {
-    const { page = 1, limit = 50 } = pagination;
-    const { search, action, adminId } = filters;
-    const skip = (page - 1) * limit;
 
-    const query = {};
-    if (action && action !== 'all') query.action = action;
-    if (adminId && adminId !== 'all') query.adminId = adminId;
-
-    if (search) {
-        query.$or = [
-            { adminName: { $regex: search, $options: 'i' } },
-            { targetUserName: { $regex: search, $options: 'i' } },
-            { action: { $regex: search, $options: 'i' } }
-        ];
-    }
-
-    const logs = await AuditLog.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
-
-    const total = await AuditLog.countDocuments(query);
-
-    return {
-        logs: logs.map(l => ({
-            id: l._id,
-            adminId: l.adminId,
-            adminName: l.adminName,
-            action: l.action,
-            targetUserId: l.targetUserId,
-            targetUserName: l.targetUserName,
-            details: l.details,
-            timestamp: l.createdAt,
-            ipAddress: l.ipAddress
-        })),
-        total,
-        page,
-        totalPages: Math.ceil(total / limit)
-    };
-};
 
 /**
  * Get platform settings

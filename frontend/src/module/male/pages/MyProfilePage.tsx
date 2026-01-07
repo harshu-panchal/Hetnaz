@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { ProfileHeader } from '../components/ProfileHeader';
@@ -41,8 +40,9 @@ export const MyProfilePage = () => {
   const { t, changeLanguage, currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const { user, logout, isLoading: isAuthLoading } = useAuth();
-  const { coinBalance } = useGlobalState();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { coinBalance, addNotification } = useGlobalState();
+  const { navigationItems, handleNavigationClick } = useMaleNavigation();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [stats, setStats] = useState({
     matches: 0,
     sent: 0,
@@ -54,6 +54,7 @@ export const MyProfilePage = () => {
   }, []);
 
   const [profile, setProfile] = useState(mockProfile);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -132,14 +133,7 @@ export const MyProfilePage = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <MaleTopNavbar />
 
       <div className="flex p-4 pt-4 @container">
         <div className="flex w-full flex-col gap-4">
@@ -227,6 +221,35 @@ export const MyProfilePage = () => {
         />
       </div>
 
+      {/* Photo Gallery */}
+      {profile.photos && profile.photos.length > 0 && (
+        <div className="px-4 mb-4">
+          <div className="bg-white dark:bg-[#342d18] rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('photos')}</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {profile.photos.map((photo, index) => (
+                <div
+                  key={index}
+                  onClick={() => setSelectedPhotoIndex(index)}
+                  className="relative group aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-[#2a2515] cursor-pointer"
+                >
+                  <img
+                    src={photo}
+                    alt={`${t('photo')} ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {index === 0 && (
+                    <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-0.5 shadow-sm flex items-center justify-center">
+                      <MaterialSymbol name="star" size={12} filled />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="p-4 space-y-6">
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent dark:from-primary/5 dark:via-primary/3 dark:to-transparent rounded-2xl p-4 border border-primary/20">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
@@ -255,22 +278,23 @@ export const MyProfilePage = () => {
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('account')}</h4>
             <button
+              onClick={() => navigate('/male/my-profile/referral')}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="redeem" size={20} className="text-primary" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">{t('Refer & Earn')}</span>
+              </div>
+              <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
+            </button>
+
+            <button
               onClick={() => navigate('/male/badges')}
               className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors"
             >
               <div className="flex items-center gap-2">
                 <MaterialSymbol name="workspace_premium" size={20} className="text-primary" />
                 <span className="text-sm text-gray-700 dark:text-gray-300">{t('viewBadges')}</span>
-              </div>
-              <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <MaterialSymbol name="delete" size={20} className="text-red-500" />
-                <span className="text-sm text-red-500">{t('Delete Account')}</span>
               </div>
               <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
             </button>
@@ -300,6 +324,17 @@ export const MyProfilePage = () => {
             </div>
 
             <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <MaterialSymbol name="delete" size={20} className="text-red-500" />
+                <span className="text-sm text-red-500">{t('Delete Account')}</span>
+              </div>
+              <MaterialSymbol name="chevron_right" size={20} className="text-gray-400" />
+            </button>
+
+            <button
               onClick={() => setShowLogoutModal(true)}
               className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f151e] transition-colors"
             >
@@ -314,6 +349,59 @@ export const MyProfilePage = () => {
       </main>
 
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+
+      {/* Photo Lightbox */}
+      {selectedPhotoIndex !== null && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+          onClick={() => setSelectedPhotoIndex(null)}
+        >
+          <button
+            onClick={() => setSelectedPhotoIndex(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+          >
+            <MaterialSymbol name="close" size={32} />
+          </button>
+
+          {/* Navigation Arrows */}
+          {selectedPhotoIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPhotoIndex(selectedPhotoIndex - 1);
+              }}
+              className="absolute left-4 text-white hover:text-gray-300 transition-colors"
+            >
+              <MaterialSymbol name="chevron_left" size={48} />
+            </button>
+          )}
+
+          {selectedPhotoIndex < (profile.photos?.length || 0) - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPhotoIndex(selectedPhotoIndex + 1);
+              }}
+              className="absolute right-4 text-white hover:text-gray-300 transition-colors"
+            >
+              <MaterialSymbol name="chevron_right" size={48} />
+            </button>
+          )}
+
+          {/* Image */}
+          <img
+            src={profile.photos![selectedPhotoIndex]}
+            alt={`${t('photo')} ${selectedPhotoIndex + 1}`}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Photo Counter */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+            {selectedPhotoIndex + 1} / {profile.photos?.length}
+          </div>
+        </div>
+      )}
 
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -330,11 +418,19 @@ export const MyProfilePage = () => {
                 {t('cancel')}
               </button>
               <button
+                disabled={isLoggingOut}
                 onClick={() => {
+                  if (isLoggingOut) return;
+                  setIsLoggingOut(true);
+                  addNotification({
+                    title: t('logoutSuccess') || 'Logged Out',
+                    message: t('logoutSuccessMessage') || 'You have been successfully logged out.',
+                    type: 'system'
+                  });
                   logout();
                   navigate('/login');
                 }}
-                className="flex-1 px-4 py-2 rounded-xl bg-primary text-white font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                className="flex-1 px-4 py-2 rounded-xl bg-primary text-white font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50"
               >
                 {t('logout')}
               </button>

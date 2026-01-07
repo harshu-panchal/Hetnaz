@@ -13,6 +13,7 @@ import offlineQueueService from '../../../core/services/offlineQueue.service';
 import type { Chat as ApiChat, Message as ApiMessage } from '../../../core/types/chat.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { ImageModal } from '../../../shared/components/ImageModal';
+import { ReportModal } from '../../../shared/components/ReportModal';
 import apiClient from '../../../core/api/client';
 import { compressImage } from '../../../core/utils/image';
 
@@ -44,6 +45,7 @@ export const ChatWindowPage = () => {
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
   const [isBlockedByOther, setIsBlockedByOther] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Image modal and upload
   const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
@@ -115,6 +117,10 @@ export const ChatWindowPage = () => {
         socketService.connect();
         socketService.joinChat(chatId);
 
+        // Mark as read and update global list (for badges)
+        await chatService.markChatAsRead(chatId);
+        queryClient.invalidateQueries({ queryKey: CHAT_KEYS.lists() });
+
         setError(null);
       } catch (err: any) {
         console.error('Failed to load chat:', err);
@@ -164,8 +170,10 @@ export const ChatWindowPage = () => {
     }
   }, [chatId]);
 
-  // Socket event listeners
+  // Socket listener for new messages - MUST be separate and early
   useEffect(() => {
+    if (!chatId) return;
+
     const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
       if (String(data.chatId) === String(chatId)) {
         setMessages(prev => {
@@ -194,12 +202,28 @@ export const ChatWindowPage = () => {
           return [...prev, data.message];
         });
         scrollToBottom();
+
+        // Mark incoming message as read if we are in this chat
+        chatService.markChatAsRead(chatId);
       }
     };
 
+    socketService.on('message:new', handleNewMessage);
+    socketService.on('chat:message', handleNewMessage);
+
+    return () => {
+      socketService.off('message:new', handleNewMessage);
+      socketService.off('chat:message', handleNewMessage);
+    };
+  }, [chatId, currentUserId, scrollToBottom, queryClient]);
+
+  // Socket listeners for user status, typing, blocking (requires chatInfo)
+  useEffect(() => {
+    if (!chatInfo) return;
+
     // User online/offline status updates
     const handleUserOnline = (data: { userId: string }) => {
-      if (chatInfo && data.userId === chatInfo.otherUser._id) {
+      if (data.userId === chatInfo.otherUser._id) {
         setChatInfo(prev => prev ? {
           ...prev,
           otherUser: { ...prev.otherUser, isOnline: true }
@@ -208,7 +232,7 @@ export const ChatWindowPage = () => {
     };
 
     const handleUserOffline = (data: { userId: string; lastSeen: string }) => {
-      if (chatInfo && data.userId === chatInfo.otherUser._id) {
+      if (data.userId === chatInfo.otherUser._id) {
         setChatInfo(prev => prev ? {
           ...prev,
           otherUser: { ...prev.otherUser, isOnline: false, lastSeen: data.lastSeen }
@@ -217,7 +241,7 @@ export const ChatWindowPage = () => {
     };
 
     const handleBlockedBy = (data: { blockedBy: string; blockedByName: string }) => {
-      if (chatInfo && data.blockedBy === chatInfo.otherUser._id) {
+      if (data.blockedBy === chatInfo.otherUser._id) {
         setIsBlockedByOther(true);
         setError(t('youHaveBeenBlockedBy', { name: data.blockedByName }));
       }
@@ -229,20 +253,18 @@ export const ChatWindowPage = () => {
       }
     };
 
-    socketService.on('message:new', handleNewMessage);
     socketService.on('chat:typing', handleTyping);
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
     socketService.on('user:blocked_by', handleBlockedBy);
 
     return () => {
-      socketService.off('message:new', handleNewMessage);
       socketService.off('chat:typing', handleTyping);
       socketService.off('user:online', handleUserOnline);
       socketService.off('user:offline', handleUserOffline);
       socketService.off('user:blocked_by', handleBlockedBy);
     };
-  }, [chatId, chatInfo, currentUserId, scrollToBottom, t]);
+  }, [chatId, chatInfo, currentUserId, t]);
 
   useEffect(() => {
     scrollToBottom();
@@ -599,11 +621,24 @@ export const ChatWindowPage = () => {
         onViewProfile={handleViewProfile}
         onBlock={isBlockedByMe ? handleUnblockUser : handleBlockUser}
         isBlocked={isBlockedByMe}
-        onReport={() => { }}
+        onReport={() => {
+          setIsMoreOptionsOpen(false);
+          setIsReportModalOpen(true);
+        }}
         onDelete={handleDeleteChat}
         userName={chatInfo.otherUser.name}
       />
 
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        reportedId={chatInfo.otherUser._id}
+        userName={chatInfo.otherUser.name}
+        chatId={chatId}
+        onSuccess={() => {
+          setError(t('reportSubmittedSuccess') || 'Report submitted successfully');
+        }}
+      />
     </div>
   );
 };

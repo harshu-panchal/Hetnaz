@@ -516,5 +516,17 @@
   "newBalanceLabel": "New Balance",
   "awesomeThanks": "Awesome, Thanks!",
   "comeBackTomorrow": "💝 Come back tomorrow for more rewards!",
-  "coins": "Coins"
+  "coins": "Coins",
+  "signupErrorNetwork": "Unable to connect. Please check your internet connection and try again.",
+  "signupErrorPhoneExists": "This phone number is already registered. Please login instead or use a different number.",
+  "signupErrorServer": "Our servers are busy right now. Please wait a moment and try again.",
+  "signupErrorInvalidData": "Please check your details and try again.",
+  "signupErrorTooManyAttempts": "Too many attempts. Please wait a few minutes before trying again.",
+  "signupErrorGeneric": "Something went wrong. Please try again.",
+  "loginErrorNetwork": "Unable to connect. Please check your internet connection and try again.",
+  "loginErrorNotFound": "No account found with this phone number. Please sign up first.",
+  "loginErrorServer": "Our servers are busy right now. Please wait a moment and try again.",
+  "loginErrorTooManyAttempts": "Too many attempts. Please wait a few minutes before trying again.",
+  "loginErrorGeneric": "Something went wrong. Please try again.",
+  "Please enter a valid phone number": "Please enter a valid phone number"
 }

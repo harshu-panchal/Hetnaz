@@ -264,10 +264,12 @@ export const NearbyFemalesPage = () => {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
+              <div className="flex items-center flex-wrap gap-x-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
                 {profile.location && <span>{profile.location}</span>}
-                {profile.age && <span>• {t('yearsOld', { count: profile.age })}</span>}
-                {profile.distance && <span>• {profile.distance}</span>}
+                {profile.location && profile.age && <span>•</span>}
+                {profile.age && <span>{t('yearsOld', { count: profile.age })}</span>}
+                {(profile.location || profile.age) && profile.distance && <span>•</span>}
+                {profile.distance && <span>{profile.distance}</span>}
               </div>
               {profile.bio && (
                 <p className="text-[11px] text-slate-500 dark:text-slate-300 mt-0.5 line-clamp-1">

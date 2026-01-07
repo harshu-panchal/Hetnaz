@@ -96,6 +96,18 @@ export default {
     getMyProfile,
     updateMyProfile,
     getFemaleDashboardData,
+    getFemaleEarnings: async () => {
+        const response = await apiClient.get('/users/female/dashboard/earnings');
+        return response.data.data;
+    },
+    getFemaleStats: async () => {
+        const response = await apiClient.get('/users/female/dashboard/stats');
+        return response.data.data;
+    },
+    getFemaleChats: async () => {
+        const response = await apiClient.get('/users/female/dashboard/chats');
+        return response.data.data;
+    },
     blockUser,
     unblockUser,
     deleteChat,

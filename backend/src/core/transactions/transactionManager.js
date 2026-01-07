@@ -58,7 +58,7 @@ class TransactionManager {
         return await this.executeTransaction(operations);
       } catch (error) {
         lastError = error;
-        
+
         // Don't retry on validation errors
         if (error.name === 'ValidationError' || error.name === 'CastError') {
           throw error;

@@ -30,6 +30,7 @@ html, body {
   
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: calc(max(1.25rem, env(safe-area-inset-bottom)));
   }
 }
 

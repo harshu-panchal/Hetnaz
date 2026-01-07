@@ -1,12 +1,9 @@
-import { MaterialSymbol } from '../types/material-symbol';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface ChatListHeaderProps {
-  coinBalance: number;
-  onEditClick?: () => void;
 }
 
-export const ChatListHeader = ({ onEditClick }: ChatListHeaderProps) => {
+export const ChatListHeader = ({ }: ChatListHeaderProps) => {
   const { t } = useTranslation();
 
   return (
@@ -15,15 +12,7 @@ export const ChatListHeader = ({ onEditClick }: ChatListHeaderProps) => {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{t('chats')}</h1>
       </div>
       <div className="flex items-center gap-3">
-
-        {/* Action Button */}
-        <button
-          onClick={onEditClick}
-          className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#4a212f] text-gray-600 dark:text-[#cc8ea3] hover:bg-gray-300 dark:hover:bg-[#5e2a3c] transition-colors active:scale-95"
-          aria-label="Edit"
-        >
-          <MaterialSymbol name="edit_square" />
-        </button>
+        {/* Header actions can go here */}
       </div>
     </header>
   );

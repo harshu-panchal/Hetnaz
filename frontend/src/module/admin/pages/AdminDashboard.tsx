@@ -206,7 +206,6 @@ export const AdminDashboard = () => {
               <div className="bg-white dark:bg-[#151515] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col h-full max-h-[500px]">
                 <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-[#1a1a1a]/50 rounded-t-xl">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
-                  <button onClick={() => navigate('/admin/audit-logs')} className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium">View All</button>
                 </div>
                 <div className="p-2 overflow-y-auto custom-scrollbar flex-1">
                   {dashboardData.recentActivity.map((activity) => (

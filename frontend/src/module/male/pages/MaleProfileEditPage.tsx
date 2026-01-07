@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { GoogleMapsAutocomplete } from '../../../shared/components/GoogleMapsAutocomplete';
@@ -35,7 +34,7 @@ export const MaleProfileEditPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { navigationItems, handleNavigationClick } = useMaleNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -129,8 +128,11 @@ export const MaleProfileEditPage = () => {
     if (!files || files.length === 0) return;
 
     const newPhotos: string[] = [...editedProfile.photos || []];
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith('image/') && newPhotos.length < 6) {
+    const remainingSlots = 4 - newPhotos.length;
+    if (remainingSlots <= 0) return;
+
+    Array.from(files).slice(0, remainingSlots).forEach((file) => {
+      if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (event) => {
           const result = event.target?.result as string;
@@ -151,8 +153,10 @@ export const MaleProfileEditPage = () => {
   };
 
   const handleDeletePhoto = (index: number) => {
-    const newPhotos = editedProfile.photos?.filter((_: any, i: number) => i !== index) || [];
-    setEditedProfile({ ...editedProfile, photos: newPhotos });
+    if (window.confirm(t('confirmDeletePhoto') || 'Are you sure you want to delete this photo?')) {
+      const newPhotos = editedProfile.photos?.filter((_: any, i: number) => i !== index) || [];
+      setEditedProfile({ ...editedProfile, photos: newPhotos });
+    }
   };
 
   const handleSetProfilePhoto = (index: number) => {
@@ -164,14 +168,7 @@ export const MaleProfileEditPage = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <MaleTopNavbar />
 
       <main className="p-4 space-y-6">
         <div className="flex flex-col items-center">
@@ -348,13 +345,13 @@ export const MaleProfileEditPage = () => {
                   </button>
                 </div>
                 {index === 0 && (
-                  <div className="absolute top-1 left-1 bg-primary text-slate-900 text-xs px-1 rounded font-bold">
-                    {t('mainPhoto')}
+                  <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-0.5 shadow-sm flex items-center justify-center">
+                    <MaterialSymbol name="star" size={12} filled />
                   </div>
                 )}
               </div>
             ))}
-            {(editedProfile.photos || [editedProfile.avatar]).length < 6 && (
+            {(editedProfile.photos || [editedProfile.avatar]).length < 4 && (
               <button
                 onClick={handlePhotoUpload}
                 className="aspect-square border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center hover:border-primary transition-colors"

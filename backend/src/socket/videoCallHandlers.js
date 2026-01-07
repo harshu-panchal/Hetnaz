@@ -379,11 +379,13 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 activeCallTimers.delete(callId);
             }
 
-            // 2. Determine if rejoin is possible (e.g., > 10s left and THIS user hasn't rejoined yet)
-            // If the call is already interrupted and we get another end request, it's a PERMANENT END
-            const userAlreadyRejoined = (call.rejoinedUserIds || []).includes(userId);
-            const canRejoin = remainingTime > 10 && !userAlreadyRejoined && call.status !== 'interrupted';
-            logger.info(`🔍 Call end decision: callId=${callId}, userId=${userId}, remainingTime=${remainingTime}, alreadyRejoined=${userAlreadyRejoined}, canRejoin=${canRejoin}`);
+            // 2. Determine if rejoin is possible
+            // CRITICAL FIX FOR SMARTPHONE "BLACKOUT": An intentional call:end request 
+            // should ALWAYS be a hard end. We only allow soft ends (canRejoin=true) 
+            // during accidental disconnects. This prevents users from being stuck 
+            // on an "Interrupted" screen when they explicitly wanted to finish.
+            const canRejoin = false;
+            logger.info(`🔍 Call end decision (Intentional): callId=${callId}, userId=${userId}, canRejoin=false`);
 
             if (canRejoin) {
                 logger.info(`⏸️ Call Soft Ended (Rejoin Active): ${callId}. Remainning: ${remainingTime}s`);
@@ -567,7 +569,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 }
 
                 // Notify other user: "Partner is back!"
-                logger.info(`✅ Notifying ${otherUserId} that peer rejoined call ${callId} with ${remainingSeconds}s remaining`);
+                logger.info(`✅ [REJOIN] Notifying partner ${otherUserId} to resume. Remaining: ${remainingSeconds}s`);
                 io.to(otherUserId).emit('call:peer-rejoined', {
                     callId,
                     remainingTime: remainingSeconds
@@ -577,9 +579,12 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                     remainingTime: remainingSeconds
                 });
 
+                logger.info(`✅ [REJOIN] Resuming call ${callId} for user ${userId}`);
                 // Helper to setup timer & token
                 await setupCallResumption(videoCall, remainingSeconds, userId);
                 return;
+            } else {
+                logger.warn(`⚠️ [REJOIN] No interruption data found for ${callId} in memory. Falling back to DB/Service fallback.`);
             }
 
             // B. Normal Rejoin (e.g. browser crash where disconnect event might not have handled everything perfectly, or manual rejoin)

@@ -8,7 +8,6 @@ import { PromoBanner } from '../components/PromoBanner';
 import { CoinPlanCard } from '../components/CoinPlanCard';
 import { TrustFooter } from '../components/TrustFooter';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MembershipUpgradeModal } from '../components/MembershipUpgradeModal';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
@@ -23,7 +22,7 @@ export const CoinPurchasePage = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const { updateBalance } = useGlobalState();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { navigationItems, handleNavigationClick } = useMaleNavigation();
 
   const [coinPlans, setCoinPlans] = useState<WalletCoinPlan[]>([]);
   const [balance, setBalance] = useState(0);
@@ -145,15 +144,7 @@ export const CoinPurchasePage = () => {
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
       {/* Top Navbar */}
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      {/* Sidebar */}
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <MaleTopNavbar />
 
       {/* Top App Bar */}
       <CoinPurchaseHeader onHistoryClick={handleHistoryClick} />

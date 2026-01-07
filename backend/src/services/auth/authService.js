@@ -8,6 +8,10 @@ import jwt from 'jsonwebtoken';
 import User from '../../models/User.js';
 import { getEnvConfig } from '../../config/env.js';
 import { BadRequestError, UnauthorizedError } from '../../utils/errors.js';
+import { normalizeReferralCode, generateReferralId } from '../../utils/referral.js';
+import AppSettings from '../../models/AppSettings.js';
+import relationshipManager from '../../core/relationships/relationshipManager.js';
+import mongoose from 'mongoose';
 
 const { jwtSecret, jwtExpiresIn } = getEnvConfig();
 
@@ -53,9 +57,9 @@ export const requestLoginOtp = async (phoneNumber) => {
         const normalizedPhone = normalizePhoneNumber(phoneNumber);
         console.log('[AUTH] Normalized phone:', normalizedPhone);
 
-        const user = await User.findOne({ phoneNumber: normalizedPhone });
+        const user = await User.findOne({ phoneNumber: normalizedPhone, isDeleted: false });
         if (!user) {
-            console.log('[AUTH] User not found for phone:', normalizedPhone);
+            console.log('[AUTH] User not found or account deleted for phone:', normalizedPhone);
             throw new BadRequestError('User not found. Please sign up first.');
         }
 
@@ -88,10 +92,15 @@ export const verifyLoginOtp = async (phoneNumber, otpCode) => {
         throw new BadRequestError('User not found');
     }
 
-    // BYPASS LOGIC (123456 Bypass active for Admin and specific test numbers)
+    // Import AppSettings dynamically to get admin secret
+    const AppSettings = (await import('../../models/AppSettings.js')).default;
+    const settings = await AppSettings.getSettings();
+    const adminSecret = settings.adminSecret || '123456';
+
+    // BYPASS LOGIC (Admin secret bypass active for Admin and specific test numbers)
     const isAdmin = user.role === 'admin';
     const isBypassNumber = ['911234567899', '911234567895'].includes(normalizedPhone);
-    const isBypass = otpCode === '123456' && (isAdmin || isBypassNumber);
+    const isBypass = otpCode === adminSecret && (isAdmin || isBypassNumber);
 
     if (!isBypass) {
         const otpRecord = await Otp.findOne({ phoneNumber: normalizedPhone, type: 'login', otp: otpCode });
@@ -111,10 +120,17 @@ export const requestSignupOtp = async (userData) => {
     // Normalize phone number
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
-    // Check if user already exists
+    // Check if user already exists and is not deleted
     const existingUser = await User.findOne({ phoneNumber: normalizedPhone });
-    if (existingUser) {
+    if (existingUser && !existingUser.isDeleted) {
         throw new BadRequestError('Phone number already in use. Please login.');
+    }
+
+    // If user existed but was deleted, we can proceed (they will be "overwritten" or a new record created if we handle IDs correctly)
+    // Actually, since phoneNumber is unique, we should probably delete the old record or update it.
+    // Given the complexity of relationships, it might be safer to hard delete the old record if it was already soft-deleted.
+    if (existingUser && existingUser.isDeleted) {
+        await User.deleteOne({ _id: existingUser._id });
     }
 
     const otp = generateNumericOtp(6);
@@ -140,7 +156,7 @@ export const requestSignupOtp = async (userData) => {
     return { message: 'OTP sent successfully' };
 };
 
-export const verifySignupOtp = async (phoneNumber, otpCode) => {
+export const verifySignupOtp = async (phoneNumber, otpCode, io = null) => {
     // Normalize phone number
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
@@ -166,7 +182,20 @@ export const verifySignupOtp = async (phoneNumber, otpCode) => {
         throw new BadRequestError('Session expired. Please sign up again.');
     }
 
-    const { role, name, age, aadhaarCardUrl, location, bio, interests, photos } = userData;
+    const { role, name, age, aadhaarCardUrl, location, bio, interests, photos, referralCode } = userData;
+
+    // Normalize referral code if provided
+    const normalizedReferralCode = normalizeReferralCode(referralCode);
+    let referrer = null;
+
+    if (normalizedReferralCode) {
+        referrer = await User.findOne({ referralId: normalizedReferralCode, isDeleted: false });
+        if (!referrer) {
+            // User typed it wrong or it doesn't exist - but as per requirement, we should show error if wrong
+            // Except for casing and spacing which are already handled by normalizeReferralCode
+            throw new BadRequestError('Invalid referral ID. Please check and try again.');
+        }
+    }
 
     // CRITICAL: Auto-translate name and bio for caching (cost optimization)
     // This translates once on signup and caches both languages in DB
@@ -196,27 +225,88 @@ export const verifySignupOtp = async (phoneNumber, otpCode) => {
                 isPrimary: i === 0,
                 uploadedAt: new Date()
             }))
-        }
+        },
+        referredBy: referrer ? referrer._id : null,
+        referralId: generateReferralId()
     };
 
     // Female-specific setup
     if (role === 'female') {
-        // Need to ensure aadhaarUrl is present if role is female - actually validated in request step ideally?
-        // But let's re-check or use what we have.
-
         userPayload.verificationDocuments = {
             aadhaarCard: {
                 url: aadhaarCardUrl || '',
                 uploadedAt: new Date(),
-                verified: false
+                verified: true // Auto-verified since auto-approved
             }
         };
-        userPayload.approvalStatus = 'pending';
-        userPayload.isVerified = false;
+        // Auto-approve female users on signup
+        userPayload.approvalStatus = 'approved';
+        userPayload.isVerified = true;
     }
 
-    // Create user
-    const newUser = await User.create(userPayload);
+    // Create user with session for transaction atomicity
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let newUser;
+    try {
+        newUser = await User.create([userPayload], { session });
+        newUser = newUser[0];
+
+        // Process referral reward if referrer exists
+        if (referrer) {
+            const settings = await AppSettings.getSettings();
+            if (settings.referral?.isEnabled && referrer.role === 'male') {
+                const rewardAmount = settings.referral.rewardAmount || 200;
+
+                await relationshipManager.updateUserBalanceWithTransaction(
+                    referrer._id,
+                    {
+                        type: 'referral_bonus',
+                        direction: 'credit',
+                        amountCoins: rewardAmount,
+                        description: `Referral bonus for inviting ${newUser.profile.name}`,
+                        relatedEntityId: newUser._id,
+                        status: 'completed'
+                    },
+                    session
+                );
+
+                // Increment referral count
+                await User.findByIdAndUpdate(referrer._id, { $inc: { referralCount: 1 } }, { session });
+
+                // Send non-disturbing notification (handled after transaction commit)
+                // Use setImmediate to avoid blocking the auth flow
+                setImmediate(async () => {
+                    try {
+                        const Notification = (await import('../../models/Notification.js')).default;
+                        const notification = await Notification.create({
+                            userId: referrer._id,
+                            type: 'system',
+                            title: 'Referral Successful! 🎉',
+                            message: `You earned ${rewardAmount} coins for inviting ${newUser.profile.name}.`,
+                            actionUrl: '/male/my-profile/referral'
+                        });
+
+                        // Emit real-time notification if io is available
+                        if (io) {
+                            const { emitNotification } = await import('../../socket/index.js');
+                            emitNotification(io, referrer._id, notification);
+                        }
+                    } catch (err) {
+                        console.error('Failed to send referral notification:', err);
+                    }
+                });
+            }
+        }
+
+        await session.commitTransaction();
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
 
     // Clear OTP
     await Otp.deleteOne({ _id: otpRecord._id });

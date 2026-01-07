@@ -41,19 +41,44 @@ const appSettingsSchema = new mongoose.Schema(
         giftCosts: {
             // Default cost for new gifts
             defaultCost: { type: Number, default: 100 },
-        }
+        },
+        referral: {
+            rewardAmount: { type: Number, default: 200 },
+            isEnabled: { type: Boolean, default: true },
+        },
+        // Admin authentication secret (bypass OTP for admin login)
+        adminSecret: { type: String, default: '123456' },
+        // List of admin phone numbers
+        adminPhones: { type: [String], default: ['919981331303'] }
     },
     {
         timestamps: true,
     }
 );
 
+// In-memory cache for settings
+let cachedSettings = null;
+let lastCacheUpdate = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 // We only ever want ONE settings document
-appSettingsSchema.statics.getSettings = async function () {
+appSettingsSchema.statics.getSettings = async function (forceRefresh = false) {
+    const now = Date.now();
+
+    // Return cached settings if available and not expired
+    if (!forceRefresh && cachedSettings && (now - lastCacheUpdate < CACHE_DURATION)) {
+        return cachedSettings;
+    }
+
     let settings = await this.findOne();
     if (!settings) {
         settings = await this.create({});
     }
+
+    // Update cache
+    cachedSettings = settings;
+    lastCacheUpdate = now;
+
     return settings;
 };
 

@@ -3,7 +3,7 @@
  * @purpose: Manage socket connection lifecycle and provide real-time updates
  */
 
-import { createContext, useContext, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import socketService from '../services/socket.service';
 import { useAuth } from './AuthContext';
 
@@ -25,29 +25,42 @@ interface SocketProviderProps {
 
 export const SocketProvider = ({ children }: SocketProviderProps) => {
     const { isAuthenticated } = useAuth();
+    const [connected, setConnected] = useState(false);
 
-    // Connect/disconnect based on auth status
+    // Connect/disconnect based on auth status with DEFERRAL
     useEffect(() => {
-        if (isAuthenticated) {
-            socketService.connect();
-        } else {
+        if (!isAuthenticated) {
             socketService.disconnect();
+            setConnected(false);
+            return;
         }
 
+        let timeoutId: ReturnType<typeof setTimeout>;
+
+        // PHASED BOOT: Wait 1.5s after Auth to connect Sockets
+        // This gives the main dashboard thread priority for its initial REST fetches
+        timeoutId = setTimeout(() => {
+            console.log('[REAL-TIME] ⚡ Delayed socket connection sequence started');
+            socketService.connect();
+            setConnected(true);
+        }, 1500);
+
         return () => {
+            clearTimeout(timeoutId);
             socketService.disconnect();
+            setConnected(false);
         };
     }, [isAuthenticated]);
 
-    const value: SocketContextType = {
-        isConnected: socketService.isConnected(),
+    const value: SocketContextType = useMemo(() => ({
+        isConnected: connected,
         joinChat: (chatId: string) => socketService.joinChat(chatId),
         leaveChat: (chatId: string) => socketService.leaveChat(chatId),
         sendTyping: (chatId: string, isTyping: boolean) => socketService.sendTyping(chatId, isTyping),
         requestBalance: () => socketService.requestBalance(),
         on: (event: string, callback: Function) => socketService.on(event, callback),
         off: (event: string, callback: Function) => socketService.off(event, callback),
-    };
+    }), [connected]);
 
     return (
         <SocketContext.Provider value={value}>

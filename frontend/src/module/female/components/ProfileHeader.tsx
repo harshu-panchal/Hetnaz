@@ -1,5 +1,3 @@
-import { MaterialSymbol } from '../types/material-symbol';
-
 interface ProfileHeaderProps {
   user: {
     name: string;
@@ -7,10 +5,9 @@ interface ProfileHeaderProps {
     isPremium: boolean;
     isOnline: boolean;
   };
-  onNotificationClick?: () => void;
 }
 
-export const ProfileHeader = ({ user, onNotificationClick }: ProfileHeaderProps) => {
+export const ProfileHeader = ({ user }: ProfileHeaderProps) => {
   return (
     <div className="flex items-center justify-between p-4 pt-8">
       <div className="flex items-center gap-4">
@@ -33,13 +30,6 @@ export const ProfileHeader = ({ user, onNotificationClick }: ProfileHeaderProps)
           </p>
         </div>
       </div>
-      <button
-        onClick={onNotificationClick}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-[#342d18] text-slate-900 dark:text-white shadow-sm hover:scale-105 active:scale-95 transition-transform"
-        aria-label="Notifications"
-      >
-        <MaterialSymbol name="notifications" />
-      </button>
     </div>
   );
 };

@@ -46,7 +46,10 @@ export const LoginPage = () => {
           state: { mode: 'login', phoneNumber: normalizedPhone }
         });
       } catch (err: any) {
-        setApiError(err.message || t('Login request failed'));
+        // Convert technical errors to user-friendly messages
+        const rawError = err.message || '';
+        const userFriendlyError = getUserFriendlyLoginError(rawError, t);
+        setApiError(userFriendlyError);
       } finally {
         setIsLoading(false);
       }
@@ -61,6 +64,38 @@ export const LoginPage = () => {
     if (errors.phone) {
       setErrors({});
     }
+    // Clear API error when user starts typing
+    if (apiError) {
+      setApiError(null);
+    }
+  };
+
+  // Helper function to convert technical errors to user-friendly messages
+  const getUserFriendlyLoginError = (errorMessage: string, t: (key: string) => string): string => {
+    const lowerError = errorMessage.toLowerCase();
+
+    // Network/Connection errors
+    if (lowerError.includes('network') || lowerError.includes('timeout') || lowerError.includes('econnrefused') || lowerError.includes('fetch')) {
+      return t('loginErrorNetwork');
+    }
+
+    // User not found
+    if (lowerError.includes('not found') || lowerError.includes('not exist') || lowerError.includes('no user') || lowerError.includes('not registered')) {
+      return t('loginErrorNotFound');
+    }
+
+    // Server errors
+    if (lowerError.includes('500') || lowerError.includes('server') || lowerError.includes('internal')) {
+      return t('loginErrorServer');
+    }
+
+    // Rate limiting
+    if (lowerError.includes('too many') || lowerError.includes('rate') || lowerError.includes('limit')) {
+      return t('loginErrorTooManyAttempts');
+    }
+
+    // Default fallback
+    return t('loginErrorGeneric');
   };
 
   return (
@@ -85,7 +120,7 @@ export const LoginPage = () => {
               </label>
               <div className="relative group transition-all duration-300">
                 <div className={`flex items-center bg-white border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.phone ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500 focus-within:ring-4 focus-within:ring-pink-500/10'}`}>
-                  <div className="flex items-center gap-2 pl-4 pr-3 py-4 bg-gray-50/50 border-r border-gray-100">
+                  <div className="flex items-center shrink-0 gap-2 pl-4 pr-3 py-4 bg-gray-50/50 border-r border-gray-100">
                     <img
                       src="https://flagcdn.com/w40/in.png"
                       srcSet="https://flagcdn.com/w80/in.png 2x"
@@ -128,9 +163,11 @@ export const LoginPage = () => {
               {t('We will send you a verification code to continue')} {/* TRANSLATE */}
             </p>
 
+            {/* API Error - Displayed just above the button */}
             {apiError && (
-              <div className="text-red-500 text-sm text-center">
-                {apiError}
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-1">
+                <MaterialSymbol name="error" size={20} className="text-red-500 flex-shrink-0" filled />
+                <p className="text-sm text-red-600 font-medium">{apiError}</p>
               </div>
             )}
 

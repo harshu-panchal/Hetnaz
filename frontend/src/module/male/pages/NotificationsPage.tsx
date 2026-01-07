@@ -1,94 +1,42 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TopAppBar } from '../components/TopAppBar';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
-import type { Notification } from '../types/male.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
 
 export const NotificationsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { navigationItems, handleNavigationClick: handleNav } = useMaleNavigation();
+  const {
+    persistentNotifications,
+    markNotificationAsRead,
+    deletePersistentNotification,
+    clearAllPersistentNotifications,
+    unreadCount
+  } = useGlobalState();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Mock data - in a real app these titles/messages would come from the backend or be localized here
-  const mockNotifications: Notification[] = [
-    {
-      id: '1',
-      type: 'match',
-      title: t('newMatchTitle'),
-      message: t('matchNotificationDesc', { name: 'Sarah' }),
-      timestamp: '2 minutes ago',
-      isRead: false,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNnKyZLNWCV7B-XwKgjd9-bbG9ZSq583oYGij7uKTYk2Ah_9nkpqgsGSDu-FUgux5QDiLCTw_y9JxTBhkZjWAOOReMhlK98A_84vIsKaxQ0IUzZqkJ7-wnAv67HRuUVltC2QQzOfbTk1-OdjqC7SWT4iG-MXs81ePZK3x1mYOHabRqp4eH7yIfiX3tH-YMXSs1uWS41vrxzPC8_MJHasLGiUWINfHYQ7KF2jfo0n_Yo6qBJKr_qMrOBUdimUVVJdY46GD7L0v-oL4',
-      relatedUserId: '1',
-      actionUrl: '/male/profile/1',
-    },
-    {
-      id: '2',
-      type: 'message',
-      title: t('newMessageTitle'),
-      message: t('messageNotificationDesc', { name: 'Emily' }),
-      timestamp: '15 minutes ago',
-      isRead: false,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCLUSJJYAwx8tl_zGDnOiTXyUUZNGZvfSUhgCgsc5vA2u3832geBVry-vrxCLbywcPMNdDw9Pp8aQYpK6Of5m_eCNYG0p8DZ_zKmzCBISKf3HqDRE9LKIkflketnQjBg0ihzj9xMoUbFN0MewVDhhm62RT4P8ApfLpMqm1KF4cJSY8J3ofy8uvQLeu7ka7eCxUsjWF4-UjrzrD1786TFutJ9_LA2fBbGdcQt8H5YNPFmG4lNC_tEwPefXDp1ieMAWqV4GmL4cQser8',
-      relatedChatId: '2',
-      actionUrl: '/male/chat/2',
-    },
-    {
-      id: '3',
-      type: 'payment',
-      title: t('paymentSuccessfulTitle'),
-      message: t('paymentNotificationDesc', { count: 600 }),
-      timestamp: '1 hour ago',
-      isRead: true,
-    },
-    {
-      id: '4',
-      type: 'system',
-      title: t('welcomeBonusTitle'),
-      message: t('bonusNotificationDesc', { count: 50 }),
-      timestamp: '2 hours ago',
-      isRead: true,
-    },
-    {
-      id: '5',
-      type: 'gift',
-      title: t('giftReceivedTitle'),
-      message: t('giftNotificationDesc', { name: 'Jessica' }),
-      timestamp: 'Yesterday',
-      isRead: true,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBc0OstJEnLP2BH3T9hAadSkfqrmXq73qN9gbTMt7kfgPaQTpDMo6RBY0rGIlVRRYx9RNgGIuso4uSojA6-sMJxsbwokldCWi5vSTRo5Am8Pzgc73OW3MErmDu8gHuiQ0qQbM52r1B6IJMdIgiER50uXcyACMQ1f-e3CVduYEyDGFk_BIAtnlQer3BE077LFURJq4oRmImX1yG5_Q1OTgCEjnwV6A_EFuMSTBc85zvXe5_v2YpQ3mDh5t5vEzbNV0GqM0iE3aISpuE',
-      relatedUserId: '3',
-    },
-  ];
-
   const filterOptions = [
     { id: 'all', label: t('filterAll') },
     { id: 'unread', label: t('unread') },
-    { id: 'matches', label: t('filterMatches') },
     { id: 'messages', label: t('filterMessages') },
   ];
 
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const filteredNotifications = useMemo(() => {
-    let filtered = notifications;
+    let filtered = persistentNotifications;
 
     switch (selectedFilter) {
       case 'unread':
         filtered = filtered.filter((n) => !n.isRead);
-        break;
-      case 'matches':
-        filtered = filtered.filter((n) => n.type === 'match');
         break;
       case 'messages':
         filtered = filtered.filter((n) => n.type === 'message');
@@ -98,65 +46,66 @@ export const NotificationsPage = () => {
     }
 
     return filtered;
-  }, [notifications, selectedFilter]);
+  }, [persistentNotifications, selectedFilter]);
 
-  const handleNotificationClick = (notification: Notification) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
-    );
-
-    if (notification.actionUrl) {
-      navigate(notification.actionUrl);
+  const handleNotificationClick = (id: string, actionUrl?: string) => {
+    markNotificationAsRead(id);
+    if (actionUrl) {
+      navigate(actionUrl);
     }
   };
 
-  const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
-
-  const handleDeleteNotification = (id: string, e: React.MouseEvent) => {
+  const handleDeleteNotification = (id: string, e: MouseEvent) => {
     e.stopPropagation();
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    deletePersistentNotification(id);
   };
 
-  const getNotificationIcon = (type: Notification['type']) => {
+  const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'match':
-        return 'favorite';
-      case 'message':
-        return 'chat_bubble';
-      case 'payment':
-        return 'payments';
-      case 'gift':
-        return 'redeem';
-      case 'system':
-        return 'info';
-      default:
-        return 'notifications';
+      case 'match': return 'favorite';
+      case 'message': return 'chat_bubble';
+      case 'payment': return 'payments';
+      case 'gift': return 'redeem';
+      case 'system': return 'info';
+      default: return 'notifications';
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const formatTimestamp = (date: Date) => {
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diff < 60) return t('justNow');
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ${t('ago')}`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ${t('ago')}`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+      <MaleTopNavbar />
 
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <div className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <MaterialSymbol name="notifications" size={20} className="text-primary" />
+            </div>
+            <h1 className="text-lg font-bold">{t('notifications')}</h1>
+          </div>
+          {persistentNotifications.length > 0 && (
+            <button
+              onClick={clearAllPersistentNotifications}
+              className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all flex items-center gap-1"
+            >
+              <MaterialSymbol name="delete_sweep" size={16} />
+              {t('clearAll')}
+            </button>
+          )}
+        </div>
+      </div>
 
-      <TopAppBar
-        title={t('notifications')}
-        icon="notifications"
-        onFilterClick={() => { }}
-        onSearch={() => { }}
-      />
-
-      <div className="px-4 pb-3 pt-1">
+      <div className="px-4 pb-3 pt-4">
         <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
           {filterOptions.map((filter) => {
             const isActive = selectedFilter === filter.id;
@@ -165,16 +114,16 @@ export const NotificationsPage = () => {
                 key={filter.id}
                 onClick={() => setSelectedFilter(filter.id)}
                 className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-5 transition-all active:scale-95 ${isActive
-                    ? 'bg-primary shadow-lg shadow-primary/25 text-white'
-                    : 'bg-white dark:bg-[#342d18] border border-gray-200 dark:border-transparent text-slate-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#3d2a1a]'
+                  ? 'bg-primary shadow-lg shadow-primary/25 text-white'
+                  : 'bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/5 text-slate-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
                 <p className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>
                   {filter.label}
                 </p>
                 {filter.id === 'unread' && unreadCount > 0 && (
-                  <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
-                    {unreadCount}
+                  <span className="ml-1 flex min-w-[1.25rem] h-5 items-center justify-center rounded-full bg-white/20 px-1 text-[10px] font-bold">
+                    {unreadCount > 10 ? '10+' : unreadCount}
                   </span>
                 )}
               </button>
@@ -183,96 +132,75 @@ export const NotificationsPage = () => {
         </div>
       </div>
 
-      {unreadCount > 0 && (
-        <div className="px-4 pb-2">
-          <button
-            onClick={handleMarkAllRead}
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            {t('markAllRead')}
-          </button>
-        </div>
-      )}
-
-      <main className="px-4">
+      <main className="px-4 space-y-2 mt-2">
         {filteredNotifications.length > 0 ? (
-          <div className="space-y-2">
-            {filteredNotifications.map((notification) => (
-              <div
-                key={notification.id}
-                onClick={() => handleNotificationClick(notification)}
-                className={`flex gap-3 p-3 rounded-xl cursor-pointer transition-all active:scale-98 ${notification.isRead
-                    ? 'bg-white dark:bg-[#342d18]'
-                    : 'bg-primary/5 dark:bg-primary/10 border border-primary/20'
-                  }`}
-              >
-                <div className="shrink-0">
-                  {notification.avatar ? (
-                    <img
-                      src={notification.avatar}
-                      alt={notification.title}
-                      className="w-12 h-12 rounded-full object-cover"
+          filteredNotifications.map((notification) => (
+            <div
+              key={notification.id}
+              onClick={() => handleNotificationClick(notification.id, notification.chatId ? `/male/chat/${notification.chatId}` : undefined)}
+              className={`group flex items-start gap-3 p-3.5 rounded-2xl cursor-pointer transition-all active:scale-[0.99] border ${notification.isRead
+                ? 'bg-white/50 dark:bg-white/5 border-transparent'
+                : 'bg-white dark:bg-[#1a1a1a] border-primary/20 shadow-sm'
+                }`}
+            >
+              <div className="shrink-0 relative">
+                {notification.avatar ? (
+                  <img
+                    src={notification.avatar}
+                    alt=""
+                    className="w-11 h-11 rounded-full object-cover ring-2 ring-primary/20"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-11 h-11 rounded-full bg-primary/10">
+                    <MaterialSymbol
+                      name={getNotificationIcon(notification.type)}
+                      className="text-primary"
+                      size={22}
                     />
-                  ) : (
-                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
-                      <MaterialSymbol
-                        name={getNotificationIcon(notification.type)}
-                        className="text-primary"
-                        size={24}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          {notification.title}
-                        </h3>
-                        {!notification.isRead && (
-                          <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
-                        {notification.timestamp}
-                      </p>
-                    </div>
-                    <button
-                      onClick={(e) => handleDeleteNotification(notification.id, e)}
-                      className="shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                      aria-label="Delete notification"
-                    >
-                      <MaterialSymbol
-                        name="close"
-                        size={16}
-                        className="text-gray-400 dark:text-gray-500"
-                      />
-                    </button>
                   </div>
+                )}
+                {!notification.isRead && (
+                  <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-primary border-2 border-white dark:border-[#1a1a1a]" />
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <h3 className={`text-sm tracking-tight truncate ${notification.isRead ? 'font-semibold text-slate-700 dark:text-gray-300' : 'font-bold text-slate-900 dark:text-white'}`}>
+                    {notification.title}
+                  </h3>
+                  <button
+                    onClick={(e) => handleDeleteNotification(notification.id, e)}
+                    className="shrink-0 p-1.5 opacity-0 group-hover:opacity-100 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full transition-all text-gray-400 hover:text-rose-500"
+                  >
+                    <MaterialSymbol name="close" size={16} />
+                  </button>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                  {notification.message}
+                </p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <MaterialSymbol name="schedule" size={12} className="text-slate-400" />
+                  <p className="text-[10px] font-medium text-slate-400">
+                    {formatTimestamp(notification.timestamp)}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 px-4">
-            <MaterialSymbol
-              name="notifications_off"
-              size={48}
-              className="text-gray-400 dark:text-gray-600 mb-4"
-            />
-            <p className="text-gray-500 dark:text-[#cc8ea3] text-center">
+          <div className="flex flex-col items-center justify-center py-20 bg-white/50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
+            <div className="p-4 bg-slate-100 dark:bg-white/5 rounded-full mb-4">
+              <MaterialSymbol name="notifications_off" size={32} className="text-slate-400" />
+            </div>
+            <p className="text-sm font-medium text-slate-500 dark:text-gray-400">
               {t('noNotificationsFound')}
             </p>
           </div>
         )}
       </main>
 
-      <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+      <BottomNavigation items={navigationItems} onItemClick={handleNav} />
     </div>
   );
 };

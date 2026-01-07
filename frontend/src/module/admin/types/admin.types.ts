@@ -171,6 +171,10 @@ export interface AdminSettings {
   giftCosts: {
     defaultCost: number;
   };
+  referral: {
+    rewardAmount: number;
+    isEnabled: boolean;
+  };
 }
 
 // Gift Management

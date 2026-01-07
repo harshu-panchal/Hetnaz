@@ -39,9 +39,60 @@ export const VideoCallModal = () => {
     const [isSwapped, setIsSwapped] = useState(false);
     const dragOffset = useRef({ x: 0, y: 0 });
 
+    // Unified Scroll Lock and Body Cleanup Effect
     useEffect(() => {
-        console.log('🎥 VideoCallModal MOUNTED. Status:', callState.status, 'isInCall:', isInCall);
-    }, [callState.status, isInCall]);
+        console.log('🎥 VideoCallModal STATUS:', callState.status, 'fullscreen:', isFullScreen);
+        const shouldLockScroll =
+            callState.status === 'ringing' ||
+            callState.status === 'connecting' ||
+            callState.status === 'rejoining' ||
+            callState.status === 'requesting' ||
+            (callState.status === 'connected' && isFullScreen);
+
+        if (shouldLockScroll) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none';
+            document.body.style.overscrollBehavior = 'none';
+        } else {
+            // Restore styles
+            document.body.style.overflow = '';
+            document.body.style.touchAction = '';
+            document.body.style.overscrollBehavior = '';
+
+            // Critical fix for smartphone "blackout/freeze": Force a layout repaint
+            // and ensure the keyboard area (if any) is recalculated
+            if (callState.status === 'idle' || callState.status === 'ended') {
+                const timer = setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                    // Small scroll toggle to wake up some mobile engines
+                    window.scrollBy(0, 1);
+                    window.scrollBy(0, -1);
+                }, 50);
+                return () => clearTimeout(timer);
+            }
+        }
+
+        return () => {
+            document.body.style.overflow = '';
+            document.body.style.touchAction = '';
+            document.documentElement.style.height = '';
+            document.body.style.height = '';
+        };
+    }, [callState.status, isFullScreen]);
+
+    // Auto-close effect for permanent end (Moved to top level to follow Rules of Hooks)
+    useEffect(() => {
+        const hasTimeLeft = remainingTime > 10;
+        const canRejoin = callState.canRejoinFromServer !== false &&
+            (callState.canRejoin || (hasTimeLeft && !callState.wasRejoined));
+
+        if (!canRejoin && callState.status === 'ended') {
+            const timer = setTimeout(() => {
+                closeModal();
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [callState.status, callState.canRejoin, callState.canRejoinFromServer, callState.wasRejoined, remainingTime, closeModal]);
 
     // Permission checking state
     const [isCheckingPermissions, setIsCheckingPermissions] = useState(false);
@@ -180,7 +231,7 @@ export const VideoCallModal = () => {
         // Incoming call UI
         if (callState.status === 'ringing' && callState.isIncoming) {
             return (
-                <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center backdrop-blur-sm">
+                <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center backdrop-blur-sm overscroll-contain touch-none">
                     <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
                         {/* Avatar */}
                         <div className="relative mx-auto mb-6">
@@ -266,7 +317,7 @@ export const VideoCallModal = () => {
         // Outgoing call (waiting) UI
         if (callState.status === 'ringing' && !callState.isIncoming) {
             return (
-                <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center backdrop-blur-sm">
+                <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center backdrop-blur-sm overscroll-contain touch-none">
                     <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
                         {/* Avatar */}
                         <div className="w-28 h-28 rounded-full bg-white/20 mx-auto mb-6 overflow-hidden ring-4 ring-white/30">
@@ -317,7 +368,7 @@ export const VideoCallModal = () => {
         // Connecting UI
         if (callState.status === 'connecting' || callState.status === 'requesting') {
             return (
-                <div className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center">
+                <div className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center overscroll-contain touch-none">
                     <div className="text-center">
                         <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
                         <p className="text-white text-lg">Connecting...</p>
@@ -330,7 +381,7 @@ export const VideoCallModal = () => {
         if (callState.status === 'connected') {
             if (isFullScreen) {
                 return (
-                    <div className="fixed inset-0 z-[10000] bg-black flex flex-col font-sans">
+                    <div className="fixed inset-0 z-[10000] bg-black flex flex-col font-sans overscroll-contain touch-none">
                         <div className="flex-1 relative bg-black overflow-hidden flex items-center justify-center">
                             {/* Main Video Container */}
                             <div
@@ -338,6 +389,23 @@ export const VideoCallModal = () => {
                                 className="w-full h-full"
                                 style={{ transform: isSwapped ? 'scaleX(-1)' : '' }}
                             />
+
+                            {/* Camera Off Overlay (Main Viewer) */}
+                            {((!isSwapped && !callState.remoteVideoTrack) || (isSwapped && callState.isCameraOff)) && (
+                                <div className="absolute inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center gap-6 z-[5]">
+                                    <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center border border-white/10 ring-8 ring-white/[0.02]">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-center px-6">
+                                        <h4 className="text-white/40 text-xl font-bold tracking-tight uppercase">
+                                            {isSwapped ? 'Your Camera is Off' : `${callState.remoteUserName}'s Camera is Off`}
+                                        </h4>
+                                        <p className="text-white/20 text-sm mt-1 font-medium">Video transmission paused</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Top Bar (Overlaid) */}
                             <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/70 to-transparent flex justify-between items-start z-10">
@@ -528,9 +596,22 @@ export const VideoCallModal = () => {
                         {/* Main Video in Mini Mode */}
                         <div
                             ref={remoteVideoRef}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full"
                             style={{ transform: isSwapped ? 'scaleX(-1)' : '' }}
                         />
+
+                        {/* WAITING FOR PARTNER OVERLAY (Mini Mode) */}
+                        {callState.isPeerDisconnected && (
+                            <div className="absolute inset-0 z-[50] bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 animate-in fade-in">
+                                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3 relative">
+                                    <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-full animate-ping"></div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white/50" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <p className="text-white font-bold text-xs uppercase tracking-tighter">Waiting for partner...</p>
+                            </div>
+                        )}
 
                         {/* PiP Video in Mini Mode - At Bottom Right */}
                         <button
@@ -640,7 +721,7 @@ export const VideoCallModal = () => {
         // Rejoining UI - waiting for backend to send REJOIN_PROCEED
         if (callState.status === 'rejoining') {
             return (
-                <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-in fade-in">
+                <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-in fade-in overscroll-contain touch-none">
                     <div className="bg-gray-900 border border-white/10 rounded-[2.5rem] p-10 max-w-sm w-full mx-4 text-center shadow-[0_30px_100px_rgba(0,0,0,0.8)] relative overflow-hidden">
                         {/* Decorative background element */}
                         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
@@ -684,21 +765,10 @@ export const VideoCallModal = () => {
             console.log('   - canRejoinFromServer:', callState.canRejoinFromServer);
             console.log('   - Can Rejoin (computed):', canRejoin);
 
-            // Auto-close effect for permanent end
-            useEffect(() => {
-                if (!canRejoin && callState.status === 'ended') {
-                    console.log('⏰ Setting 5-second auto-close timer for permanent end');
-                    const timer = setTimeout(() => {
-                        console.log('⏰ Auto-closing modal and returning to dashboard');
-                        closeModal();
-                    }, 5000);
-
-                    return () => clearTimeout(timer);
-                }
-            }, [canRejoin, callState.status, closeModal]);
+            // Auto-close logic moved to top level hook
 
             return (
-                <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-in fade-in">
+                <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center backdrop-blur-xl transition-all duration-500 animate-in fade-in overscroll-contain touch-none">
                     <div className="bg-gray-900 border border-white/10 rounded-[2.5rem] p-10 max-w-sm w-full mx-4 text-center shadow-[0_30px_100px_rgba(0,0,0,0.8)] relative overflow-hidden group">
                         {/* Decorative background element */}
                         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />

@@ -1,6 +1,8 @@
-import * as userService from '../../services/user/userService.js';
 import User from '../../models/User.js';
 import { calculateDistance, formatDistance } from '../../utils/distanceCalculator.js';
+import memoryCache, { CACHE_TTL } from '../../core/cache/memoryCache.js';
+import * as userService from '../../services/user/userService.js';
+import { NotFoundError } from '../../utils/errors.js';
 
 export const resubmitVerification = async (req, res, next) => {
     try {
@@ -20,15 +22,10 @@ export const resubmitVerification = async (req, res, next) => {
 
 export const getProfile = async (req, res, next) => {
     try {
-        // Use lean() for faster read-only profile fetch
-        const user = await User.findById(req.user.id).lean();
-        if (!user) {
-            const { NotFoundError } = await import('../../utils/errors.js');
-            throw new NotFoundError('User not found');
-        }
+        // req.user is already populated by auth middleware
         res.status(200).json({
             status: 'success',
-            data: { user }
+            data: { user: req.user }
         });
     } catch (error) {
         next(error);
@@ -53,7 +50,6 @@ export const deleteAccount = async (req, res, next) => {
         const user = await User.findById(userId);
 
         if (!user) {
-            const { NotFoundError } = await import('../../utils/errors.js');
             throw new NotFoundError('User not found');
         }
 
@@ -78,11 +74,10 @@ export const deleteAccount = async (req, res, next) => {
             };
         }
 
-        user.phoneNumber = `deleted_${user._id}_${Date.now()}`; // Allow phone number reuse if needed
+        user.phoneNumber = `deleted_${user._id}_${Date.now()}`; // Allow phone number reuse
+        await user.save({ validateBeforeSave: false });
 
-        await user.save();
-
-        // Handle cascading deactivation (e.g., mark chats as inactive)
+        // Handle cascading deactivation (mark chats as inactive)
         const { default: relationshipManager } = await import('../../core/relationships/relationshipManager.js');
         await relationshipManager.handleCascadeDelete(userId, 'user');
 
@@ -104,8 +99,6 @@ export const discoverFemales = async (req, res, next) => {
         const cacheKey = `discover:females:${req.user.id}:${filter}:${page}:${limit}:${language}`;
 
         // Try cache first (but only for first page to keep it fresh)
-        const { default: memoryCache, CACHE_TTL } = await import('../../core/cache/memoryCache.js');
-
         if (parseInt(page) === 1) {
             const cached = memoryCache.get(cacheKey);
             if (cached) {
@@ -119,27 +112,22 @@ export const discoverFemales = async (req, res, next) => {
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        // Get current user's blocked list and coordinates in one query
-        const currentUser = await User.findById(req.user.id).select('blockedUsers profile.location.coordinates phoneNumber').lean();
-        console.log('[DISCOVER-DEBUG] Current user:', req.user.id, 'Phone:', currentUser?.phoneNumber);
-
+        // Use data from already authenticated req.user
+        const currentUser = req.user;
         const blockedUserIds = currentUser?.blockedUsers || [];
-        console.log('[DISCOVER-DEBUG] Blocked users count:', blockedUserIds.length);
-
         const currentUserCoords = currentUser?.profile?.location?.coordinates?.coordinates;
         const hasCurrentUserCoords = currentUserCoords && currentUserCoords[0] !== 0 && currentUserCoords[1] !== 0;
 
-        // Find users who have blocked the current user
+        // Find users who have blocked the current user (using index on blockedUsers)
         const usersWhoBlockedMe = await User.find({
-            blockedUsers: req.user.id
+            blockedUsers: currentUser._id
         }).select('_id').lean();
         const blockerIds = usersWhoBlockedMe.map(u => u._id);
-        console.log('[DISCOVER-DEBUG] Users who blocked me count:', blockerIds.length);
 
         const query = {
             _id: {
-                $ne: req.user.id, // Exclude current user
-                $nin: [...blockedUserIds, ...blockerIds] // Exclude blocked users and users who blocked me
+                $ne: currentUser._id,
+                $nin: [...blockedUserIds, ...blockerIds]
             },
             role: 'female',
             approvalStatus: 'approved',
@@ -148,14 +136,8 @@ export const discoverFemales = async (req, res, next) => {
             isDeleted: false,
         };
 
-        console.log('[DISCOVER-DEBUG] Query:', JSON.stringify(query, null, 2));
-
-        // Count total matching users before applying filters
-        const totalMatchingUsers = await User.countDocuments(query);
-        console.log('[DISCOVER-DEBUG] Total matching users:', totalMatchingUsers);
-
         // Filter and Sort options
-        let sortOption = { isOnline: -1, lastSeen: -1 }; // Default: "Recommend" (Online first, then recently seen)
+        let sortOption = { isOnline: -1, lastSeen: -1 };
 
         if (filter === 'online') {
             query.isOnline = true;
@@ -165,36 +147,29 @@ export const discoverFemales = async (req, res, next) => {
         } else if (filter === 'popular') {
             sortOption = { coinBalance: -1, lastSeen: -1 };
         } else if (filter === 'all') {
-            // Recommend: Online users at top, then by lastSeen
             sortOption = { isOnline: -1, lastSeen: -1 };
         }
 
-        // CRITICAL: Select correct language fields based on user preference
-        // This uses cached translations from DB (no API calls!)
         const nameField = language === 'hi' ? 'profile.name_hi' : 'profile.name_en';
         const bioField = language === 'hi' ? 'profile.bio_hi' : 'profile.bio_en';
 
-        // Use lean() for faster read-only queries
-        // Include coordinates for distance calculation (but DON'T send to frontend)
-        // Also select original name and bio as fallbacks
-        const users = await User.find(query)
-            .select(`profile.name profile.bio ${nameField} ${bioField} profile.age profile.photos profile.occupation profile.location isOnline lastSeen createdAt`)
-            .sort(sortOption)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .lean();
-
-        console.log('[DISCOVER-DEBUG] Users found after query:', users.length);
+        // Parallel execution of count and find
+        const [users, total] = await Promise.all([
+            User.find(query)
+                .select(`profile.name profile.bio ${nameField} ${bioField} profile.age profile.photos profile.occupation profile.location isOnline lastSeen createdAt`)
+                .sort(sortOption)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .lean(),
+            User.countDocuments(query)
+        ]);
 
         // Transform for frontend
         const profiles = users.map(user => {
             let distanceFormatted = 'Location not set';
-
-            // Get user coordinates from GeoJSON format [lng, lat]
             const userCoords = user.profile?.location?.coordinates?.coordinates;
             const hasUserCoords = userCoords && userCoords[0] !== 0 && userCoords[1] !== 0;
 
-            // Calculate distance if both users have coordinates
             if (hasCurrentUserCoords && hasUserCoords) {
                 const distanceKm = calculateDistance(
                     { lat: currentUserCoords[1], lng: currentUserCoords[0] },
@@ -203,8 +178,6 @@ export const discoverFemales = async (req, res, next) => {
                 distanceFormatted = formatDistance(distanceKm);
             }
 
-            // CRITICAL: Return cached translation based on language preference
-            // No API calls - falling back to original if translation is missing
             const name = (language === 'hi' ? user.profile?.name_hi : user.profile?.name_en) || user.profile?.name;
             const bio = (language === 'hi' ? user.profile?.bio_hi : user.profile?.bio_en) || user.profile?.bio;
 
@@ -215,14 +188,11 @@ export const discoverFemales = async (req, res, next) => {
                 avatar: user.profile?.photos?.[0]?.url || null,
                 bio: bio,
                 occupation: user.profile?.occupation,
-                // REMOVED: location: user.profile?.location?.city, // Privacy: don't send exact location
                 isOnline: user.isOnline,
-                distance: distanceFormatted, // Send formatted distance instead
+                distance: distanceFormatted,
                 chatCost: 50,
             };
         });
-
-        const total = await User.countDocuments(query);
 
         const responseData = {
             profiles,
@@ -234,7 +204,7 @@ export const discoverFemales = async (req, res, next) => {
             }
         };
 
-        // Cache first page for 30 seconds
+        // Cache first page
         if (parseInt(page) === 1) {
             memoryCache.set(cacheKey, responseData, CACHE_TTL.DISCOVER);
         }
@@ -278,23 +248,20 @@ export const getUserById = async (req, res, next) => {
             });
         }
 
-        // Get current user's coordinates for distance calculation
-        const currentUser = await User.findById(req.user.id).select('profile.location role').lean();
+        // Use req.user from auth middleware
+        const currentUser = req.user;
         const currentUserCoords = currentUser?.profile?.location?.coordinates?.coordinates;
         const hasCurrentUserCoords = currentUserCoords && currentUserCoords[0] !== 0 && currentUserCoords[1] !== 0;
 
         let distanceFormatted = 'Location not set';
         let exactLocation = null;
 
-        // Get target user's coordinates from GeoJSON format
         const targetUserCoords = user.profile?.location?.coordinates?.coordinates;
         const hasTargetUserCoords = targetUserCoords && targetUserCoords[0] !== 0 && targetUserCoords[1] !== 0;
 
-        // Admins see exact location (for verification purposes)
         if (currentUser?.role === 'admin') {
             exactLocation = user.profile?.location?.city || null;
         } else if (hasCurrentUserCoords && hasTargetUserCoords) {
-            // Regular users see distance - GeoJSON is [lng, lat]
             const distanceKm = calculateDistance(
                 { lat: currentUserCoords[1], lng: currentUserCoords[0] },
                 { lat: targetUserCoords[1], lng: targetUserCoords[0] }
@@ -314,12 +281,10 @@ export const getUserById = async (req, res, next) => {
                     bio: user.profile?.bio,
                     occupation: user.profile?.occupation,
                     city: user.profile?.location?.city || '',
-                    // Admins see exact location, others see distance
                     ...(currentUser?.role === 'admin' ? { location: exactLocation } : { distance: distanceFormatted }),
                     interests: user.profile?.interests || [],
                     isOnline: user.isOnline,
                     lastSeen: user.lastSeen,
-                    // Include these fields for admin review
                     phoneNumber: currentUser?.role === 'admin' ? user.phoneNumber : undefined,
                     role: user.role,
                     approvalStatus: user.approvalStatus,

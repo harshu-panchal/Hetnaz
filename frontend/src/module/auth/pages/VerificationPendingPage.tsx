@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { useAuth } from '../../../core/context/AuthContext';
 import { useState, useRef, useEffect } from 'react';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import axios from 'axios';
 import { getAuthToken } from '../../../core/utils/auth';
 import { useTranslation } from '../../../core/hooks/useTranslation';
@@ -12,6 +13,7 @@ export const VerificationPendingPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const { addNotification } = useGlobalState();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
@@ -29,6 +31,11 @@ export const VerificationPendingPage = () => {
     }, [user, navigate]);
 
     const handleLogout = () => {
+        addNotification({
+            title: t('logoutSuccess') || 'Logged Out',
+            message: t('logoutSuccessMessage') || 'You have been successfully logged out.',
+            type: 'system'
+        });
         logout();
         navigate('/login');
     };

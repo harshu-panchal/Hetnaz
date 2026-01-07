@@ -72,7 +72,10 @@ export const ProfileHeader = ({ user, onEditClick }: ProfileHeaderProps) => {
   return (
     <div className="flex items-center justify-between p-4 pt-8">
       <div className="flex items-center gap-4">
-        <div className="relative">
+        <div
+          className="relative cursor-pointer active:scale-95 transition-transform"
+          onClick={onEditClick}
+        >
           <div
             className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border-4 border-pink-300 dark:border-pink-600 shadow-lg ring-2 ring-pink-200/50 dark:ring-pink-900/30"
             style={{ backgroundImage: `url("${user.avatar}")` }}

@@ -55,7 +55,8 @@ export const requestSignupOtp = async (req, res, next) => {
 export const verifySignupOtp = async (req, res, next) => {
     try {
         const { phoneNumber, otp } = req.body;
-        const newUser = await authService.verifySignupOtp(phoneNumber, otp);
+        const io = req.app.get('io');
+        const newUser = await authService.verifySignupOtp(phoneNumber, otp, io);
         const token = authService.generateToken(newUser._id);
 
         newUser.password = undefined;

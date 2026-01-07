@@ -1,13 +1,11 @@
 /**
- * Socket.IO Chat Handlers - Real-time Messaging
- * @owner: Harsh (Chat Domain)
- * @purpose: Handle real-time chat events with Socket.IO
+ * Socket.IO Chat Handlers - Real-time Messaging (PERFORMANCE OPTIMIZED)
  * 
- * Online Status Management:
- * - Uses heartbeat mechanism (ping every 30s)
- * - Marks users offline if no heartbeat for 60s
- * - Supports multiple tabs/devices per user
- * - Runs cleanup every 60s to mark stale users offline
+ * KEY FIXES:
+ * 1. Single socket per user - disconnects old sockets on new connection
+ * 2. No DB calls during connection (deferred to background)
+ * 3. Minimal logging 
+ * 4. Optimized cleanup
  */
 
 import jwt from 'jsonwebtoken';
@@ -19,364 +17,189 @@ import { getEnvConfig } from '../config/env.js';
 
 const { jwtSecret } = getEnvConfig();
 
-// Store active users: { oderId: Set<socketId> } - supports multiple tabs
-const activeUsers = new Map();
-
-// Store last heartbeat: { oderId: timestamp }
+// Single socket per user (NOT multi-tab friendly, but prevents storms)
+const activeUsers = new Map(); // userId -> socketId
 const lastHeartbeat = new Map();
-
-// Heartbeat timeout in ms (mark offline if no heartbeat within this time)
-const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
-
-// Cleanup interval - check for stale connections
-const CLEANUP_INTERVAL = 60000; // 60 seconds
+const HEARTBEAT_TIMEOUT = 60000;
+const CLEANUP_INTERVAL = 60000;
 
 /**
- * Authenticate Socket.IO connection
+ * Authenticate Socket.IO connection (FAST - no DB call)
  */
 export const authenticateSocket = async (socket, next) => {
     try {
         const token = socket.handshake.auth.token;
+        if (!token) return next(new Error('No token'));
 
-        if (!token) {
-            return next(new Error('Authentication error: No token provided'));
-        }
-
-        // Verify JWT token
         const decoded = jwt.verify(token, jwtSecret);
-
-        // Get user
-        const user = await User.findById(decoded.id);
-        if (!user || !user.isActive) {
-            return next(new Error('Authentication error: Invalid user'));
-        }
-
-        // Attach user to socket
-        socket.userId = user._id.toString();
-        socket.userRole = user.role;
-
+        socket.userId = decoded.id;
+        socket.userRole = decoded.role || 'unknown';
         next();
     } catch (error) {
-        logger.error('Socket.IO authentication error:', error);
-        next(new Error('Authentication error'));
+        next(new Error('Auth error'));
     }
 };
 
 /**
- * Setup Socket.IO chat handlers
+ * Setup Socket.IO chat handlers (SINGLETON-ENFORCED)
  */
 export const setupChatHandlers = (io) => {
-    // Start periodic cleanup of stale connections
-    setInterval(() => {
-        cleanupStaleConnections(io);
-    }, CLEANUP_INTERVAL);
+    // Cleanup interval (runs once globally)
+    setInterval(() => cleanupStaleConnections(io), CLEANUP_INTERVAL);
 
     io.on('connection', (socket) => {
         const userId = socket.userId;
-        logger.info(`✅ User connected: ${userId} (${socket.id})`);
 
-        // Add socket to user's active sockets (supports multiple tabs)
-        if (!activeUsers.has(userId)) {
-            activeUsers.set(userId, new Set());
+        // DEDUPE: Disconnect any existing socket for this user
+        const existingSocketId = activeUsers.get(userId);
+        if (existingSocketId && existingSocketId !== socket.id) {
+            const existingSocket = io.sockets.sockets.get(existingSocketId);
+            if (existingSocket) {
+                existingSocket.disconnect(true);
+            }
         }
-        activeUsers.get(userId).add(socket.id);
 
-        // Record heartbeat
+        // Register this socket
+        activeUsers.set(userId, socket.id);
         lastHeartbeat.set(userId, Date.now());
-
-        // Join user's personal room (for direct user-to-user events like video calls)
         socket.join(userId);
-        logger.info(`📞 User ${userId} joined personal room`);
 
-        // Update user online status
-        User.findByIdAndUpdate(userId, {
-            isOnline: true,
-            socketId: socket.id,
-            lastSeen: new Date(),
-        }).catch(err => logger.error('Error updating online status:', err));
-
-        // Broadcast to contacts that user is online
-        socket.broadcast.emit('user:online', { userId });
-
-        // ====================
-        // HEARTBEAT - Client pings to confirm still connected
-        // ====================
-        socket.on('heartbeat', () => {
-            lastHeartbeat.set(userId, Date.now());
-            // Also update lastSeen in DB (but not too frequently - every 30s is fine)
-            User.findByIdAndUpdate(userId, {
-                lastSeen: new Date(),
-            }).catch(() => { }); // Silent fail is ok for heartbeat
+        // Background DB update (non-blocking)
+        setImmediate(() => {
+            User.findByIdAndUpdate(userId, { isOnline: true, socketId: socket.id, lastSeen: new Date() }).catch(() => { });
         });
 
-        // ====================
-        // JOIN CHAT ROOM
-        // ====================
+        // Broadcast online (lightweight)
+        socket.broadcast.emit('user:online', { userId });
+
+        // HEARTBEAT
+        socket.on('heartbeat', () => {
+            lastHeartbeat.set(userId, Date.now());
+        });
+
+        // JOIN CHAT
         socket.on('chat:join', async (data) => {
             try {
                 const { chatId } = data;
-
-                // Verify user is part of this chat
-                const chat = await Chat.findOne({
-                    _id: chatId,
-                    'participants.userId': userId
-                });
-
-                if (!chat) {
-                    return socket.emit('error', { message: 'Chat not found' });
-                }
-
-                // Join room
+                const chat = await Chat.findOne({ _id: chatId, 'participants.userId': userId }).lean();
+                if (!chat) return socket.emit('error', { message: 'Chat not found' });
                 socket.join(`chat:${chatId}`);
-                logger.info(`User ${userId} joined chat ${chatId}`);
-
                 socket.emit('chat:joined', { chatId });
-            } catch (error) {
-                logger.error('Error joining chat:', error);
+            } catch (e) {
                 socket.emit('error', { message: 'Failed to join chat' });
             }
         });
 
-        // ====================
-        // LEAVE CHAT ROOM
-        // ====================
+        // LEAVE CHAT
         socket.on('chat:leave', (data) => {
-            const { chatId } = data;
-            socket.leave(`chat:${chatId}`);
-            logger.info(`User ${userId} left chat ${chatId}`);
+            socket.leave(`chat:${data.chatId}`);
         });
 
-        // ====================
-        // TYPING INDICATOR
-        // ====================
-        socket.on('chat:typing', async (data) => {
-            try {
-                const { chatId, isTyping } = data;
-
-                // Broadcast to other user in chat
-                socket.to(`chat:${chatId}`).emit('chat:typing', {
-                    chatId,
-                    userId,
-                    isTyping,
-                });
-            } catch (error) {
-                logger.error('Error handling typing:', error);
-            }
+        // TYPING
+        socket.on('chat:typing', (data) => {
+            socket.to(`chat:${data.chatId}`).emit('chat:typing', { chatId: data.chatId, userId, isTyping: data.isTyping });
         });
 
-        // ====================
-        // REAL-TIME MESSAGE RECEIVED (from REST API)
-        // ====================
-        // This is called by the message controller after saving to DB
+        // MESSAGE BROADCAST
         socket.on('message:broadcast', async (data) => {
             try {
                 const { chatId, messageId } = data;
-
-                // Get message
-                const message = await Message.findById(messageId)
-                    .populate('senderId', 'profile')
-                    .populate('receiverId', 'profile');
-
+                const message = await Message.findById(messageId).populate('senderId', 'profile').populate('receiverId', 'profile').lean();
                 if (!message) return;
 
-                // Broadcast to chat room
-                io.to(`chat:${chatId}`).emit('message:new', {
-                    message,
-                    chatId,
-                });
+                io.to(`chat:${chatId}`).emit('message:new', { message, chatId });
 
-                // Send to receiver if online but not in chat room
-                const receiverSockets = activeUsers.get(message.receiverId._id.toString());
-                if (receiverSockets) {
-                    receiverSockets.forEach(socketId => {
-                        io.to(socketId).emit('message:notification', {
-                            chatId,
-                            message,
-                        });
-                    });
+                const receiverSocketId = activeUsers.get(message.receiverId?._id?.toString());
+                if (receiverSocketId) {
+                    io.to(receiverSocketId).emit('message:notification', { chatId, message });
                 }
-            } catch (error) {
-                logger.error('Error broadcasting message:', error);
+            } catch (e) {
+                logger.error('Broadcast error:', e);
             }
         });
 
-        // ====================
-        // MARK MESSAGE AS READ
-        // ====================
+        // READ
         socket.on('message:read', async (data) => {
             try {
-                const { messageId, chatId } = data;
-
-                // Update message
-                await Message.findByIdAndUpdate(messageId, {
-                    status: 'read',
-                    readAt: new Date(),
-                });
-
-                // Notify sender
-                socket.to(`chat:${chatId}`).emit('message:read', {
-                    messageId,
-                    chatId,
-                    readBy: userId,
-                });
-            } catch (error) {
-                logger.error('Error marking message as read:', error);
-            }
+                await Message.findByIdAndUpdate(data.messageId, { status: 'read', readAt: new Date() });
+                socket.to(`chat:${data.chatId}`).emit('message:read', { messageId: data.messageId, chatId: data.chatId, readBy: userId });
+            } catch (e) { }
         });
 
-        // ====================
-        // BALANCE UPDATE (for real-time coin display)
-        // ====================
+        // BALANCE REQUEST
         socket.on('balance:request', async () => {
             try {
-                const user = await User.findById(userId).select('coinBalance');
-                socket.emit('balance:update', {
-                    balance: user.coinBalance,
-                });
-            } catch (error) {
-                logger.error('Error fetching balance:', error);
-            }
+                const user = await User.findById(userId).select('coinBalance').lean();
+                socket.emit('balance:update', { balance: user?.coinBalance || 0 });
+            } catch (e) { }
         });
 
-        // ====================
         // DISCONNECT
-        // ====================
-        socket.on('disconnect', async () => {
-            try {
-                logger.info(`User disconnected: ${userId} (${socket.id})`);
+        socket.on('disconnect', () => {
+            // Only mark offline if this is the current active socket
+            if (activeUsers.get(userId) === socket.id) {
+                activeUsers.delete(userId);
+                lastHeartbeat.delete(userId);
 
-                // Remove this socket from user's active sockets
-                const userSockets = activeUsers.get(userId);
-                if (userSockets) {
-                    userSockets.delete(socket.id);
+                setImmediate(() => {
+                    User.findByIdAndUpdate(userId, { isOnline: false, socketId: null, lastSeen: new Date() }).catch(() => { });
+                });
 
-                    // Only mark offline if NO sockets remain (all tabs closed)
-                    if (userSockets.size === 0) {
-                        activeUsers.delete(userId);
-                        lastHeartbeat.delete(userId);
-
-                        // Update user offline status
-                        await User.findByIdAndUpdate(userId, {
-                            isOnline: false,
-                            socketId: null,
-                            lastSeen: new Date(),
-                        });
-
-                        // Broadcast to contacts that user is offline
-                        socket.broadcast.emit('user:offline', {
-                            userId,
-                            lastSeen: new Date(),
-                        });
-
-                        logger.info(`User ${userId} marked offline (all connections closed)`);
-                    } else {
-                        logger.info(`User ${userId} still has ${userSockets.size} active connection(s)`);
-                    }
-                }
-            } catch (error) {
-                logger.error('Error handling disconnect:', error);
+                socket.broadcast.emit('user:offline', { userId, lastSeen: new Date() });
             }
         });
     });
+
+    logger.info('✅ Socket.IO handlers initialized (Optimized)');
 };
 
 /**
- * Cleanup stale connections - runs periodically
- * Marks users as offline if no heartbeat received within timeout
+ * Cleanup stale connections
  */
 const cleanupStaleConnections = async (io) => {
     const now = Date.now();
     const staleUsers = [];
 
     for (const [userId, lastBeat] of lastHeartbeat.entries()) {
-        if (now - lastBeat > HEARTBEAT_TIMEOUT) {
-            staleUsers.push(userId);
-        }
+        if (now - lastBeat > HEARTBEAT_TIMEOUT) staleUsers.push(userId);
     }
 
     for (const userId of staleUsers) {
-        try {
-            logger.info(`🧹 Cleaning up stale connection for user ${userId}`);
-
-            // Get and disconnect all sockets for this user
-            const userSockets = activeUsers.get(userId);
-            if (userSockets) {
-                userSockets.forEach(socketId => {
-                    const socket = io.sockets.sockets.get(socketId);
-                    if (socket) {
-                        socket.disconnect(true);
-                    }
-                });
-            }
-
-            // Clean up tracking
-            activeUsers.delete(userId);
-            lastHeartbeat.delete(userId);
-
-            // Mark user as offline in DB
-            await User.findByIdAndUpdate(userId, {
-                isOnline: false,
-                socketId: null,
-                lastSeen: new Date(),
-            });
-
-            // Broadcast offline status
-            io.emit('user:offline', { userId, lastSeen: new Date() });
-        } catch (error) {
-            logger.error(`Error cleaning up stale connection for ${userId}:`, error);
+        const socketId = activeUsers.get(userId);
+        if (socketId) {
+            const socket = io.sockets.sockets.get(socketId);
+            if (socket) socket.disconnect(true);
         }
-    }
+        activeUsers.delete(userId);
+        lastHeartbeat.delete(userId);
 
-    if (staleUsers.length > 0) {
-        logger.info(`🧹 Cleaned up ${staleUsers.length} stale connection(s)`);
+        setImmediate(() => {
+            User.findByIdAndUpdate(userId, { isOnline: false, socketId: null, lastSeen: new Date() }).catch(() => { });
+        });
+
+        io.emit('user:offline', { userId, lastSeen: new Date() });
     }
 };
 
-/**
- * Emit balance update to user (called from transaction controller)
- */
+// Export helpers
 export const emitBalanceUpdate = (io, userId, newBalance) => {
-    const userSockets = activeUsers.get(userId);
-    if (userSockets) {
-        userSockets.forEach(socketId => {
-            io.to(socketId).emit('balance:update', {
-                balance: newBalance,
-            });
-        });
-    }
+    const socketId = activeUsers.get(userId);
+    if (socketId) io.to(socketId).emit('balance:update', { balance: newBalance });
 };
 
-/**
- * Emit new message to chat (called from message controller)
- */
 export const emitNewMessage = (io, chatId, message) => {
-    const chatIdStr = chatId.toString();
-    io.to(`chat:${chatIdStr}`).emit('message:new', {
-        chatId: chatIdStr,
-        message,
-    });
-
-    // Also notify receiver if they're online but not in chat
-    const receiverSockets = activeUsers.get(message.receiverId.toString());
-    if (receiverSockets) {
-        receiverSockets.forEach(socketId => {
-            io.to(socketId).emit('message:notification', {
-                chatId,
-                message,
-            });
-        });
-    }
+    io.to(`chat:${chatId}`).emit('message:new', { chatId, message });
+    const receiverId = (message.receiverId?._id || message.receiverId || '').toString();
+    const socketId = activeUsers.get(receiverId);
+    if (socketId) io.to(socketId).emit('message:notification', { chatId, message });
 };
 
-/**
- * Check if user is truly online (has active sockets with recent heartbeat)
- */
 export const isUserOnline = (userId) => {
-    const userSockets = activeUsers.get(userId);
-    if (!userSockets || userSockets.size === 0) return false;
-
     const lastBeat = lastHeartbeat.get(userId);
-    if (!lastBeat) return false;
+    return lastBeat && (Date.now() - lastBeat) < HEARTBEAT_TIMEOUT;
+};
 
-    return (Date.now() - lastBeat) < HEARTBEAT_TIMEOUT;
+export const emitNotification = (io, userId, notification) => {
+    const socketId = activeUsers.get(userId.toString());
+    if (socketId) io.to(socketId).emit('notification:new', { notification });
 };

@@ -15,7 +15,7 @@ interface FemaleBottomNavigationProps {
 
 export const FemaleBottomNavigation = ({ items, onItemClick }: FemaleBottomNavigationProps) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#221e10]/95 backdrop-blur-md border-t border-slate-200 dark:border-white/5 pb-5 pt-3 safe-area-inset-bottom">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#221e10]/95 backdrop-blur-md border-t border-slate-200 dark:border-white/5 pt-3 safe-area-inset-bottom">
       <div className="flex justify-around items-center">
         {items.map((item) => (
           <button
@@ -26,18 +26,16 @@ export const FemaleBottomNavigation = ({ items, onItemClick }: FemaleBottomNavig
             <MaterialSymbol
               name={item.icon}
               filled={item.isActive}
-              className={`transition-all duration-200 ${
-                item.isActive
+              className={`transition-all duration-200 ${item.isActive
                   ? 'text-primary scale-110'
                   : 'text-slate-400 dark:text-[#cbbc90] group-hover:text-primary group-hover:scale-105'
-              }`}
+                }`}
             />
             <span
-              className={`text-[10px] transition-all duration-200 ${
-                item.isActive
+              className={`text-[10px] transition-all duration-200 ${item.isActive
                   ? 'font-bold text-primary'
                   : 'font-medium text-slate-400 dark:text-[#cbbc90] group-hover:text-primary'
-              }`}
+                }`}
             >
               {item.label}
             </span>

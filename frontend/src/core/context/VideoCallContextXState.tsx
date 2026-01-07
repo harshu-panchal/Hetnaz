@@ -69,6 +69,36 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
         };
     }, [send]);
 
+    // ==================== GLOBAL CLEANUP (Prevent Blackout) ====================
+    // This ensures resources are cleaned up on page unload, visibility change, or navigation
+
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            console.log('📞 [XState] Unload triggered - emergency cleanup');
+            agoraManager.fullCleanup();
+            audioManagerXState.stopRingtone();
+        };
+
+        const handleVisibilityChange = () => {
+            // If page becomes hidden while in ended state, cleanup immediately
+            if (document.hidden && state.value === 'ended') {
+                console.log('📞 [XState] Page hidden while ended - cleanup');
+                agoraManager.fullCleanup();
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            // Component unmount - full cleanup
+            agoraManager.fullCleanup();
+            audioManagerXState.stopRingtone();
+        };
+    }, [state.value]);
+
     // ==================== AGORA JOIN HANDLER ====================
     // Separate effect for Agora joining to handle race conditions
 
@@ -170,22 +200,38 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
                 appId: state.context.agoraAppId!,
             };
 
-            await agoraManager.joinChannel(credentials, (user, mediaType) => {
-                // Handle remote user publishing
-                if (mediaType === 'video') {
-                    send({
-                        type: 'REMOTE_TRACK_UPDATED',
-                        videoTrack: user.videoTrack,
-                    });
+            await agoraManager.joinChannel(
+                credentials,
+                (user, mediaType) => {
+                    // Handle remote user publishing
+                    if (mediaType === 'video') {
+                        send({
+                            type: 'REMOTE_TRACK_UPDATED',
+                            videoTrack: user.videoTrack,
+                        });
+                    }
+                    if (mediaType === 'audio') {
+                        send({
+                            type: 'REMOTE_TRACK_UPDATED',
+                            audioTrack: user.audioTrack,
+                        });
+                        user.audioTrack?.play();
+                    }
+                },
+                (_, mediaType) => {
+                    // Handle remote user unpublishing
+                    if (mediaType === 'video') {
+                        send({ type: 'REMOTE_TRACK_UPDATED', videoTrack: null });
+                    }
+                    if (mediaType === 'audio') {
+                        send({ type: 'REMOTE_TRACK_UPDATED', audioTrack: null });
+                    }
+                },
+                () => {
+                    // Handle remote user left
+                    send({ type: 'REMOTE_USER_LEFT' });
                 }
-                if (mediaType === 'audio') {
-                    send({
-                        type: 'REMOTE_TRACK_UPDATED',
-                        audioTrack: user.audioTrack,
-                    });
-                    user.audioTrack?.play();
-                }
-            });
+            );
 
             // Notify backend of successful connection
             if (state.context.callId) {

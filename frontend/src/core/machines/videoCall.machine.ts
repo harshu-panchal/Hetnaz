@@ -476,7 +476,8 @@ export const videoCallMachine = setup({
                 END_CALL: {
                     target: 'ended',
                     actions: assign({
-                        canRejoin: ({ context }) => context.remainingTime > 10 && !context.wasRejoined,
+                        // Intentional end by user is always a hard end
+                        canRejoin: () => false,
                     }),
                 },
                 CALL_ENDED: {

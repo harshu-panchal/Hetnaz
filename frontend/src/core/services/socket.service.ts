@@ -21,28 +21,34 @@ class SocketService {
     private currentChatId: string | null = null;
 
     /**
-     * Connect to Socket.IO server
+     * Connect to Socket.IO server (SINGLETON - one connection per session)
      */
     connect() {
         const token = localStorage.getItem('matchmint_auth_token');
 
         if (!token) {
-            console.error('No auth token found');
             return;
         }
 
+        // CRITICAL: If already connected, do nothing
         if (this.socket?.connected) {
-            console.log('Socket already connected');
             return;
+        }
+
+        // CRITICAL: Disconnect any stale/pending socket before creating new
+        if (this.socket) {
+            this.socket.removeAllListeners();
+            this.socket.disconnect();
+            this.socket = null;
         }
 
         this.socket = io(SOCKET_URL, {
             auth: { token },
-            transports: ['websocket', 'polling'],
+            transports: ['websocket'],
             reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            reconnectionAttempts: 5,
+            reconnectionDelay: 2000,
+            reconnectionDelayMax: 10000,
+            reconnectionAttempts: 3,
         });
 
         this.socket.on('connect', () => {

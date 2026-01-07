@@ -34,7 +34,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle errors
+// Response interceptor - Handle errors and retries
 apiClient.interceptors.response.use(
   (response) => {
     return response;
@@ -42,9 +42,39 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Retry logic for timeout and network errors
+    if (
+      (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || !error.response) &&
+      !originalRequest._retry &&
+      ['get', 'head', 'options'].includes(originalRequest.method?.toLowerCase() || '')
+    ) {
+      originalRequest._retryCount = originalRequest._retryCount || 0;
+
+      // Retry up to 3 times
+      if (originalRequest._retryCount < 3) {
+        originalRequest._retryCount += 1;
+        originalRequest._retry = true;
+
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.pow(2, originalRequest._retryCount - 1) * 1000;
+
+        console.log(
+          `[API] ⏳ Retrying request (attempt ${originalRequest._retryCount}/3) after ${delay}ms...`
+        );
+
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        // Retry the request
+        return apiClient(originalRequest);
+      } else {
+        console.error('[API] ❌ All retry attempts failed');
+      }
+    }
+
     // Handle 401 Unauthorized - Token expired or invalid
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    if (error.response?.status === 401 && !originalRequest._authRetry) {
+      originalRequest._authRetry = true;
 
       // Remove invalid token
       removeAuthToken();

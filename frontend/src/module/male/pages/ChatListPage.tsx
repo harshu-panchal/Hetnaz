@@ -5,9 +5,7 @@ import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { SearchBar } from '../components/SearchBar';
 import { ChatListItem } from '../components/ChatListItem';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { EditChatModal } from '../components/EditChatModal';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
-import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import socketService from '../../../core/services/socket.service';
 import { useAuth } from '../../../core/context/AuthContext';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
@@ -18,11 +16,9 @@ export const ChatListPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
-  const { coinBalance } = useGlobalState();
   const { user } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [isEditChatOpen, setIsEditChatOpen] = useState(false);
 
   // Use optimized hook
   const { chats, isLoading, error, refreshChats } = useOptimizedChatList();
@@ -113,14 +109,6 @@ export const ChatListPage = () => {
     setSearchQuery(query);
   };
 
-  const handleEditClick = () => {
-    setIsEditChatOpen(true);
-  };
-
-  const handleCreateChat = (userId: string) => {
-    navigate(`/male/chat/${userId}`);
-  };
-
   const handleChatClick = (chatId: string) => {
     navigate(`/male/chat/${chatId}`);
   };
@@ -129,7 +117,7 @@ export const ChatListPage = () => {
     <div className="relative flex h-full min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-hidden pb-20">
       <div className="h-4 w-full bg-background-light dark:bg-background-dark shrink-0" />
 
-      <ChatListHeader coinBalance={coinBalance} onEditClick={handleEditClick} />
+      <ChatListHeader />
 
       <SearchBar placeholder={t('searchMatches')} onSearch={handleSearch} />
 
@@ -186,11 +174,6 @@ export const ChatListPage = () => {
 
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
 
-      <EditChatModal
-        isOpen={isEditChatOpen}
-        onClose={() => setIsEditChatOpen(false)}
-        onCreateChat={handleCreateChat}
-      />
     </div>
   );
 };

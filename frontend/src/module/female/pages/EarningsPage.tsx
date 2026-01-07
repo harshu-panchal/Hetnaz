@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
-import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import walletService from '../../../core/services/wallet.service';
 import type { Transaction } from '../../../core/types/wallet.types';
@@ -12,7 +11,7 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 export const EarningsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
+  const { navigationItems, handleNavigationClick } = useFemaleNavigation();
 
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const [balance, setBalance] = useState(0);
@@ -97,15 +96,7 @@ export const EarningsPage = () => {
   return (
     <div className="flex flex-col bg-background-light dark:bg-background-dark min-h-screen pb-20">
       {/* Top Navbar */}
-      <FemaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      {/* Sidebar */}
-      <FemaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <FemaleTopNavbar />
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-white/5">

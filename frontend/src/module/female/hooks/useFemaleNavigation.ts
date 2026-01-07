@@ -1,36 +1,55 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../../core/context/AuthContext';
+import { useChatList } from '../../../core/queries/useChatQuery';
 
 export const useFemaleNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const { user } = useAuth();
+  const { data: chats = [] } = useChatList();
+
+  // Calculate if there are any unread chats where the last message was NOT sent by me
+  const hasUnreadMessages = chats.some((chat: any) => {
+    const unreadCount = chat.unreadCount || 0;
+    if (unreadCount === 0) return false;
+
+    // Safety check for user identity
+    const currentUserId = user?.id || (user as any)?._id;
+    const lastMessageSenderId = typeof chat.lastMessage?.senderId === 'string'
+      ? chat.lastMessage?.senderId
+      : (chat.lastMessage?.senderId as any)?._id;
+
+    return lastMessageSenderId !== currentUserId;
+  });
 
   const navigationItems = [
-    { 
-      id: 'dashboard', 
-      icon: 'home', 
-      label: 'Home', 
-      isActive: location.pathname === '/female/dashboard' 
+    {
+      id: 'dashboard',
+      icon: 'home',
+      label: 'Home',
+      isActive: location.pathname === '/female/dashboard'
     },
-    { 
-      id: 'chats', 
-      icon: 'chat_bubble', 
-      label: 'Chats', 
-      hasBadge: true,
-      isActive: location.pathname.startsWith('/female/chats') || location.pathname.startsWith('/female/chat/')
+    {
+      id: 'chats',
+      icon: 'chat_bubble',
+      label: 'Chats',
+      hasBadge: hasUnreadMessages,
+      // Include /female/profile/ (viewing other user's profile from chat context)
+      isActive: location.pathname.startsWith('/female/chats') || location.pathname.startsWith('/female/chat/') || location.pathname.startsWith('/female/profile/')
     },
-    { 
-      id: 'earnings', 
-      icon: 'account_balance_wallet', 
+    {
+      id: 'earnings',
+      icon: 'account_balance_wallet',
       label: 'Earnings',
       isActive: location.pathname === '/female/earnings' || location.pathname === '/female/withdrawal'
     },
-    { 
-      id: 'profile', 
-      icon: 'person', 
+    {
+      id: 'profile',
+      icon: 'person',
       label: 'Profile',
-      isActive: location.pathname === '/female/my-profile' || location.pathname.startsWith('/female/profile/')
+      // Only /female/my-profile for the user's own profile
+      isActive: location.pathname === '/female/my-profile'
     },
   ];
 
@@ -54,8 +73,6 @@ export const useFemaleNavigation = () => {
   };
 
   return {
-    isSidebarOpen,
-    setIsSidebarOpen,
     navigationItems,
     handleNavigationClick,
   };

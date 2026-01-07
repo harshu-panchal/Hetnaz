@@ -16,6 +16,8 @@ import dataValidation from '../../core/validation/dataValidation.js';
 import logger from '../../utils/logger.js';
 import { checkLevelUp, getLevelInfo } from '../../utils/intimacyLevel.js';
 import { emitNewMessage, emitBalanceUpdate } from '../../socket/chatHandlers.js';
+import chatNotificationService from '../../services/notification/chatNotification.service.js';
+import earningBatchService from '../../services/wallet/earningBatchService.js';
 
 // Helper functions to get costs from AppSettings
 const getMessageCost = async (userTier) => {
@@ -67,17 +69,14 @@ export const sendMessage = async (req, res, next) => {
             throw new NotFoundError('Chat not found');
         }
 
-        // Get receiver
-        const otherParticipant = chat.participants.find(
-            p => p.userId.toString() !== senderId
-        );
-        const receiverId = otherParticipant.userId;
-
-        // Block check
-        const [sender, receiver] = await Promise.all([
-            User.findById(senderId).select('blockedUsers memberTier profile'),
-            User.findById(receiverId).select('blockedUsers profile')
+        // 1. STAGE 1: Parallelize configuration and basic user checks (Fast)
+        const [sender, receiver, MESSAGE_COST] = await Promise.all([
+            User.findById(senderId).select('blockedUsers memberTier profile coinBalance'),
+            User.findById(receiverId).select('blockedUsers profile'),
+            (messageType === 'image' ? getImageMessageCost() : getMessageCost(req.user.memberTier))
         ]);
+
+        if (!sender || !receiver) throw new NotFoundError('User not found');
 
         if (sender.blockedUsers.some(id => id.toString() === receiverId.toString())) {
             throw new BadRequestError('You have blocked this user. Unblock to send messages.');
@@ -86,63 +85,49 @@ export const sendMessage = async (req, res, next) => {
             throw new BadRequestError('You cannot send messages to this user as you have been blocked.');
         }
 
-        // If sender is male, deduct coins
-        let transaction = null;
+        // If sender is male, deduct coins (ATOMICTALLY)
+        let updatedSender = null;
         if (req.user.role === 'male') {
-            // Get message cost based on type
-            const MESSAGE_COST = await (messageType === 'image' ? getImageMessageCost() : getMessageCost(sender.memberTier));
+            updatedSender = await User.findOneAndUpdate(
+                { _id: senderId, coinBalance: { $gte: MESSAGE_COST } },
+                { $inc: { coinBalance: -MESSAGE_COST } },
+                { new: true, lean: true, select: 'coinBalance' }
+            );
 
-            // Validate user has enough coins
-            await dataValidation.validateMessageSend(senderId, MESSAGE_COST);
+            if (!updatedSender) {
+                // If null, it means condition (balance >= cost) failed
+                throw new BadRequestError('Insufficient coin balance');
+            }
 
-            // Execute atomic transaction
-            const result = await transactionManager.executeTransaction([
-                async (session) => {
-                    // Deduct coins from sender
-                    const sender = await User.findById(senderId).session(session);
-                    const balanceBefore = sender.coinBalance;
-                    sender.coinBalance -= MESSAGE_COST;
-                    await sender.save({ session });
+            // ⚠️ Low Balance Warning (Fire-and-Forget)
+            if (updatedSender.coinBalance < 50 && updatedSender.coinBalance > 0) {
+                setImmediate(() => {
+                    chatNotificationService.notifyLowBalance(senderId, updatedSender.coinBalance)
+                        .catch(e => console.error('[LOW-BALANCE] Notification failed:', e));
+                });
+            }
 
-                    // Create transaction record for sender
-                    const senderTx = await Transaction.create([{
-                        userId: senderId,
-                        type: messageType === 'image' ? 'image_spent' : 'message_spent',
-                        direction: 'debit',
-                        amountCoins: MESSAGE_COST,
-                        status: 'completed',
-                        balanceBefore,
-                        balanceAfter: sender.coinBalance,
-                        relatedUserId: receiverId,
-                        relatedChatId: chatId,
-                        description: `${messageType === 'image' ? 'Image' : 'Message'} sent to user`,
-                    }], { session });
+            // 2. Batch Credit to Receiver (Optimized for performance)
+            earningBatchService.addEarning(receiverId, {
+                amount: MESSAGE_COST,
+                type: messageType === 'image' ? 'image_earned' : 'message_earned',
+                relatedUserId: senderId,
+                relatedChatId: chatId,
+                description: `${messageType === 'image' ? 'Image' : 'Message'} received`
+            });
 
-                    // Credit coins to receiver (female)
-                    const receiver = await User.findById(receiverId).session(session);
-                    const receiverBalanceBefore = receiver.coinBalance;
-                    receiver.coinBalance += MESSAGE_COST;
-                    await receiver.save({ session });
-
-                    // Create transaction record for receiver
-                    await Transaction.create([{
-                        userId: receiverId,
-                        type: messageType === 'image' ? 'image_earned' : 'message_earned',
-                        direction: 'credit',
-                        amountCoins: MESSAGE_COST,
-                        status: 'completed',
-                        balanceBefore: receiverBalanceBefore,
-                        balanceAfter: receiver.coinBalance,
-                        relatedUserId: senderId,
-                        relatedChatId: chatId,
-                        description: `${messageType === 'image' ? 'Image' : 'Message'} received from user`,
-                    }], { session });
-
-                    return { senderTx: senderTx[0], newBalance: sender.coinBalance };
-                }
-            ]);
-
-            transaction = result.senderTx;
+            // 3. Create Debit Transaction Record for Sender (Immediate)
+            Transaction.create({
+                userId: senderId,
+                type: messageType === 'image' ? 'image_spent' : 'message_spent',
+                direction: 'debit',
+                amountCoins: MESSAGE_COST,
+                status: 'completed',
+                balanceAfter: updatedSender.coinBalance,
+                relatedUserId: receiverId,
+                relatedChatId: chatId,
+                description: `${messageType === 'image' ? 'Image' : 'Message'} sent`
+            }).catch(err => console.error('[TX] Failed to save sender transaction log:', err));
         }
 
         // Create message
@@ -153,62 +138,82 @@ export const sendMessage = async (req, res, next) => {
             content: content || '',
             messageType,
             attachments,
-            status: 'sent',
-            transactionId: transaction?._id,
+            status: 'sent'
         });
 
-        // Update chat with intimacy tracking
-        // Only count MALE messages for intimacy level progression
-        const maleParticipant = chat.participants.find(p => p.role === 'male');
-        const maleUserId = maleParticipant?.userId.toString();
+        // Update chat metadata locally for level calculation (Optimize later with atomic chat update)
+        // We use atomic update for the persistence to avoid conflicts
 
-        // Get current male message count
-        const previousMaleMessages = maleUserId ? (chat.messageCountByUser?.get(maleUserId) || 0) : 0;
-
-        chat.lastMessage = message._id;
-        chat.lastMessageAt = new Date();
-        await chat.incrementUnread(senderId);
-
-        // Track message count per user
-        // Images contribute 2 points to intimacy, regular messages 1
+        // Intensity Points
         const intensityPoints = (messageType === 'image') ? 2 : 1;
-        chat.totalMessageCount = (chat.totalMessageCount || 0) + intensityPoints;
 
-        const userMessageCount = (chat.messageCountByUser?.get(senderId.toString()) || 0) + intensityPoints;
-        if (!chat.messageCountByUser) {
-            chat.messageCountByUser = new Map();
-        }
-        chat.messageCountByUser.set(senderId.toString(), userMessageCount);
+        // Perform ATOMIC Chat Update
+        // This acts as "incrementUnread" + "updateLastMessage" + "updateCounters" all in one
+        const updatedChat = await Chat.findOneAndUpdate(
+            { _id: chatId },
+            {
+                $set: {
+                    lastMessage: message._id,
+                    lastMessageAt: new Date()
+                },
+                $inc: {
+                    totalMessageCount: intensityPoints,
+                    [`messageCountByUser.${senderId}`]: intensityPoints,
+                    // Increment unread count for the OTHER participant (receiver)
+                    // We need to identify which array element corresponds to receiver
+                    // Since we can't easily do positional update without a query, we'll try a simpler approach
+                    // OR stick to the robust 'save' but with retries? 
+                    // NO, atomic is better. We will use arrayFilters to update the correct participant!
+                }
+            },
+            { new: true }
+        );
 
-        // Check for level up ONLY based on male messages
+        // Handle Unread Count separately or use arrayFilters if configured
+        // For simplicity and speed in this "fix", we will use a separate atomic update for unread
+        // which avoids the version error
+        Chat.updateOne(
+            { _id: chatId, 'participants.userId': receiverId },
+            { $inc: { 'participants.$.unreadCount': 1 } }
+        ).catch(e => console.error('[CHAT] Unread count update failed:', e));
+
+
+        // Re-read chat or use updatedChat for Level Check
+        // Only count MALE messages for intimacy level progression
         let levelUpInfo = null;
-        if (req.user.role === 'male') {
-            const newMaleMessages = userMessageCount; // Current sender is male
-            const levelUpCheck = checkLevelUp(previousMaleMessages, newMaleMessages);
+        if (req.user.role === 'male' && updatedChat) {
+            const maleParticipant = updatedChat.participants.find(p => p.role === 'male');
+            const maleUserId = maleParticipant?.userId.toString();
+            const currentMaleMessages = updatedChat.messageCountByUser?.get(maleUserId) || 0;
+            const previousMessageCount = currentMaleMessages - intensityPoints;
+
+            const levelUpCheck = checkLevelUp(previousMessageCount, currentMaleMessages);
             if (levelUpCheck.leveledUp) {
-                chat.intimacyLevel = levelUpCheck.newLevel;
-                chat.lastLevelUpAt = new Date();
+                // Perform another atomic update for level
+                Chat.updateOne({ _id: chatId }, {
+                    $set: {
+                        intimacyLevel: levelUpCheck.newLevel,
+                        lastLevelUpAt: new Date()
+                    }
+                }).catch(e => console.error('[CHAT] Level update failed:', e));
                 levelUpInfo = levelUpCheck.newLevelInfo;
-                logger.info(`🎉 Chat ${chatId} leveled up: ${levelUpCheck.previousLevel} → ${levelUpCheck.newLevel}`);
+                logger.info(`🎉 Chat ${chatId} leveled up`);
             }
         }
 
-        await chat.save();
+        // Build response message without extra findById (Populate manually from existing objects)
+        const populatedMessage = message.toObject();
+        populatedMessage.senderId = { _id: sender._id, profile: sender.profile };
+        populatedMessage.receiverId = { _id: receiver._id, profile: receiver.profile };
 
-        // Populate message  
-        const populatedMessage = await Message.findById(message._id)
-            .populate('senderId', 'profile')
-            .populate('receiverId', 'profile');
-
-        // Emit real-time update via Socket.IO
+        // Emit real-time update via Socket.IO (INSTANT)
         const io = req.app.get('io');
         if (io) {
             emitNewMessage(io, chatId, populatedMessage);
 
-            // Emit balance update if male
-            if (req.user.role === 'male') {
-                const newBalance = (await User.findById(senderId)).coinBalance;
-                emitBalanceUpdate(io, senderId, newBalance);
+            // Emit balance update if male (use already-available balance)
+            if (req.user.role === 'male' && updatedSender) {
+                emitBalanceUpdate(io, senderId, updatedSender.coinBalance);
             }
 
             // Emit level-up event if leveled up
@@ -220,13 +225,34 @@ export const sendMessage = async (req, res, next) => {
             }
         }
 
+        // 📲 SEND PUSH NOTIFICATION (Fire-and-Forget)
+        setImmediate(() => {
+            console.log('[MESSAGE] 📲 Sending push notification to receiver...');
+            chatNotificationService.notifyNewMessage(receiverId, sender, {
+                chatId,
+                messageId: message._id,
+                messageType,
+                content,
+                attachments,
+                gifts: [] // No gifts in regular message
+            }).catch(error => {
+                console.error('[MESSAGE] ❌ Push notification error:', error);
+            });
+        });
+
+        // Prepare Intimacy Response safely
+        const finalChatState = updatedChat || chat;
+        const maleParticipantRes = finalChatState.participants?.find(p => p.role === 'male');
+        const maleUserIdRes = maleParticipantRes?.userId.toString();
+        const intimacyInfo = maleUserIdRes ? getLevelInfo(finalChatState.messageCountByUser?.get(maleUserIdRes) || 0) : null;
+
         res.status(201).json({
             status: 'success',
             data: {
                 message: populatedMessage,
-                newBalance: req.user.role === 'male' ? (await User.findById(senderId)).coinBalance : undefined,
+                newBalance: req.user.role === 'male' && updatedSender ? updatedSender.coinBalance : undefined,
                 levelUp: levelUpInfo,
-                intimacy: maleUserId ? getLevelInfo(chat.messageCountByUser.get(maleUserId) || 0) : null,
+                intimacy: intimacyInfo,
             }
         });
     } catch (error) {
@@ -277,54 +303,47 @@ export const sendHiMessage = async (req, res, next) => {
 
         // Validate and deduct coins
         const HI_MESSAGE_COST = await getHiMessageCost();
-        await dataValidation.validateMessageSend(senderId, HI_MESSAGE_COST);
 
-        // Execute atomic transaction
-        const result = await transactionManager.executeTransaction([
-            async (session) => {
-                // Deduct coins from sender
-                const sender = await User.findById(senderId).session(session);
-                const balanceBefore = sender.coinBalance;
-                sender.coinBalance -= HI_MESSAGE_COST;
-                await sender.save({ session });
+        // 1. Atomic Debit (Optimistic Lock)
+        let updatedSender = await User.findOneAndUpdate(
+            { _id: senderId, coinBalance: { $gte: HI_MESSAGE_COST } },
+            { $inc: { coinBalance: -HI_MESSAGE_COST } },
+            { new: true }
+        );
 
-                // Create transaction record for sender
-                const senderTx = await Transaction.create([{
-                    userId: senderId,
-                    type: 'message_spent',
-                    direction: 'debit',
-                    amountCoins: HI_MESSAGE_COST,
-                    status: 'completed',
-                    balanceBefore,
-                    balanceAfter: sender.coinBalance,
-                    relatedUserId: receiverId,
-                    relatedChatId: chat._id,
-                    description: `"Hi" message sent`,
-                }], { session });
+        if (!updatedSender) {
+            throw new BadRequestError('Insufficient coin balance for Hi message');
+        }
 
-                // Credit coins to receiver
-                const rec = await User.findById(receiverId).session(session);
-                const receiverBalanceBefore = rec.coinBalance;
-                rec.coinBalance += HI_MESSAGE_COST;
-                await rec.save({ session });
+        // ⚠️ Low Balance Warning (Fire-and-Forget)
+        if (updatedSender.coinBalance < 50 && updatedSender.coinBalance > 0) {
+            setImmediate(() => {
+                chatNotificationService.notifyLowBalance(senderId, updatedSender.coinBalance)
+                    .catch(e => console.error('[LOW-BALANCE] Notification failed:', e));
+            });
+        }
 
-                // Create transaction record for receiver
-                await Transaction.create([{
-                    userId: receiverId,
-                    type: 'message_earned',
-                    direction: 'credit',
-                    amountCoins: HI_MESSAGE_COST,
-                    status: 'completed',
-                    balanceBefore: receiverBalanceBefore,
-                    balanceAfter: rec.coinBalance,
-                    relatedUserId: senderId,
-                    relatedChatId: chat._id,
-                    description: `"Hi" message received`,
-                }], { session });
+        // 2. Batch Credit to Receiver (Optimized)
+        earningBatchService.addEarning(receiverId, {
+            amount: HI_MESSAGE_COST,
+            type: 'message_earned',
+            relatedUserId: senderId,
+            relatedChatId: chat._id,
+            description: `"Hi" message received`,
+        });
 
-                return { senderTx: senderTx[0], newBalance: sender.coinBalance };
-            }
-        ]);
+        // 3. Create Transaction Records (Async)
+        Transaction.create({
+            userId: senderId,
+            type: 'message_spent',
+            direction: 'debit',
+            amountCoins: HI_MESSAGE_COST,
+            status: 'completed',
+            balanceAfter: updatedSender.coinBalance,
+            relatedUserId: receiverId,
+            relatedChatId: chat._id,
+            description: `"Hi" message sent`,
+        }).catch(err => console.error('[HI] Failed to save sender transaction log:', err));
 
         // Create "Hi" message
         const message = await Message.create({
@@ -333,41 +352,53 @@ export const sendHiMessage = async (req, res, next) => {
             receiverId,
             content: '👋 Hi!',
             messageType: 'text',
-            status: 'sent',
-            transactionId: result.senderTx._id,
+            status: 'sent'
         });
 
-        // Update chat with intimacy tracking
-        // Only count MALE messages for intimacy level progression
-        const maleParticipant = chat.participants.find(p => p.role === 'male');
-        const maleUserId = maleParticipant?.userId.toString();
+        // Perform ATOMIC Chat Update
+        const updatedChat = await Chat.findOneAndUpdate(
+            { _id: chat._id },
+            {
+                $set: {
+                    lastMessage: message._id,
+                    lastMessageAt: new Date(),
+                    isActive: true,
+                },
+                $inc: {
+                    totalMessageCount: 1,
+                    [`messageCountByUser.${senderId}`]: 1,
+                }
+            },
+            { new: true }
+        );
 
-        // Get current male message count (sender is always male for Hi message)
-        const previousMaleMessages = chat.messageCountByUser?.get(senderId.toString()) || 0;
+        // Async Unread Count Update
+        Chat.updateOne(
+            { _id: chat._id, 'participants.userId': receiverId },
+            { $inc: { 'participants.$.unreadCount': 1 } }
+        ).catch(e => console.error('[HI] Unread count failed', e));
 
-        chat.lastMessage = message._id;
-        chat.lastMessageAt = new Date();
-        await chat.incrementUnread(senderId);
-
-        // Track message count per user
-        chat.totalMessageCount = (chat.totalMessageCount || 0) + 1;
-        const userMessageCount = (chat.messageCountByUser?.get(senderId.toString()) || 0) + 1;
-        if (!chat.messageCountByUser) {
-            chat.messageCountByUser = new Map();
-        }
-        chat.messageCountByUser.set(senderId.toString(), userMessageCount);
-
-        // Check for level up based on male messages
-        const levelUpCheck = checkLevelUp(previousMaleMessages, userMessageCount);
+        // Intimacy Level Check (Async)
         let levelUpInfo = null;
-        if (levelUpCheck.leveledUp) {
-            chat.intimacyLevel = levelUpCheck.newLevel;
-            chat.lastLevelUpAt = new Date();
-            levelUpInfo = levelUpCheck.newLevelInfo;
-            logger.info(`🎉 Chat ${chat._id} leveled up: ${levelUpCheck.previousLevel} → ${levelUpCheck.newLevel}`);
-        }
+        if (updatedChat) {
+            const userMessageCount = updatedChat.messageCountByUser?.get(senderId.toString()) || 0;
+            // Previous was current - 1
+            const previousMessageCount = userMessageCount - 1;
 
-        await chat.save();
+            const levelUpCheck = checkLevelUp(previousMessageCount, userMessageCount);
+            if (levelUpCheck.leveledUp) {
+                // Async Level Update
+                Chat.updateOne({ _id: chat._id }, {
+                    $set: {
+                        intimacyLevel: levelUpCheck.newLevel,
+                        lastLevelUpAt: new Date()
+                    }
+                }).catch(e => console.error('[HI] Level update failed', e));
+
+                levelUpInfo = levelUpCheck.newLevelInfo;
+                logger.info(`🎉 Chat ${chat._id} leveled up`);
+            }
+        }
 
         // Populate message
         const populatedMessage = await Message.findById(message._id)
@@ -378,7 +409,7 @@ export const sendHiMessage = async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             emitNewMessage(io, chat._id.toString(), populatedMessage);
-            emitBalanceUpdate(io, senderId, result.newBalance);
+            emitBalanceUpdate(io, senderId, updatedSender.coinBalance);
 
             // Emit level-up event if leveled up
             if (levelUpInfo) {
@@ -389,15 +420,30 @@ export const sendHiMessage = async (req, res, next) => {
             }
         }
 
+        // 📲 SEND PUSH NOTIFICATION (Fire-and-Forget)
+        setImmediate(() => {
+            console.log('[HI-MESSAGE] 📲 Sending push notification to receiver...');
+            chatNotificationService.notifyNewMessage(receiverId, sender, {
+                chatId: chat._id,
+                messageId: message._id,
+                messageType: 'text',
+                content: '👋 Hi!',
+                attachments: [],
+                gifts: []
+            }).catch(error => {
+                console.error('[HI-MESSAGE] ❌ Push notification error:', error);
+            });
+        });
+
         res.status(201).json({
             status: 'success',
             data: {
                 message: populatedMessage,
                 chatId: chat._id,
-                newBalance: result.newBalance,
+                newBalance: updatedSender.coinBalance,
                 coinsSpent: HI_MESSAGE_COST,
                 levelUp: levelUpInfo,
-                intimacy: getLevelInfo(userMessageCount),
+                intimacy: getLevelInfo(updatedChat.messageCountByUser?.get(senderId.toString()) || 0),
             }
         });
     } catch (error) {
@@ -455,55 +501,46 @@ export const sendGift = async (req, res, next) => {
             throw new BadRequestError('You cannot send gifts to this user as you have been blocked.');
         }
 
-        // Validate and deduct coins
-        await dataValidation.validateMessageSend(senderId, totalCost);
+        // 1. Atomic Debit
+        let updatedSender = await User.findOneAndUpdate(
+            { _id: senderId, coinBalance: { $gte: totalCost } },
+            { $inc: { coinBalance: -totalCost } },
+            { new: true }
+        );
 
-        // Execute atomic transaction
-        const result = await transactionManager.executeTransaction([
-            async (session) => {
-                // Deduct coins from sender
-                const sender = await User.findById(senderId).session(session);
-                const balanceBefore = sender.coinBalance;
-                sender.coinBalance -= totalCost;
-                await sender.save({ session });
+        if (!updatedSender) {
+            throw new BadRequestError('Insufficient coin balance for gifts');
+        }
 
-                // Create transaction for sender
-                const senderTx = await Transaction.create([{
-                    userId: senderId,
-                    type: 'gift_sent',
-                    direction: 'debit',
-                    amountCoins: totalCost,
-                    status: 'completed',
-                    balanceBefore,
-                    balanceAfter: sender.coinBalance,
-                    relatedUserId: receiverId,
-                    relatedChatId: chatId,
-                    description: `Sent ${gifts.length} gifts: ${gifts.map(g => g.name).join(', ')}`,
-                }], { session });
+        // ⚠️ Low Balance Warning (Fire-and-Forget)
+        if (updatedSender.coinBalance < 50 && updatedSender.coinBalance > 0) {
+            setImmediate(() => {
+                chatNotificationService.notifyLowBalance(senderId, updatedSender.coinBalance)
+                    .catch(e => console.error('[LOW-BALANCE] Notification failed:', e));
+            });
+        }
 
-                // Credit coins to receiver
-                const receiver = await User.findById(receiverId).session(session);
-                const receiverBalanceBefore = receiver.coinBalance;
-                receiver.coinBalance += totalCost;
-                await receiver.save({ session });
+        // 2. Batch Credit to Receiver (Optimized)
+        earningBatchService.addEarning(receiverId, {
+            amount: totalCost,
+            type: 'gift_received',
+            relatedUserId: senderId,
+            relatedChatId: chatId,
+            description: `Received ${gifts.length} gifts from user`,
+        });
 
-                // Create transaction for receiver
-                await Transaction.create([{
-                    userId: receiverId,
-                    type: 'gift_received',
-                    direction: 'credit',
-                    amountCoins: totalCost,
-                    status: 'completed',
-                    balanceBefore: receiverBalanceBefore,
-                    balanceAfter: receiver.coinBalance,
-                    relatedUserId: senderId,
-                    relatedChatId: chatId,
-                    description: `Received ${gifts.length} gifts from user`,
-                }], { session });
-
-                return { senderTx: senderTx[0], newBalance: sender.coinBalance };
-            }
-        ]);
+        // 3. Create Debit Transaction Record for Sender (Immediate)
+        Transaction.create({
+            userId: senderId,
+            type: 'gift_sent',
+            direction: 'debit',
+            amountCoins: totalCost,
+            status: 'completed',
+            balanceAfter: updatedSender.coinBalance,
+            relatedUserId: receiverId,
+            relatedChatId: chatId,
+            description: `Sent ${gifts.length} gifts: ${gifts.map(g => g.name).join(', ')}`,
+        }).catch(err => console.error('[GIFT] Failed to save sender transaction log:', err));
 
         // Create gift message
         const messageGifts = gifts.map(gift => ({
@@ -520,41 +557,54 @@ export const sendGift = async (req, res, next) => {
             content: content || `Sent ${gifts.length} gift${gifts.length > 1 ? 's' : ''}`,
             messageType: 'gift',
             gifts: messageGifts,
-            status: 'sent',
-            transactionId: result.senderTx._id,
+            status: 'sent'
         });
 
-        // Update chat with intimacy tracking
-        // Only count MALE messages for intimacy level progression (sender is always male for gifts)
-        const maleParticipant = chat.participants.find(p => p.role === 'male');
-        const maleUserId = maleParticipant?.userId.toString();
+        // Perform ATOMIC Chat Update
+        // Gifts update counts +1 ? (Preserving existing logic)
+        const updatedChat = await Chat.findOneAndUpdate(
+            { _id: chatId },
+            {
+                $set: {
+                    lastMessage: message._id,
+                    lastMessageAt: new Date(),
+                    isActive: true,
+                },
+                $inc: {
+                    totalMessageCount: 1,
+                    [`messageCountByUser.${senderId}`]: 1,
+                }
+            },
+            { new: true }
+        );
 
-        // Get current male message count
-        const previousMaleMessages = chat.messageCountByUser?.get(senderId.toString()) || 0;
+        // Async Unread Count Update
+        Chat.updateOne(
+            { _id: chatId, 'participants.userId': receiverId },
+            { $inc: { 'participants.$.unreadCount': 1 } }
+        ).catch(e => console.error('[GIFT] Unread count failed', e));
 
-        chat.lastMessage = message._id;
-        chat.lastMessageAt = new Date();
-        await chat.incrementUnread(senderId);
-
-        // Track message count per user
-        chat.totalMessageCount = (chat.totalMessageCount || 0) + 1;
-        const userMessageCount = (chat.messageCountByUser?.get(senderId.toString()) || 0) + 1;
-        if (!chat.messageCountByUser) {
-            chat.messageCountByUser = new Map();
-        }
-        chat.messageCountByUser.set(senderId.toString(), userMessageCount);
-
-        // Check for level up based on male messages
-        const levelUpCheck = checkLevelUp(previousMaleMessages, userMessageCount);
+        // Intimacy Level Check (Async)
         let levelUpInfo = null;
-        if (levelUpCheck.leveledUp) {
-            chat.intimacyLevel = levelUpCheck.newLevel;
-            chat.lastLevelUpAt = new Date();
-            levelUpInfo = levelUpCheck.newLevelInfo;
-            logger.info(`🎉 Chat ${chatId} leveled up: ${levelUpCheck.previousLevel} → ${levelUpCheck.newLevel}`);
+        if (updatedChat) {
+            const userMessageCount = updatedChat.messageCountByUser?.get(senderId.toString()) || 0;
+            const previousMessageCount = userMessageCount - 1;
+
+            const levelUpCheck = checkLevelUp(previousMessageCount, userMessageCount);
+            if (levelUpCheck.leveledUp) {
+                // Async Level Update
+                Chat.updateOne({ _id: chatId }, {
+                    $set: {
+                        intimacyLevel: levelUpCheck.newLevel,
+                        lastLevelUpAt: new Date()
+                    }
+                }).catch(e => console.error('[GIFT] Level update failed', e));
+
+                levelUpInfo = levelUpCheck.newLevelInfo;
+                logger.info(`🎉 Chat ${chatId} leveled up`);
+            }
         }
 
-        await chat.save();
 
         // Populate message
         const populatedMessage = await Message.findById(message._id)
@@ -565,7 +615,7 @@ export const sendGift = async (req, res, next) => {
         const io = req.app.get('io');
         if (io) {
             emitNewMessage(io, chatId, populatedMessage);
-            emitBalanceUpdate(io, senderId, result.newBalance);
+            emitBalanceUpdate(io, senderId, updatedSender.coinBalance);
 
             // Emit level-up event if leveled up
             if (levelUpInfo) {
@@ -576,14 +626,29 @@ export const sendGift = async (req, res, next) => {
             }
         }
 
+        // 📲 SEND PUSH NOTIFICATION FOR GIFT (Fire-and-Forget)
+        setImmediate(() => {
+            console.log('[GIFT] 📲 Sending push notification to receiver...');
+            chatNotificationService.notifyNewMessage(receiverId, sender, {
+                chatId,
+                messageId: message._id,
+                messageType: 'gift',
+                content: message.content,
+                attachments: [],
+                gifts: messageGifts // Include gift details
+            }).catch(error => {
+                console.error('[GIFT] ❌ Push notification error:', error);
+            });
+        });
+
         res.status(201).json({
             status: 'success',
             data: {
                 message: populatedMessage,
-                newBalance: result.newBalance,
+                newBalance: updatedSender.coinBalance,
                 coinsSpent: totalCost,
                 levelUp: levelUpInfo,
-                intimacy: getLevelInfo(userMessageCount),
+                intimacy: getLevelInfo(updatedChat.messageCountByUser?.get(senderId.toString()) || 0),
             }
         });
     } catch (error) {

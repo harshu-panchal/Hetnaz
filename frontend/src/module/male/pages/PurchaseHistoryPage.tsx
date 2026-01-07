@@ -4,8 +4,6 @@ import { CoinPurchaseHeader } from '../components/CoinPurchaseHeader';
 import { SegmentedControls } from '../components/SegmentedControls';
 import { TransactionItem } from '../components/TransactionItem';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
-import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import walletService from '../../../core/services/wallet.service';
 import type { Transaction } from '../types/male.types';
@@ -14,7 +12,7 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 export const PurchaseHistoryPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  // No sidebar needed anymore
 
   const [purchaseHistory, setPurchaseHistory] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,14 +97,7 @@ export const PurchaseHistoryPage = () => {
 
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <MaleTopNavbar />
 
       <CoinPurchaseHeader onHistoryClick={() => navigate('/male/buy-coins')} />
 

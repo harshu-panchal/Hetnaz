@@ -4,28 +4,29 @@ import { useAuth } from '../../../core/context/AuthContext';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
-import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { EditProfileModal } from '../components/EditProfileModal';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import userService from '../../../core/services/user.service';
 
 export const MyProfilePage = () => {
   const { t, changeLanguage, currentLanguage } = useTranslation();
   const navigate = useNavigate();
   const { user, logout, isLoading: isAuthLoading } = useAuth();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
+  const { addNotification } = useGlobalState();
+  const { navigationItems, handleNavigationClick } = useFemaleNavigation();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Local display state (synced with user)
   const [name, setName] = useState(user?.name || t('anonymous'));
   const [age, setAge] = useState(24);
   const [location, setLocation] = useState(t('unknownLocation'));
 
-  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const [allowMessagesFrom, setAllowMessagesFrom] = useState<'everyone' | 'verified'>('everyone');
   const [pushNotifications, setPushNotifications] = useState(true);
 
@@ -39,6 +40,7 @@ export const MyProfilePage = () => {
   const [_isStatsLoading, setIsStatsLoading] = useState(true);
 
   const [photos, setPhotos] = useState<string[]>([]);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -104,42 +106,24 @@ export const MyProfilePage = () => {
   return (
     <div className="flex flex-col bg-background-light dark:bg-background-dark min-h-screen pb-20">
       {/* Top Navbar */}
-      <FemaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      {/* Sidebar */}
-      <FemaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <FemaleTopNavbar />
 
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
       />
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-white/5">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
-          >
-            <MaterialSymbol name="arrow_back" size={20} />
-          </button>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t('myProfile')}</h1>
-        </div>
-      </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 min-h-0">
         {/* Profile Header Card - Clickable */}
         <div
-          onClick={() => setIsEditModalOpen(true)}
-          className="bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/5 dark:to-transparent rounded-2xl p-6 border border-primary/20 cursor-pointer active:scale-[0.98] transition-all hover:bg-primary/5 dark:hover:bg-[#342d18]/50"
+          className="bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/5 dark:to-transparent rounded-2xl p-6 border border-primary/20 transition-all"
         >
           <div className="flex flex-col items-center">
-            <div className="relative mb-4">
+            <div
+              className="relative mb-4 cursor-pointer active:scale-95 transition-transform"
+              onClick={() => setIsEditModalOpen(true)}
+            >
               <div
                 className="h-32 w-32 rounded-full bg-center bg-no-repeat bg-cover border-4 border-white dark:border-[#342d18] shadow-lg"
                 style={{
@@ -147,7 +131,7 @@ export const MyProfilePage = () => {
                   backgroundColor: photos.length === 0 ? '#e5e7eb' : undefined,
                 }}
               />
-              <div className="absolute bottom-1 right-1 bg-gray-900/80 p-1.5 rounded-full text-white">
+              <div className="absolute bottom-1 right-1 bg-gray-900/80 p-1.5 rounded-full text-white shadow-md">
                 <MaterialSymbol name="edit" size={14} />
               </div>
               <div className="absolute top-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 border-2 border-white dark:border-[#342d18]">
@@ -229,15 +213,19 @@ export const MyProfilePage = () => {
             </div>
             <div className="grid grid-cols-3 gap-3">
               {photos.map((photo, index) => (
-                <div key={index} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-[#2a2515]">
+                <div
+                  key={index}
+                  onClick={() => setSelectedPhotoIndex(index)}
+                  className="relative group aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-[#2a2515] cursor-pointer"
+                >
                   <img
                     src={photo}
                     alt={`Photo ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                   {index === 0 && (
-                    <div className="absolute top-2 left-2 bg-primary text-slate-900 text-xs font-bold px-2 py-1 rounded">
-                      Profile
+                    <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-0.5 shadow-sm flex items-center justify-center">
+                      <MaterialSymbol name="star" size={12} filled />
                     </div>
                   )}
                 </div>
@@ -298,22 +286,7 @@ export const MyProfilePage = () => {
               <h4 className="text-sm font-semibold text-gray-700 dark:text-[#cbbc90] mb-3">{t('privacy')}</h4>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{t('showOnlineStatus')}</p>
-                    <p className="text-xs text-gray-500 dark:text-[#cbbc90]">{t('showOnlineStatusDesc')}</p>
-                  </div>
-                  <button
-                    onClick={() => setShowOnlineStatus(!showOnlineStatus)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showOnlineStatus ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
-                      }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showOnlineStatus ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                    />
-                  </button>
-                </div>
+
 
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -398,26 +371,34 @@ export const MyProfilePage = () => {
                 </button>
 
                 <button
-                  onClick={() => {
-                    logout();
-                    navigate('/login');
-                  }}
-                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <MaterialSymbol name="logout" className="text-gray-600 dark:text-[#cbbc90]" />
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{t('logout')}</span>
-                  </div>
-                  <MaterialSymbol name="chevron_right" className="text-gray-400" />
-                </button>
-
-                <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <MaterialSymbol name="delete" className="text-red-500" />
                     <span className="text-sm font-medium text-red-600 dark:text-red-400">{t('Delete Account')}</span>
+                  </div>
+                  <MaterialSymbol name="chevron_right" className="text-gray-400" />
+                </button>
+
+                <button
+                  disabled={isLoggingOut}
+                  onClick={() => {
+                    if (isLoggingOut) return;
+                    setIsLoggingOut(true);
+                    addNotification({
+                      title: t('logoutSuccess') || 'Logged Out',
+                      message: t('logoutSuccessMessage') || 'You have been successfully logged out.',
+                      type: 'system'
+                    });
+                    logout();
+                    navigate('/login');
+                  }}
+                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors disabled:opacity-50"
+                >
+                  <div className="flex items-center gap-3">
+                    <MaterialSymbol name="logout" className="text-gray-600 dark:text-[#cbbc90]" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{t('logout')}</span>
                   </div>
                   <MaterialSymbol name="chevron_right" className="text-gray-400" />
                 </button>
@@ -428,6 +409,59 @@ export const MyProfilePage = () => {
       </div>
 
       <FemaleBottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+
+      {/* Photo Lightbox */}
+      {selectedPhotoIndex !== null && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+          onClick={() => setSelectedPhotoIndex(null)}
+        >
+          <button
+            onClick={() => setSelectedPhotoIndex(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+          >
+            <MaterialSymbol name="close" size={32} />
+          </button>
+
+          {/* Navigation Arrows */}
+          {selectedPhotoIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPhotoIndex(selectedPhotoIndex - 1);
+              }}
+              className="absolute left-4 text-white hover:text-gray-300 transition-colors"
+            >
+              <MaterialSymbol name="chevron_left" size={48} />
+            </button>
+          )}
+
+          {selectedPhotoIndex < photos.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPhotoIndex(selectedPhotoIndex + 1);
+              }}
+              className="absolute right-4 text-white hover:text-gray-300 transition-colors"
+            >
+              <MaterialSymbol name="chevron_right" size={48} />
+            </button>
+          )}
+
+          {/* Image */}
+          <img
+            src={photos[selectedPhotoIndex]}
+            alt={`Photo ${selectedPhotoIndex + 1}`}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Photo Counter */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+            {selectedPhotoIndex + 1} / {photos.length}
+          </div>
+        </div>
+      )}
 
       {/* Delete Account Confirmation Modal */}
       {showDeleteConfirm && (

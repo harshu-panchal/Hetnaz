@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import type { Gift, GiftTransaction } from '../types/male.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
@@ -14,7 +13,7 @@ export const GiftsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { coinBalance } = useGlobalState();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { navigationItems, handleNavigationClick } = useMaleNavigation();
   const [selectedTab, setSelectedTab] = useState<'send' | 'history'>('send');
   const [selectedGift, setSelectedGift] = useState<string | null>(null);
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
@@ -111,14 +110,7 @@ export const GiftsPage = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
+      <MaleTopNavbar />
 
       <header className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
         <div className="flex items-center justify-between px-4 py-3">

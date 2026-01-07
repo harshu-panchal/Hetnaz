@@ -26,6 +26,12 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Role is required'],
       index: true,
     },
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected', 'resubmit_requested'],
+      default: 'pending',
+      index: true,
+    },
     genderPreference: {
       type: String,
       enum: ['male', 'female', 'both'],
@@ -46,6 +52,12 @@ const userSchema = new mongoose.Schema(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+
+    // Firebase Cloud Messaging tokens for push notifications
+    fcmTokens: {
+      type: [String],
+      default: [],
     },
 
     // Chat-Related Fields (Harsh - Chat Domain)
@@ -201,11 +213,7 @@ const userSchema = new mongoose.Schema(
     },
 
     // Female-Specific Fields (Sujal)
-    approvalStatus: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected', 'resubmit_requested'],
-      default: 'pending',
-    },
+    // approvalStatus index moved to top level for clarity
     approvalReviewedAt: Date,
     approvalReviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -228,13 +236,29 @@ const userSchema = new mongoose.Schema(
     // Timestamps
     lastLoginAt: Date,
 
-    // Relationships (Block System)
     blockedUsers: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
       },
     ],
+    // Referral Fields
+    referralId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      uppercase: true,
+      index: true,
+    },
+    referredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    referralCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -244,9 +268,9 @@ const userSchema = new mongoose.Schema(
 );
 
 // Indexes for performance
-// userSchema.index({ phoneNumber: 1 }); // unique:true covers this
-userSchema.index({ role: 1, isActive: 1 });
-userSchema.index({ 'profile.location.coordinates': '2dsphere' }); // For geospatial queries
+userSchema.index({ blockedUsers: 1 });
+userSchema.index({ 'profile.location.coordinates': '2dsphere' });
+userSchema.index({ role: 1, approvalStatus: 1, isActive: 1, isDeleted: 1 });
 userSchema.index({ isOnline: 1, lastSeen: -1 });
 userSchema.index({ coinBalance: -1 });
 // Compound index for discover females query (approved females sorted by lastSeen)
@@ -323,4 +347,3 @@ userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
 const User = mongoose.model('User', userSchema);
 
 export default User;
-

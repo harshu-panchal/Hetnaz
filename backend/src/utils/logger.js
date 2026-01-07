@@ -23,10 +23,34 @@ const consoleFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let msg = `${timestamp} [${level}]: ${message}`;
-    if (Object.keys(meta).length > 0) {
+    if (Object.keys(meta).length > 0 && meta.service !== 'matchmint-backend') {
       msg += ` ${JSON.stringify(meta)}`;
     }
     return msg;
+  })
+);
+
+// Create transports array (SINGLE console transport to avoid duplicates)
+const transports = [
+  // Write all logs with level 'error' and below to error.log
+  new winston.transports.File({
+    filename: 'logs/error.log',
+    level: 'error',
+    maxsize: 5242880, // 5MB
+    maxFiles: 5,
+  }),
+  // Write all logs to combined.log
+  new winston.transports.File({
+    filename: 'logs/combined.log',
+    maxsize: 5242880, // 5MB
+    maxFiles: 5,
+  }),
+];
+
+// Add SINGLE console transport (dev = pretty, prod = JSON)
+transports.push(
+  new winston.transports.Console({
+    format: nodeEnv === 'production' ? logFormat : consoleFormat,
   })
 );
 
@@ -35,35 +59,7 @@ const logger = winston.createLogger({
   level: logLevel,
   format: logFormat,
   defaultMeta: { service: 'matchmint-backend' },
-  transports: [
-    // Write all logs to console
-    new winston.transports.Console({
-      format: nodeEnv === 'production' ? logFormat : consoleFormat,
-    }),
-    // Write all logs with level 'error' and below to error.log
-    new winston.transports.File({
-      filename: 'logs/error.log',
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-    // Write all logs to combined.log
-    new winston.transports.File({
-      filename: 'logs/combined.log',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-  ],
+  transports,
 });
 
-// If we're not in production, log to console with simpler format
-if (nodeEnv !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: consoleFormat,
-    })
-  );
-}
-
 export default logger;
-

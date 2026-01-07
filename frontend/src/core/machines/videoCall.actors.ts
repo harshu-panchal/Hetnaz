@@ -56,7 +56,12 @@ class AgoraClientManager {
         return { localVideoTrack: videoTrack, localAudioTrack: audioTrack };
     }
 
-    async joinChannel(credentials: AgoraCredentials, onRemoteUserPublished: (user: any, mediaType: string) => void): Promise<void> {
+    async joinChannel(
+        credentials: AgoraCredentials,
+        onRemoteUserPublished: (user: any, mediaType: string) => void,
+        onRemoteUserUnpublished?: (user: any, mediaType: string) => void,
+        onRemoteUserLeft?: (user: any) => void
+    ): Promise<void> {
         if (this.isJoining) {
             console.warn('⚠️ [AgoraManager] Join already in progress');
             return;
@@ -98,10 +103,12 @@ class AgoraClientManager {
 
             this.client.on('user-unpublished', (user, mediaType) => {
                 console.log('🎥 [AgoraManager] Remote user unpublished:', user.uid, mediaType);
+                onRemoteUserUnpublished?.(user, mediaType);
             });
 
             this.client.on('user-left', (user) => {
                 console.log('🎥 [AgoraManager] Remote user left:', user.uid);
+                onRemoteUserLeft?.(user);
             });
 
             // Join with retry logic
@@ -180,21 +187,37 @@ class AgoraClientManager {
     }
 
     toggleMute(): boolean {
-        if (this.localAudioTrack) {
-            const newState = !this.localAudioTrack.enabled;
-            this.localAudioTrack.setEnabled(!newState);
-            return newState;
+        if (!this.localAudioTrack) {
+            console.warn('⚠️ [AgoraManager] Cannot toggle mute: No audio track');
+            return false;
         }
-        return false;
+        try {
+            const isCurrentlyEnabled = this.localAudioTrack.enabled;
+            const targetEnabledState = !isCurrentlyEnabled;
+            this.localAudioTrack.setEnabled(targetEnabledState);
+            console.log(`🎤 [AgoraManager] Mute toggled. Audio Enabled: ${isCurrentlyEnabled} -> ${targetEnabledState}`);
+            return targetEnabledState;
+        } catch (error) {
+            console.error('❌ [AgoraManager] Failed to toggle mute:', error);
+            return false;
+        }
     }
 
     toggleCamera(): boolean {
-        if (this.localVideoTrack) {
-            const newState = !this.localVideoTrack.enabled;
-            this.localVideoTrack.setEnabled(!newState);
-            return newState;
+        if (!this.localVideoTrack) {
+            console.warn('⚠️ [AgoraManager] Cannot toggle camera: No video track');
+            return false;
         }
-        return false;
+        try {
+            const isCurrentlyEnabled = this.localVideoTrack.enabled;
+            const targetEnabledState = !isCurrentlyEnabled;
+            this.localVideoTrack.setEnabled(targetEnabledState);
+            console.log(`🎥 [AgoraManager] Camera toggled. Video Enabled: ${isCurrentlyEnabled} -> ${targetEnabledState}`);
+            return targetEnabledState;
+        } catch (error) {
+            console.error('❌ [AgoraManager] Failed to toggle camera:', error);
+            return false;
+        }
     }
 
     getLocalTracks() {

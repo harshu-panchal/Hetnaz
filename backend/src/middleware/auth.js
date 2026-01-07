@@ -1,7 +1,8 @@
 /**
- * Authentication Middleware
- * @owner: Sujal (Shared - Both review)
- * @purpose: JWT authentication and authorization
+ * Authentication Middleware (PERFORMANCE OPTIMIZED)
+ * - Uses in-memory user cache to avoid DB hit on every request
+ * - Cache invalidates after 30 seconds or on user update
+ * - Returns FULL user object (not lean) for compatibility
  */
 
 import jwt from 'jsonwebtoken';
@@ -11,6 +12,40 @@ import { getEnvConfig } from '../config/env.js';
 
 const { jwtSecret } = getEnvConfig();
 
+// In-memory user cache: { oderId: { user, timestamp } }
+const userCache = new Map();
+const CACHE_TTL = 30 * 1000; // 30 seconds (shorter for fresher data)
+
+/**
+ * Get user from cache or DB (with caching)
+ */
+const getCachedUser = async (userId) => {
+  const now = Date.now();
+  const cached = userCache.get(userId);
+
+  if (cached && (now - cached.timestamp) < CACHE_TTL) {
+    return cached.user;
+  }
+
+  // Cache miss - fetch FULL user from DB (no .lean() for compatibility)
+  const user = await User.findById(userId);
+  if (user) {
+    // Cache the user's plain object representation
+    const userObj = user.toObject();
+    userObj.id = user._id.toString(); // Ensure id field exists
+    userCache.set(userId, { user: userObj, timestamp: now });
+    return userObj;
+  }
+  return null;
+};
+
+/**
+ * Invalidate user cache (call this on user update)
+ */
+export const invalidateUserCache = (userId) => {
+  userCache.delete(userId);
+};
+
 /**
  * Protect routes - require authentication
  */
@@ -18,7 +53,6 @@ export const protect = async (req, res, next) => {
   try {
     let token;
 
-    // Get token from header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
@@ -27,7 +61,6 @@ export const protect = async (req, res, next) => {
       return next(new UnauthorizedError('You are not logged in. Please log in to get access.'));
     }
 
-    // Verify token
     let decoded;
     try {
       decoded = jwt.verify(token, jwtSecret);
@@ -35,31 +68,24 @@ export const protect = async (req, res, next) => {
       return next(new UnauthorizedError('Invalid token. Please log in again.'));
     }
 
-    // Get user from token
-    const user = await User.findById(decoded.id).select('+password');
+    // Use cached user lookup (KEY OPTIMIZATION)
+    const user = await getCachedUser(decoded.id);
 
     if (!user) {
       return next(new UnauthorizedError('The user belonging to this token no longer exists.'));
     }
 
-    // Check if user is active
     if (!user.isActive) {
       return next(new UnauthorizedError('Your account has been deactivated.'));
     }
 
-    // Check if user is blocked
     if (user.isBlocked) {
-      return next(new ForbiddenError('Your account has been blocked.'));
+      return next(new ForbiddenError('Your account is currently blocked. Please reach out to Support for further assistance.'));
     }
 
-    // Check if password changed after token was issued
-    if (user.changedPasswordAfter(decoded.iat)) {
-      return next(new UnauthorizedError('User recently changed password. Please log in again.'));
-    }
-
-    // Grant access to protected route
+    // Grant access - attach full user object
     req.user = user;
-    req.userId = user._id;
+    req.userId = user._id || user.id;
     next();
   } catch (error) {
     next(error);
@@ -72,9 +98,7 @@ export const protect = async (req, res, next) => {
 export const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return next(
-        new ForbiddenError('You do not have permission to perform this action.')
-      );
+      return next(new ForbiddenError('You do not have permission to perform this action.'));
     }
     next();
   };
@@ -95,10 +119,7 @@ export const requireVerification = (req, res, next) => {
  */
 export const requireApproval = (req, res, next) => {
   if (req.user.role === 'female' && req.user.approvalStatus !== 'approved') {
-    return next(
-      new ForbiddenError('Your account is pending admin approval.')
-    );
+    return next(new ForbiddenError('Your account is pending admin approval.'));
   }
   next();
 };
-

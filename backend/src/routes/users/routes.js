@@ -4,6 +4,7 @@ import * as statsController from '../../controllers/user/statsController.js';
 import * as femaleDashboardController from '../../controllers/user/femaleDashboardController.js';
 import * as relationshipController from '../../controllers/user/relationshipController.js';
 import autoMessageController from '../../controllers/user/autoMessageController.js';
+import * as reportController from '../../controllers/user/reportController.js';
 import { protect, restrictTo } from '../../middleware/auth.js';
 
 const router = express.Router();
@@ -19,6 +20,9 @@ router.get('/me/stats', statsController.getMeStats);
 
 // Female Dashboard
 router.get('/female/dashboard', restrictTo('female'), femaleDashboardController.getDashboardData);
+router.get('/female/dashboard/earnings', restrictTo('female'), femaleDashboardController.getEarnings);
+router.get('/female/dashboard/stats', restrictTo('female'), femaleDashboardController.getStats);
+router.get('/female/dashboard/chats', restrictTo('female'), femaleDashboardController.getActiveChats);
 
 // Auto-Message Templates (Female only)
 router.get('/female/auto-messages/stats', restrictTo('female'), autoMessageController.getStats);
@@ -43,5 +47,9 @@ router.post('/block', relationshipController.blockUser);
 router.post('/unblock', relationshipController.unblockUser);
 router.get('/block-list', relationshipController.getBlockedUsers);
 router.delete('/chats/:chatId', relationshipController.deleteChat);
+
+// Reporting
+router.post('/report', reportController.createReport);
+
 
 export default router;

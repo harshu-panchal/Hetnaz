@@ -6,6 +6,7 @@
 import express from 'express';
 import * as adminController from '../../controllers/admin/adminController.js';
 import { protect, restrictTo } from '../../middleware/auth.js';
+import * as reportController from '../../controllers/user/reportController.js';
 
 const router = express.Router();
 
@@ -31,15 +32,25 @@ router.delete('/users/:id', adminController.deleteUser);
 // Transaction Management
 router.get('/transactions', adminController.listTransactions);
 
-// Audit Logs
-router.get('/audit-logs', adminController.getAuditLogs);
-
 // Platform Settings
 router.get('/settings', adminController.getAppSettings);
 router.patch('/settings', adminController.updateAppSettings);
 
 // Gift Management
 router.get('/gifts', adminController.listGifts);
+router.post('/gifts', adminController.createGift);
 router.patch('/gifts/:id/cost', adminController.updateGiftCost);
+router.delete('/gifts/:id', adminController.deleteGift);
+
+// Report Management
+router.get('/reports', reportController.getAllReports);
+router.patch('/reports/:id', reportController.updateReportStatus);
+
+
+// Admin Profile Management
+router.get('/profile', adminController.getAdminProfile);
+router.post('/profile/request-otp', adminController.requestAdminOtp);
+router.patch('/profile/update-phone', adminController.updateAdminPhone);
+router.patch('/profile/update-secret', adminController.updateAdminSecret);
 
 export default router;

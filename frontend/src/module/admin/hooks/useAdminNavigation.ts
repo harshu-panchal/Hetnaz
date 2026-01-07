@@ -68,6 +68,13 @@ export const useAdminNavigation = () => {
       ],
     },
     {
+      id: 'reports',
+      icon: 'report',
+      label: 'User Reports',
+      isActive: location.pathname.startsWith('/admin/reports'),
+      badgeCount: stats.pendingReports,
+    },
+    {
       id: 'finance',
       icon: 'account_balance',
       label: 'Finance',
@@ -100,10 +107,9 @@ export const useAdminNavigation = () => {
       isActive: location.pathname.startsWith('/admin/settings'),
     },
     {
-      id: 'audit-logs',
-      icon: 'history',
-      label: 'Audit Logs',
-      isActive: location.pathname.startsWith('/admin/audit-logs'),
+      id: 'logout',
+      icon: 'logout',
+      label: 'Logout',
     },
   ], [location.pathname, stats]);
 
@@ -130,8 +136,14 @@ export const useAdminNavigation = () => {
       case 'settings':
         navigate('/admin/settings');
         break;
-      case 'audit-logs':
-        navigate('/admin/audit-logs');
+      case 'reports':
+        navigate('/admin/reports');
+        break;
+      case 'logout':
+        if (window.confirm('Are you sure you want to logout?')) {
+          localStorage.clear(); // Clear all data
+          window.location.href = '/login';
+        }
         break;
       default:
         break;

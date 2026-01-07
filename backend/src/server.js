@@ -13,6 +13,7 @@ import { initializeRazorpay } from './config/razorpay.js';
 import logger from './utils/logger.js';
 import { setupSocketIO } from './socket/index.js';
 import walletScheduler from './jobs/walletScheduler.js';
+import notificationScheduler from './jobs/notificationScheduler.js';
 import './models/index.js'; // Load all model hooks
 
 const { port, nodeEnv } = getEnvConfig();
@@ -58,6 +59,9 @@ const startServer = async () => {
 
       // Start wallet scheduler (for expired withdrawal processing)
       walletScheduler.startScheduler();
+
+      // Start notification scheduler (for daily rewards, etc.)
+      notificationScheduler.startNotificationScheduler();
     });
 
     // Handle unhandled promise rejections

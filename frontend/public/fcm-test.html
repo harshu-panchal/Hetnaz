@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCM Test - Push Notifications</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #ec4899;
+            padding-bottom: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        button {
+            padding: 12px 24px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #ec4899;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #db2777;
+        }
+
+        .btn-secondary {
+            background: #6366f1;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4f46e5;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        .log {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .log div {
+            margin: 2px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔔 Push Notification Test Page</h1>
+
+        <div id="status" class="status info">
+            ℹ️ Click "Initialize FCM" to start...
+        </div>
+
+        <div style="margin: 20px 0;">
+            <button class="btn-primary" onclick="initFCM()">1️⃣ Initialize FCM</button>
+            <button class="btn-secondary" onclick="requestPermission()">2️⃣ Request Permission</button>
+            <button class="btn-secondary" onclick="getToken()">3️⃣ Get FCM Token</button>
+            <button class="btn-secondary" onclick="testNotification()">4️⃣ Test Local Notification</button>
+        </div>
+
+        <h3>📊 Status Checks:</h3>
+        <div id="checks"></div>
+
+        <h3>📋 Console Logs:</h3>
+        <div id="logs" class="log"></div>
+
+        <h3>🎟️ FCM Token:</h3>
+        <pre id="token">Not generated yet...</pre>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
+
+        let app, messaging;
+
+        // Your Firebase config (from .env)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDZU9nQpOU6FyurlgqwOxEUmWkflhi6PP8",
+            authDomain: "datingapp-f035b.firebaseapp.com",
+            projectId: "datingapp-f035b",
+            storageBucket: "datingapp-f035b.firebasestorage.app",
+            messagingSenderId: "895077165542",
+            appId: "1:895077165542:web:c88c17e136c93c760d4e27"
+        };
+
+        const VAPID_KEY = "BLaPbRDpPCYh4_kF0Vnw2KxQOPAyEMUzVTHWhp_lEKLhsVxQCCc_eUGdN7qK-iCaQXXmEjCN7yf_q95WyLmWiIs";
+
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#0ff';
+            logsDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+
+        function updateChecks() {
+            const checks = document.getElementById('checks');
+            checks.innerHTML = `
+                <div class="status ${navigator.serviceWorker ? 'success' : 'error'}">
+                    ${navigator.serviceWorker ? '✅' : '❌'} Service Worker Support: ${navigator.serviceWorker ? 'Yes' : 'No'}
+                </div>
+                <div class="status ${Notification ? 'success' : 'error'}">
+                    ${Notification ? '✅' : '❌'} Notification API: ${Notification ? 'Yes' : 'No'}
+                </div>
+                <div class="status ${Notification.permission === 'granted' ? 'success' : Notification.permission === 'denied' ? 'error' : 'info'}">
+                    ${Notification.permission === 'granted' ? '✅' : Notification.permission === 'denied' ? '❌' : '⏸️'} 
+                    Permission: ${Notification.permission}
+                </div>
+                <div class="status ${window.isSecureContext ? 'success' : 'error'}">
+                    ${window.isSecureContext ? '✅' : '❌'} Secure Context (HTTPS/Localhost): ${window.isSecureContext ? 'Yes' : 'No'}
+                </div>
+            `;
+        }
+
+        window.initFCM = async function () {
+            try {
+                // First, register service worker
+                log('📝 Checking service worker...', 'info');
+
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                        log('✅ Service worker registered', 'success');
+
+                        // Wait for service worker to be ready
+                        await navigator.serviceWorker.ready;
+                        log('✅ Service worker ready', 'success');
+                    } catch (swError) {
+                        log(`⚠️ Service worker registration failed (continuing anyway): ${swError.message}`, 'info');
+                    }
+                } else {
+                    log('⚠️ Service workers not supported', 'info');
+                }
+
+                log('🚀 Initializing Firebase...', 'info');
+                app = initializeApp(firebaseConfig);
+                log('✅ Firebase app initialized', 'success');
+
+                log('🔧 Getting messaging instance...', 'info');
+                messaging = getMessaging(app);
+                log('✅ Messaging instance created', 'success');
+
+                // Setup foreground message listener
+                onMessage(messaging, (payload) => {
+                    log('📨 FOREGROUND MESSAGE RECEIVED!', 'success');
+                    log(`Title: ${payload.notification?.title}`, 'info');
+                    log(`Body: ${payload.notification?.body}`, 'info');
+                    log(`Data: ${JSON.stringify(payload.data)}`, 'info');
+
+                    // Show notification
+                    if (Notification.permission === 'granted') {
+                        new Notification(payload.notification?.title || 'New Message', {
+                            body: payload.notification?.body,
+                            icon: payload.notification?.icon || '/logo-192x192.png',
+                            data: payload.data
+                        });
+                    }
+                });
+
+                updateStatus('✅ FCM Initialized! Now request permission.', 'success');
+                updateChecks();
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        };
+
+        window.requestPermission = async function () {
+            try {
+                log('📢 Requesting notification permission...', 'info');
+                const permission = await Notification.requestPermission();
+                log(`Permission result: ${permission}`, permission === 'granted' ? 'success' : 'error');
+
+                if (permission === 'granted') {
+                    updateStatus('✅ Permission granted! Now get your FCM token.', 'success');
+                } else {
+                    updateStatus('❌ Permission denied! Please allow notifications.', 'error');
+                }
+                updateChecks();
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        };
+
+        window.getToken = async function () {
+            if (!messaging) {
+                updateStatus('❌ Please initialize FCM first!', 'error');
+                return;
+            }
+
+            try {
+                log('🎟️ Getting FCM token...', 'info');
+                const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+
+                if (token) {
+                    log('✅ Token received!', 'success');
+                    log(`Token: ${token}`, 'success');
+                    document.getElementById('token').textContent = token;
+                    updateStatus('✅ Token generated! Check the token below.', 'success');
+
+                    // Auto-copy to clipboard
+                    navigator.clipboard.writeText(token);
+                    log('📋 Token copied to clipboard!', 'success');
+                } else {
+                    log('❌ No token received', 'error');
+                    updateStatus('❌ Failed to get token. Check console.', 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        };
+
+        window.testNotification = function () {
+            if (Notification.permission === 'granted') {
+                log('🧪 Showing test notification...', 'info');
+                new Notification('🎉 Test Notification', {
+                    body: 'This is a local test notification!',
+                    icon: '/logo-192x192.png',
+                    badge: '/badge-72x72.png'
+                });
+                updateStatus('✅ Test notification sent!', 'success');
+            } else {
+                updateStatus('❌ Permission not granted. Click "Request Permission" first.', 'error');
+            }
+        };
+
+        // Auto-run checks on load
+        updateChecks();
+        log('🔔 FCM Test Page loaded. Click "Initialize FCM" to start.', 'info');
+    </script>
+</body>
+
+</html>

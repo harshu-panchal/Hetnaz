@@ -10,6 +10,7 @@ import User from '../../models/User.js';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { getLevelInfo } from '../../utils/intimacyLevel.js';
 import autoMessageService from '../../services/user/autoMessageService.js';
+import { calculateDistance, formatDistance } from '../../utils/distanceCalculator.js';
 
 /**
  * Get user's chat list
@@ -27,6 +28,7 @@ export const getMyChatList = async (req, res, next) => {
             });
         }
 
+        // Fetch chats
         const chats = await Chat.find({
             'participants.userId': userId,
             isActive: true,
@@ -44,6 +46,10 @@ export const getMyChatList = async (req, res, next) => {
             .sort({ lastMessageAt: -1 })
             .limit(50)
             .lean();
+
+        // Use location from req.user (already populated in auth middleware)
+        const myCoords = req.user?.profile?.location?.coordinates?.coordinates;
+        const hasMyCoords = myCoords && myCoords[0] !== 0;
 
         // Transform chats for frontend
         const transformedChats = chats.map(chat => {
@@ -86,6 +92,17 @@ export const getMyChatList = async (req, res, next) => {
                     isOnline: otherUserDoc.isOnline,
                     lastSeen: otherUserDoc.lastSeen,
                     isVerified: otherUserDoc.isVerified,
+                    distance: (() => {
+                        const otherCoords = otherUserDoc.profile?.location?.coordinates?.coordinates;
+                        if (hasMyCoords && otherCoords && otherCoords[0] !== 0) {
+                            const dist = calculateDistance(
+                                { lat: myCoords[1], lng: myCoords[0] },
+                                { lat: otherCoords[1], lng: otherCoords[0] }
+                            );
+                            return formatDistance(dist);
+                        }
+                        return null;
+                    })()
                 },
                 lastMessage: chat.lastMessage,
                 lastMessageAt: chat.lastMessageAt,
@@ -257,10 +274,10 @@ export const getChatById = async (req, res, next) => {
             throw new NotFoundError('Invalid chat participants');
         }
 
-        // Check block status
+        // Check block status in parallel with basic auth
         const [me, other] = await Promise.all([
-            User.findById(userId).select('blockedUsers'),
-            User.findById(otherParticipant.userId._id).select('blockedUsers')
+            User.findById(userId).select('blockedUsers').lean(),
+            User.findById(otherParticipant.userId._id).select('blockedUsers').lean()
         ]);
 
         const transformedChat = {
@@ -334,36 +351,25 @@ export const getChatMessages = async (req, res, next) => {
             .populate('receiverId', 'profile.name profile.photos')
             .lean();
 
-        // Mark messages as read
-        await Message.updateMany(
-            {
-                chatId,
-                receiverId: userId,
-                status: { $in: ['sent', 'delivered'] }
-            },
-            {
-                status: 'read',
-                readAt: new Date()
-            }
-        );
-
-        // Update chat unread count - NEED TO use Mongoose document for methods or update manually
-        // Since we have the chat document from findOne (which is a different query above), let's use that if possible.
-        // However, the `chat` variable above was fetched using `findOne`. We should make that lightweight too if we want,
-        // but for `markAsRead` which calls a method, we need the document. 
-        // BUT wait, `chat` above is NOT lean()ed so we can plain call it.
-        // Optimization: Let's do the update manually in DB to avoid fetching the full doc if we can. 
-        // Actually, the `chat` variable lines 269-272 is NOT lean, so we can keep using it.
-        // Just optimizing the MESSAGE fetch (lines 289) is enough gain.
-
-        // Wait, line 269 fetches `chat`. Let's optimize that too if it's just for auth check.
-        // Actually line 309 calls `chat.markAsRead(userId)`. This is a model method.
-        // We will keep `chat` non-lean for logic simplicity here as it's a single doc fetch.
-
-        // Update chat unread count logic manually to avoid full doc save if possible, 
-        // but existing method `markAsRead` logic is fine for now. It's safe.
-        await chat.markAsRead(userId);
-        await chat.save();
+        // Mark messages as read and update chat unread count in parallel
+        Promise.all([
+            Message.updateMany(
+                {
+                    chatId,
+                    receiverId: userId,
+                    status: { $in: ['sent', 'delivered'] }
+                },
+                {
+                    status: 'read',
+                    readAt: new Date()
+                }
+            ),
+            // Atomic update for chat unread count
+            Chat.updateOne(
+                { _id: chatId, 'participants.userId': userId },
+                { $set: { 'participants.$.unreadCount': 0 } }
+            )
+        ]).catch(e => console.error('[MSG-READ] Failed to update read status:', e));
 
         res.status(200).json({
             status: 'success',
