@@ -202,7 +202,7 @@ The Admin module provides comprehensive platform management including user manag
 - **Dependencies**: Admin API, Transaction API
 
 ---
-
+   
 ### ✅ SettingsPage.tsx
 - **Status**: ⚠️ Mock Data
 - **Location**: `src/module/admin/pages/SettingsPage.tsx`
