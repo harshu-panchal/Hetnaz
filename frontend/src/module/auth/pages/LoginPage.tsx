@@ -103,8 +103,11 @@ export const LoginPage = () => {
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-10">
+          <div className="flex justify-center mb-4">
+            <img src="/HETNAZlogo.jpg" alt="HETNAZ Logo" className="w-20 h-20 shadow-xl object-cover" />
+          </div>
           <h1 className="text-5xl font-black mb-3 bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent tracking-tight">
-            MatchMint
+            HETNAZ
           </h1>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('Welcome Back')}</h2>
           <p className="text-gray-500 font-medium">{t('Login to continue your journey')}</p>

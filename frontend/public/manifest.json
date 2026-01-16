@@ -1,6 +1,6 @@
 {
-    "name": "MatchMint",
-    "short_name": "MatchMint",
+    "name": "HETNAZ",
+    "short_name": "HETNAZ",
     "description": "Premium dating experience for everyone.",
     "start_url": "/",
     "scope": "/",
@@ -22,5 +22,8 @@
             "purpose": "any maskable"
         }
     ],
-    "categories": ["social", "lifestyle"]
+    "categories": [
+        "social",
+        "lifestyle"
+    ]
 }

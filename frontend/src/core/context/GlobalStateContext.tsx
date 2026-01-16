@@ -55,11 +55,11 @@ const GlobalStateContext = createContext<GlobalState | undefined>(undefined);
 
 // Local storage keys
 const STORAGE_KEYS = {
-    USER: 'matchmint_user',
-    TOKEN: 'matchmint_auth_token',
-    BALANCE_CACHE: 'matchmint_balance_cache',
-    CHAT_CACHE: 'matchmint_chat_cache',
-    NOTIFICATIONS: 'matchmint_notifications_persistent',
+    USER: 'hetnaz_user',
+    TOKEN: 'hetnaz_auth_token',
+    BALANCE_CACHE: 'hetnaz_balance_cache',
+    CHAT_CACHE: 'hetnaz_chat_cache',
+    NOTIFICATIONS: 'hetnaz_notifications_persistent',
 };
 
 interface GlobalStateProviderProps {

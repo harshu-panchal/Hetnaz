@@ -61,10 +61,10 @@ export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebar
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-pink-200/50 dark:border-pink-900/30 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-[#2d1a24] dark:to-[#3d2530]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-md">
-              <MaterialSymbol name="favorite" className="text-white" size={20} filled />
+            <div className="w-8 h-8 shadow-md overflow-hidden bg-white">
+              <img src="/HETNAZlogo.jpg" alt="HETNAZ" className="w-full h-full object-cover" />
             </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">MatchMint</span>
+            <span className="text-lg font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">HETNAZ</span>
           </div>
           <button
             onClick={onClose}
@@ -81,18 +81,16 @@ export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebar
             <button
               key={item.id}
               onClick={() => handleItemClick(item.id)}
-              className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group relative active:scale-95 mb-1 ${
-                item.isActive
-                  ? 'bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 shadow-md'
-                  : 'hover:bg-pink-50/50 dark:hover:bg-pink-900/10'
-              }`}
+              className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group relative active:scale-95 mb-1 ${item.isActive
+                ? 'bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 shadow-md'
+                : 'hover:bg-pink-50/50 dark:hover:bg-pink-900/10'
+                }`}
             >
               <div
-                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 shadow-sm ${
-                  item.isActive
-                    ? 'bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-lg'
-                    : 'bg-pink-100/50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 group-hover:bg-gradient-to-br group-hover:from-pink-400 group-hover:to-rose-400 group-hover:text-white'
-                }`}
+                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 shadow-sm ${item.isActive
+                  ? 'bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-lg'
+                  : 'bg-pink-100/50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 group-hover:bg-gradient-to-br group-hover:from-pink-400 group-hover:to-rose-400 group-hover:text-white'
+                  }`}
               >
                 <MaterialSymbol
                   name={item.icon}
@@ -102,11 +100,10 @@ export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebar
               </div>
               <div className="flex-1 text-left min-w-0">
                 <span
-                  className={`text-base font-medium transition-colors duration-200 truncate block ${
-                    item.isActive
-                      ? 'text-pink-700 dark:text-pink-300'
-                      : 'text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400'
-                  }`}
+                  className={`text-base font-medium transition-colors duration-200 truncate block ${item.isActive
+                    ? 'text-pink-700 dark:text-pink-300'
+                    : 'text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400'
+                    }`}
                 >
                   {item.label}
                 </span>
@@ -126,7 +123,7 @@ export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebar
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-pink-200/50 dark:border-pink-900/30 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-[#2d1a24]/50 dark:to-[#3d2530]/50">
           <div className="text-xs text-pink-600/70 dark:text-pink-400/70 text-center font-medium">
-            MatchMint © {new Date().getFullYear()}
+            HETNAZ © {new Date().getFullYear()}
           </div>
         </div>
       </div>

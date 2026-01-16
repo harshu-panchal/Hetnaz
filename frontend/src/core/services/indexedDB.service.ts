@@ -9,7 +9,7 @@
  * This provides WhatsApp-like performance for chat caching.
  */
 
-const DB_NAME = 'matchmint_cache';
+const DB_NAME = 'hetnaz_cache';
 const DB_VERSION = 1;
 
 // Store names

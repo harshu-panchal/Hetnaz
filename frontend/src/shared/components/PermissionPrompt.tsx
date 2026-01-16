@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { MaterialSymbol } from './MaterialSymbol';
 
 interface PermissionPromptProps {
     onRequestPermissions: () => void;
@@ -34,7 +33,7 @@ export const PermissionPrompt = ({ onRequestPermissions, onDismiss }: Permission
             });
 
             // Mark as requested
-            localStorage.setItem('matchmint_permissions_requested', 'true');
+            localStorage.setItem('hetnaz_permissions_requested', 'true');
 
             onRequestPermissions();
         } catch (err: any) {
@@ -48,11 +47,11 @@ export const PermissionPrompt = ({ onRequestPermissions, onDismiss }: Permission
         <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="bg-white dark:bg-[#342d18] rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4">
                 <div className="text-center mb-4">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-pink-100 dark:bg-pink-900/30 mb-3">
-                        <MaterialSymbol name="security" size={32} className="text-pink-600 dark:text-pink-400" />
+                    <div className="flex justify-center mb-4">
+                        <img src="/HETNAZlogo.jpg" alt="HETNAZ" className="w-16 h-16 shadow-lg object-cover" />
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                        Enable Permissions
+                        HETNAZ Permissions
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         To use video calls and find nearby users, please allow access to your camera, microphone, and location.

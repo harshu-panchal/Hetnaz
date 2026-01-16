@@ -1,5 +1,5 @@
 {
-  "name": "matchmint-backend",
+  "name": "hetnaz-backend",
   "version": "1.0.0",
   "description": "MatchMint Dating App Backend - Node.js + Express + MongoDB + Socket.IO",
   "main": "src/server.js",
@@ -13,7 +13,7 @@
   },
   "keywords": [
     "dating",
-    "matchmint",
+    "hetnaz",
     "backend",
     "express",
     "mongodb",

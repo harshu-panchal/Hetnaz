@@ -9,11 +9,11 @@ import type { AdminSettings, AdminGift } from '../types/admin.types';
 // Mock data - replace with actual API calls
 const mockSettings: AdminSettings = {
   general: {
-    platformName: 'MatchMint',
-    supportEmail: 'support@matchmint.com',
+    platformName: 'HETNAZ',
+    supportEmail: 'support@hetnaz.com',
     supportPhone: '+91 9876543210',
-    termsOfServiceUrl: 'https://matchmint.com/terms',
-    privacyPolicyUrl: 'https://matchmint.com/privacy',
+    termsOfServiceUrl: 'https://hetnaz.com/terms',
+    privacyPolicyUrl: 'https://hetnaz.com/privacy',
     maintenanceMode: false,
     registrationEnabled: true,
   },

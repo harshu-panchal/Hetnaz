@@ -12,6 +12,7 @@ import { useAuth } from '../../../core/context/AuthContext';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
+import { getUser, getAuthToken } from '../../../core/utils/auth';
 
 export const ChatListPage = () => {
   const { t } = useTranslation();
@@ -30,7 +31,7 @@ export const ChatListPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     // Get current user ID from token or context
-    const user = JSON.parse(localStorage.getItem('matchmint_user') || '{}');
+    const user = getUser() || {};
     setCurrentUserId(user.id || user._id || '');
 
     // Initial fetch (will load from cache first inside hook, then we trigger network)
@@ -56,7 +57,7 @@ export const ChatListPage = () => {
   const fetchAvailableBalance = async () => {
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('matchmint_auth_token');
+      const token = getAuthToken();
 
       const response = await fetch(`${API_URL}/users/female/dashboard`, {
         headers: {

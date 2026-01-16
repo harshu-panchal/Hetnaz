@@ -20,7 +20,7 @@ export const AdminTopNavbar = ({ onMenuClick }: AdminTopNavbarProps) => {
           </button>
 
           <div>
-            <span className="text-lg font-semibold text-white">MatchMint</span>
+            <span className="text-lg font-semibold text-white">HETNAZ</span>
           </div>
         </div>
 

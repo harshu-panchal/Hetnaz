@@ -9,6 +9,8 @@ import { GoogleMapsAutocomplete } from '../../../shared/components/GoogleMapsAut
 import axios from 'axios';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 
+import { getAuthToken } from '../../../core/utils/auth';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const mockProfile = {
@@ -79,7 +81,7 @@ export const MaleProfileEditPage = () => {
       }
 
       await axios.patch(`${API_URL}/users/me`, payload, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('matchmint_auth_token')}` }
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
       });
 
       updateUser({

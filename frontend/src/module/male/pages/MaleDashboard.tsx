@@ -165,7 +165,7 @@ export const MaleDashboard = () => {
             setShowPermissionPrompt(false);
           }}
           onDismiss={() => {
-            localStorage.setItem('matchmint_permissions_requested', 'true');
+            localStorage.setItem('hetnaz_permissions_requested', 'true');
             setShowPermissionPrompt(false);
           }}
         />

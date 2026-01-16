@@ -20,10 +20,10 @@ export const MaleTopNavbar = ({ title }: MaleTopNavbarProps) => {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-md">
-              <MaterialSymbol name="favorite" className="text-white" size={24} filled />
+            <div className="p-1 shadow-md overflow-hidden bg-white">
+              <img src="/HETNAZlogo.jpg" alt="HETNAZ" className="w-8 h-8 object-cover" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">MatchMint</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">HETNAZ</span>
           </div>
         )}
 

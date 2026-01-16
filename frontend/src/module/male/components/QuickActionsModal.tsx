@@ -57,7 +57,7 @@ export const QuickActionsModal = ({
         <div className="sticky top-0 bg-white dark:bg-[#2f151e] border-b border-gray-200 dark:border-gray-700 z-10">
           <div className="flex items-center justify-between px-4 py-4">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              {actionId === 'vip' ? 'MatchMint VIP Membership' : 'Send Gift'}
+              {actionId === 'vip' ? 'HETNAZ VIP Membership' : 'Send Gift'}
             </h2>
             <button
               onClick={onClose}
@@ -120,11 +120,10 @@ export const QuickActionsModal = ({
                   <button
                     key={gift.id}
                     onClick={() => setSelectedGift(gift.id)}
-                    className={`p-4 rounded-xl border-2 transition-all active:scale-95 ${
-                      selectedGift === gift.id
+                    className={`p-4 rounded-xl border-2 transition-all active:scale-95 ${selectedGift === gift.id
                         ? 'border-primary bg-primary/10'
                         : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#342d18]'
-                    }`}
+                      }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       <MaterialSymbol

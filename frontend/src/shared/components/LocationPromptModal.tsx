@@ -3,6 +3,7 @@ import { MaterialSymbol } from './MaterialSymbol';
 import { GoogleMapsAutocomplete } from './GoogleMapsAutocomplete';
 import axios from 'axios';
 import { useAuth } from '../../core/context/AuthContext';
+import { getAuthToken } from '../../core/utils/auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -129,7 +130,7 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
         setError('');
 
         try {
-            const token = localStorage.getItem('matchmint_auth_token');
+            const token = getAuthToken();
             const payload: any = {
                 location: location.trim(),
                 city: city.trim() || location.trim(),

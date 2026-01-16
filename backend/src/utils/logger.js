@@ -23,7 +23,7 @@ const consoleFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let msg = `${timestamp} [${level}]: ${message}`;
-    if (Object.keys(meta).length > 0 && meta.service !== 'matchmint-backend') {
+    if (Object.keys(meta).length > 0 && meta.service !== 'hetnaz-backend') {
       msg += ` ${JSON.stringify(meta)}`;
     }
     return msg;
@@ -58,7 +58,7 @@ transports.push(
 const logger = winston.createLogger({
   level: logLevel,
   format: logFormat,
-  defaultMeta: { service: 'matchmint-backend' },
+  defaultMeta: { service: 'hetnaz-backend' },
   transports,
 });
 

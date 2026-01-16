@@ -64,12 +64,12 @@ const FemaleDashboardContent = () => {
 
     // Welcome notification (deferred to not block main thread)
     if (user?.role === 'female' && user?.approvalStatus === 'approved') {
-      const welcomeShown = localStorage.getItem('matchmint_female_welcome_shown');
+      const welcomeShown = localStorage.getItem('hetnaz_female_welcome_shown');
       if (!welcomeShown) {
-        localStorage.setItem('matchmint_female_welcome_shown', 'true');
+        localStorage.setItem('hetnaz_female_welcome_shown', 'true');
         setTimeout(() => {
           addNotification({
-            title: 'Welcome to Match Mint',
+            title: 'Welcome to HETNAZ',
             message: 'Your journey begins here. Explore and connect seamlessly.',
             type: 'system'
           });
@@ -120,7 +120,7 @@ const FemaleDashboardContent = () => {
         <PermissionPrompt
           onRequestPermissions={() => setShowPermissionPrompt(false)}
           onDismiss={() => {
-            localStorage.setItem('matchmint_permissions_requested', 'true');
+            localStorage.setItem('hetnaz_permissions_requested', 'true');
             setShowPermissionPrompt(false);
           }}
         />

@@ -16,6 +16,7 @@ import { ImageModal } from '../../../shared/components/ImageModal';
 import { ReportModal } from '../../../shared/components/ReportModal';
 import apiClient from '../../../core/api/client';
 import { compressImage } from '../../../core/utils/image';
+import { getUser, getAuthToken } from '../../../core/utils/auth';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { CHAT_KEYS } from '../../../core/queries/useChatQuery';
@@ -57,7 +58,7 @@ export const ChatWindowPage = () => {
   const MESSAGES_PER_PAGE = 10;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const user = JSON.parse(localStorage.getItem('matchmint_user') || '{}');
+  const user = getUser() || {};
   const currentUserId = user._id || user.id;
 
   const scrollToBottom = useCallback(() => {
@@ -69,7 +70,7 @@ export const ChatWindowPage = () => {
     const fetchAvailableBalance = async () => {
       try {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const token = localStorage.getItem('matchmint_auth_token');
+        const token = getAuthToken();
 
         const response = await fetch(`${API_URL}/users/female/dashboard`, {
           headers: {
@@ -527,7 +528,7 @@ export const ChatWindowPage = () => {
           }
 
           // Robust current user ID extraction
-          const user = JSON.parse(localStorage.getItem('matchmint_user') || '{}');
+          const user = getUser() || {};
           const currentUserId = user._id || user.id;
 
           const isSent = String(senderId) === String(currentUserId);

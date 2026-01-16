@@ -71,11 +71,11 @@ export const LanguageSelectionPage = () => {
             <div className="max-w-md w-full">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-pink-100 dark:bg-pink-900/30 mb-6">
-                        <MaterialSymbol name="language" size={48} className="text-pink-600 dark:text-pink-400" />
+                    <div className="flex justify-center mb-6">
+                        <img src="/HETNAZlogo.jpg" alt="HETNAZ Logo" className="w-24 h-24 shadow-2xl object-cover" />
                     </div>
                     <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
-                        MatchMint
+                        HETNAZ
                     </h1>
                     <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
                         {selectedLanguage === 'en' ? 'Choose Your Language' : 'अपनी भाषा चुनें'}

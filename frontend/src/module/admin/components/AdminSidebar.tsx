@@ -109,10 +109,10 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
         {/* Header - WordPress Style */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#2c3338] h-[57px] bg-[#1d2327]">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
-              <MaterialSymbol name="admin_panel_settings" className="text-white" size={20} filled />
+            <div className="w-8 h-8 flex items-center justify-center overflow-hidden shadow-md">
+              <img src="/HETNAZlogo.jpg" alt="HETNAZ" className="w-full h-full object-cover" />
             </div>
-            <span className="text-sm font-semibold text-white">MatchMint Admin</span>
+            <span className="text-sm font-semibold text-white">HETNAZ Admin</span>
           </div>
           {/* Close button - Only on mobile */}
           <button
@@ -136,8 +136,8 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
                 <button
                   onClick={() => handleItemClick(item.id, hasSubItems)}
                   className={`flex items-center gap-3 px-4 py-2.5 w-full transition-all duration-150 relative group ${item.isActive && !hasSubItems
-                      ? 'bg-[#2c3338] text-[#72aee6] border-l-4 border-[#72aee6]'
-                      : 'text-[#c3c4c7] hover:bg-[#2c3338] hover:text-white border-l-4 border-transparent'
+                    ? 'bg-[#2c3338] text-[#72aee6] border-l-4 border-[#72aee6]'
+                    : 'text-[#c3c4c7] hover:bg-[#2c3338] hover:text-white border-l-4 border-transparent'
                     }`}
                 >
                   <MaterialSymbol
@@ -174,8 +174,8 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
                           if (window.innerWidth < 1024) onClose();
                         }}
                         className={`flex items-center gap-2 pl-12 pr-4 py-2 w-full text-sm transition-all duration-150 relative ${subItem.isActive
-                            ? 'text-[#72aee6] bg-[#1d2327]'
-                            : 'text-[#a7aaad] hover:text-[#72aee6] hover:bg-[#1d2327]'
+                          ? 'text-[#72aee6] bg-[#1d2327]'
+                          : 'text-[#a7aaad] hover:text-[#72aee6] hover:bg-[#1d2327]'
                           }`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
@@ -200,7 +200,7 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
         {/* Footer - WordPress Style */}
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-[#2c3338] bg-[#1d2327]">
           <div className="text-[10px] text-[#787c82] text-center">
-            © {new Date().getFullYear()} MatchMint Admin
+            © {new Date().getFullYear()} HETNAZ Admin
           </div>
         </div>
       </div>

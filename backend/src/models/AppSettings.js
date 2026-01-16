@@ -9,8 +9,8 @@ import mongoose from 'mongoose';
 const appSettingsSchema = new mongoose.Schema(
     {
         general: {
-            platformName: { type: String, default: 'MatchMint' },
-            supportEmail: { type: String, default: 'support@matchmint.com' },
+            platformName: { type: String, default: 'HETNAZ' },
+            supportEmail: { type: String, default: 'support@hetnaz.com' },
             supportPhone: { type: String, default: '+91 9876543210' },
             termsOfServiceUrl: { type: String, default: '' },
             privacyPolicyUrl: { type: String, default: '' },

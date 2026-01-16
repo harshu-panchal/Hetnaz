@@ -5,10 +5,10 @@
  */
 import { UserProfile } from '../types/global';
 
-const TOKEN_KEY = 'matchmint_auth_token';
-const REFRESH_TOKEN_KEY = 'matchmint_refresh_token';
-const USER_KEY = 'matchmint_user';
-const AUTH_TIMESTAMP_KEY = 'matchmint_auth_timestamp';
+const TOKEN_KEY = 'hetnaz_auth_token';
+const REFRESH_TOKEN_KEY = 'hetnaz_refresh_token';
+const USER_KEY = 'hetnaz_user';
+const AUTH_TIMESTAMP_KEY = 'hetnaz_auth_timestamp';
 const LANGUAGE_KEY = 'user_language';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 

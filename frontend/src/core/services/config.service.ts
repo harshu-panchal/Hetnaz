@@ -50,8 +50,8 @@ class ConfigService {
             if (!this.config) {
                 return {
                     general: {
-                        platformName: 'MatchMint',
-                        supportEmail: 'support@matchmint.com',
+                        platformName: 'HETNAZ',
+                        supportEmail: 'support@hetnaz.com',
                         supportPhone: '',
                         maintenanceMode: false,
                         registrationEnabled: true

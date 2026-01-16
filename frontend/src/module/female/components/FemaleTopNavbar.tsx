@@ -11,8 +11,10 @@ export const FemaleTopNavbar = () => {
       <div className="flex items-center justify-between px-4 py-3">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <MaterialSymbol name="favorite" className="text-primary" size={28} filled />
-          <span className="text-xl font-bold text-pink-600 dark:text-pink-400">MatchMint</span>
+          <div className="w-8 h-8 overflow-hidden flex items-center justify-center shadow-sm bg-white">
+            <img src="/HETNAZlogo.jpg" alt="HETNAZ" className="w-full h-full object-cover" />
+          </div>
+          <span className="text-xl font-bold text-pink-600 dark:text-pink-400">HETNAZ</span>
         </div>
 
         {/* Notifications Icon (Replaced Hamburger) */}

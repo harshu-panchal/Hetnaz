@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import axios from 'axios';
 import { useAuth } from '../../../core/context/AuthContext';
+import { getAuthToken } from '../../../core/utils/auth';
 
 interface EditProfileModalProps {
     isOpen: boolean;
@@ -44,7 +45,7 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
                 interests,
                 photos
             }, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('matchmint_auth_token')}` }
+                headers: { Authorization: `Bearer ${getAuthToken()}` }
             });
 
             updateUser({

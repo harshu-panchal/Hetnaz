@@ -24,12 +24,12 @@ export const ReferralPage = () => {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const shareMessage = `Hey! Join me on MatchMint and find amazing connections. Use my referral ID: ${referralId} during signup to get a special bonus! 🚀`;
+    const shareMessage = `Hey! Join me on HETNAZ and find amazing connections. Use my referral ID: ${referralId} during signup to get a special bonus! 🚀`;
 
     const handleShare = () => {
         if (navigator.share) {
             navigator.share({
-                title: 'Join MatchMint',
+                title: 'Join HETNAZ',
                 text: shareMessage,
                 url: window.location.origin,
             });

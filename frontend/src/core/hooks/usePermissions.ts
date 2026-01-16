@@ -10,10 +10,10 @@ export interface PermissionState {
 
 // LocalStorage keys for permission states
 const PERMISSION_KEYS = {
-    CAMERA: 'matchmint_camera_permission',
-    MICROPHONE: 'matchmint_microphone_permission',
-    LOCATION: 'matchmint_location_permission',
-    REQUESTED: 'matchmint_permissions_requested',
+    CAMERA: 'hetnaz_camera_permission',
+    MICROPHONE: 'hetnaz_microphone_permission',
+    LOCATION: 'hetnaz_location_permission',
+    REQUESTED: 'hetnaz_permissions_requested',
 };
 
 export const usePermissions = () => {

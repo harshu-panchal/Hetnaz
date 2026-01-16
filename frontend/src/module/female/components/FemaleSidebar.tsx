@@ -61,8 +61,10 @@ export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSid
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
-            <MaterialSymbol name="favorite" className="text-primary" size={24} filled />
-            <span className="text-lg font-bold text-pink-600 dark:text-pink-400">MatchMint</span>
+            <div className="w-8 h-8 overflow-hidden flex items-center justify-center shadow-sm bg-white">
+              <img src="/HETNAZlogo.jpg" alt="HETNAZ" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-lg font-bold text-pink-600 dark:text-pink-400">HETNAZ</span>
           </div>
           <button
             onClick={onClose}
@@ -87,11 +89,10 @@ export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSid
               }}
             >
               <div
-                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 ${
-                  item.isActive
-                    ? 'bg-primary text-[#231d10]'
-                    : 'bg-gray-100 dark:bg-[#342d18] text-gray-600 dark:text-gray-400 group-hover:bg-primary/10 group-hover:text-primary'
-                }`}
+                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 ${item.isActive
+                  ? 'bg-primary text-[#231d10]'
+                  : 'bg-gray-100 dark:bg-[#342d18] text-gray-600 dark:text-gray-400 group-hover:bg-primary/10 group-hover:text-primary'
+                  }`}
               >
                 <MaterialSymbol
                   name={item.icon}
@@ -101,11 +102,10 @@ export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSid
               </div>
               <div className="flex-1 text-left">
                 <span
-                  className={`text-base font-medium transition-colors duration-200 ${
-                    item.isActive
-                      ? 'text-primary'
-                      : 'text-gray-900 dark:text-white group-hover:text-primary'
-                  }`}
+                  className={`text-base font-medium transition-colors duration-200 ${item.isActive
+                    ? 'text-primary'
+                    : 'text-gray-900 dark:text-white group-hover:text-primary'
+                    }`}
                 >
                   {item.label}
                 </span>
@@ -123,7 +123,7 @@ export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSid
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700">
           <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            MatchMint © {new Date().getFullYear()}
+            HETNAZ © {new Date().getFullYear()}
           </div>
         </div>
       </div>
