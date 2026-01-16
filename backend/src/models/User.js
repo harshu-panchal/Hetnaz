@@ -55,7 +55,12 @@ const userSchema = new mongoose.Schema(
     },
 
     // Firebase Cloud Messaging tokens for push notifications
+    // fcmTokens = Web tokens, fcmTokensApp = Mobile App tokens
     fcmTokens: {
+      type: [String],
+      default: [],
+    },
+    fcmTokensApp: {
       type: [String],
       default: [],
     },

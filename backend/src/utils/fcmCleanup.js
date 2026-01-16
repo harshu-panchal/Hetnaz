@@ -22,16 +22,20 @@ export const removeInvalidTokens = async (userId, invalidTokens) => {
 
     try {
         // Use atomic operation to avoid write conflicts
-        console.log('[FCM-CLEANUP] 📊 Removing tokens atomically...');
+        // Remove from both web (fcmTokens) and app (fcmTokensApp) arrays
+        console.log('[FCM-CLEANUP] 📊 Removing tokens atomically from both platforms...');
 
         const result = await User.findByIdAndUpdate(
             userId,
             {
-                $pullAll: { fcmTokens: tokensToRemove } // Atomic: remove all matching tokens
+                $pullAll: {
+                    fcmTokens: tokensToRemove,      // Web tokens
+                    fcmTokensApp: tokensToRemove    // App tokens
+                }
             },
             {
                 new: true,
-                select: 'fcmTokens'
+                select: 'fcmTokens fcmTokensApp'
             }
         );
 
@@ -40,16 +44,18 @@ export const removeInvalidTokens = async (userId, invalidTokens) => {
             return { success: false, error: 'User not found' };
         }
 
-        const finalCount = result.fcmTokens?.length || 0;
+        const webCount = result.fcmTokens?.length || 0;
+        const appCount = result.fcmTokensApp?.length || 0;
         const removedCount = tokensToRemove.length; // Approximate
 
-        console.log('[FCM-CLEANUP] ✅ Removed invalid token(s)');
-        console.log('[FCM-CLEANUP] 📊 Remaining tokens:', finalCount);
+        console.log('[FCM-CLEANUP] ✅ Removed invalid token(s) from both platforms');
+        console.log('[FCM-CLEANUP] 📊 Remaining: Web:', webCount, '| App:', appCount);
 
         return {
             success: true,
             removedCount,
-            remainingCount: finalCount
+            remainingWebCount: webCount,
+            remainingAppCount: appCount
         };
 
     } catch (error) {

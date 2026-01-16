@@ -10,6 +10,18 @@ import fcmCleanup from '../../utils/fcmCleanup.js';
 console.log('[NOTIFICATION-HELPER] ✅ Chat notification helper loaded');
 
 /**
+ * Helper: Get all FCM tokens for a user (both web and app)
+ * @param {object} user - User object with fcmTokens and fcmTokensApp fields
+ * @returns {string[]} Combined unique tokens from all platforms
+ */
+const getAllFcmTokens = (user) => {
+    const webTokens = user?.fcmTokens || [];
+    const appTokens = user?.fcmTokensApp || [];
+    // Combine and remove duplicates
+    return [...new Set([...webTokens, ...appTokens])];
+};
+
+/**
  * Send notification to a user for new message
  * @param {string} receiverId - User ID to send notification to
  * @param {object} sender - Sender user object
@@ -23,15 +35,16 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
     console.log('[NOTIFICATION] 📋 Message type:', messageData.messageType);
 
     try {
-        // Get receiver's FCM tokens
-        const receiver = await User.findById(receiverId).select('fcmTokens profile');
+        // Get receiver's FCM tokens (both web and app)
+        const receiver = await User.findById(receiverId).select('fcmTokens fcmTokensApp profile');
+        const allTokens = getAllFcmTokens(receiver);
 
-        if (!receiver || !receiver.fcmTokens || receiver.fcmTokens.length === 0) {
+        if (!receiver || allTokens.length === 0) {
             console.log('[NOTIFICATION] ℹ️ Receiver has no FCM tokens');
             return { success: false, reason: 'No FCM tokens' };
         }
 
-        console.log('[NOTIFICATION] 📊 Receiver has', receiver.fcmTokens.length, 'token(s)');
+        console.log('[NOTIFICATION] 📊 Receiver has', allTokens.length, 'token(s) (web + app)');
 
         // Build notification title and body based on message type
         const senderName = sender.profile?.name || 'Someone';
@@ -88,8 +101,8 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
             timestamp: new Date().toISOString()
         };
 
-        // Send to all receiver's tokens IN PARALLEL
-        const results = await Promise.all(receiver.fcmTokens.map(async (token) => {
+        // Send to all receiver's tokens IN PARALLEL (web + app)
+        const results = await Promise.all(allTokens.map(async (token) => {
             console.log('[NOTIFICATION] 📤 Sending to token:', token.substring(0, 30) + '...');
 
             const result = await fcmService.sendNotification(token, {
@@ -140,9 +153,10 @@ export const notifyVideoCall = async (receiverId, caller, callId) => {
     console.log('[NOTIFICATION] 👤 Caller:', caller.profile?.name || 'Someone');
 
     try {
-        const receiver = await User.findById(receiverId).select('fcmTokens');
+        const receiver = await User.findById(receiverId).select('fcmTokens fcmTokensApp');
+        const allTokens = getAllFcmTokens(receiver);
 
-        if (!receiver || !receiver.fcmTokens || receiver.fcmTokens.length === 0) {
+        if (!receiver || allTokens.length === 0) {
             return { success: false, reason: 'No FCM tokens' };
         }
 
@@ -161,7 +175,7 @@ export const notifyVideoCall = async (receiverId, caller, callId) => {
         const results = [];
         const invalidTokens = [];
 
-        for (const token of receiver.fcmTokens) {
+        for (const token of allTokens) {
             const result = await fcmService.sendNotification(token, {
                 title,
                 body,
@@ -205,9 +219,10 @@ export const notifyLowBalance = async (userId, currentBalance) => {
     console.log('[NOTIFICATION] 💰 Balance:', currentBalance);
 
     try {
-        const user = await User.findById(userId).select('fcmTokens');
+        const user = await User.findById(userId).select('fcmTokens fcmTokensApp');
+        const allTokens = getAllFcmTokens(user);
 
-        if (!user || !user.fcmTokens || user.fcmTokens.length === 0) {
+        if (!user || allTokens.length === 0) {
             return { success: false, reason: 'No FCM tokens' };
         }
 
@@ -221,7 +236,7 @@ export const notifyLowBalance = async (userId, currentBalance) => {
         };
 
         const results = [];
-        for (const token of user.fcmTokens) {
+        for (const token of allTokens) {
             const result = await fcmService.sendNotification(token, {
                 title,
                 body,
@@ -252,9 +267,10 @@ export const notifyDailyReward = async (userId, rewardAmount = 10) => {
     console.log('[NOTIFICATION] 👤 User ID:', userId);
 
     try {
-        const user = await User.findById(userId).select('fcmTokens');
+        const user = await User.findById(userId).select('fcmTokens fcmTokensApp');
+        const allTokens = getAllFcmTokens(user);
 
-        if (!user || !user.fcmTokens || user.fcmTokens.length === 0) {
+        if (!user || allTokens.length === 0) {
             return { success: false, reason: 'No FCM tokens' };
         }
 
@@ -268,7 +284,7 @@ export const notifyDailyReward = async (userId, rewardAmount = 10) => {
         };
 
         const results = [];
-        for (const token of user.fcmTokens) {
+        for (const token of allTokens) {
             const result = await fcmService.sendNotification(token, {
                 title,
                 body,
@@ -299,9 +315,10 @@ export const notifyNewNearbyUser = async (maleUserId, femaleUser, distance = nul
     console.log('[NOTIFICATION] 💃 New Female:', femaleUser.profile?.name);
 
     try {
-        const maleUser = await User.findById(maleUserId).select('fcmTokens');
+        const maleUser = await User.findById(maleUserId).select('fcmTokens fcmTokensApp');
+        const allTokens = getAllFcmTokens(maleUser);
 
-        if (!maleUser || !maleUser.fcmTokens || maleUser.fcmTokens.length === 0) {
+        if (!maleUser || allTokens.length === 0) {
             return { success: false, reason: 'No FCM tokens' };
         }
 
@@ -328,7 +345,7 @@ export const notifyNewNearbyUser = async (maleUserId, femaleUser, distance = nul
         };
 
         const results = [];
-        for (const token of maleUser.fcmTokens) {
+        for (const token of allTokens) {
             const result = await fcmService.sendNotification(token, {
                 title,
                 body,
