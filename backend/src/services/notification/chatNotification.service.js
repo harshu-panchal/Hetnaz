@@ -11,14 +11,14 @@ console.log('[NOTIFICATION-HELPER] ✅ Chat notification helper loaded');
 
 /**
  * Helper: Get all FCM tokens for a user (both web and app)
- * @param {object} user - User object with fcmTokens and fcmTokensApp fields
- * @returns {string[]} Combined unique tokens from all platforms
+ * @param {object} user - User object with fcmTokensWeb and fcmTokensApp fields
+ * @returns {Array<{token: string, platform: string}>} Array of token objects
  */
 const getAllFcmTokens = (user) => {
-    const webTokens = user?.fcmTokens || [];
-    const appTokens = user?.fcmTokensApp || [];
-    // Combine and remove duplicates
-    return [...new Set([...webTokens, ...appTokens])];
+    const tokens = [];
+    if (user?.fcmTokensWeb) tokens.push({ token: user.fcmTokensWeb, platform: 'web' });
+    if (user?.fcmTokensApp) tokens.push({ token: user.fcmTokensApp, platform: 'app' });
+    return tokens;
 };
 
 /**
@@ -36,7 +36,7 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
 
     try {
         // Get receiver's FCM tokens (both web and app)
-        const receiver = await User.findById(receiverId).select('fcmTokens fcmTokensApp profile');
+        const receiver = await User.findById(receiverId).select('fcmTokensWeb fcmTokensApp profile');
         const allTokens = getAllFcmTokens(receiver);
 
         if (!receiver || allTokens.length === 0) {
@@ -52,17 +52,17 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
 
         // Helper: Validate icon URL (avoid base64, only use HTTP URLs)
         const getValidIconUrl = (url) => {
-            if (!url || typeof url !== 'string') return '/logo-192x192.png';
-            if (url.startsWith('data:')) return '/logo-192x192.png'; // Skip base64
+            if (!url || typeof url !== 'string') return '/Hetnaz.png';
+            if (url.startsWith('data:')) return '/Hetnaz.png'; // Skip base64
             if (url.startsWith('http://') || url.startsWith('https://')) return url;
-            return '/logo-192x192.png'; // Default
+            return '/Hetnaz.png'; // Default
         };
 
         switch (messageData.messageType) {
             case 'image':
                 title = `📸 ${senderName}`;
                 body = 'Sent you a photo';
-                icon = '/logo-192x192.png';
+                icon = '/Hetnaz.png';
                 break;
 
             case 'gift':
@@ -102,8 +102,8 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
         };
 
         // Send to all receiver's tokens IN PARALLEL (web + app)
-        const results = await Promise.all(allTokens.map(async (token) => {
-            console.log('[NOTIFICATION] 📤 Sending to token:', token.substring(0, 30) + '...');
+        const results = await Promise.all(allTokens.map(async ({ token, platform }) => {
+            console.log('[NOTIFICATION] 📤 Sending to', platform, 'token:', token.substring(0, 30) + '...');
 
             const result = await fcmService.sendNotification(token, {
                 title,
@@ -111,20 +111,19 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
                 icon
             }, data);
 
-            return { token, result };
+            return { token, platform, result };
         }));
-
-        const invalidTokens = results
-            .filter(r => !r.result.success && r.result.invalidToken)
-            .map(r => r.token);
 
         const successCount = results.filter(r => r.result.success).length;
         console.log('[NOTIFICATION] 📊 Success rate:', `${successCount}/${results.length}`);
 
         // Auto-cleanup invalid tokens
-        if (invalidTokens.length > 0) {
-            console.log('[NOTIFICATION] 🧹 Auto-cleaning', invalidTokens.length, 'invalid token(s)...');
-            await fcmCleanup.removeInvalidTokens(receiverId, invalidTokens);
+        const invalidResults = results.filter(r => !r.result.success && r.result.invalidToken);
+        if (invalidResults.length > 0) {
+            console.log('[NOTIFICATION] 🧹 Auto-cleaning', invalidResults.length, 'invalid token(s)...');
+            for (const { platform } of invalidResults) {
+                await fcmCleanup.removeInvalidToken(receiverId, platform);
+            }
         }
 
         return {
@@ -153,7 +152,7 @@ export const notifyVideoCall = async (receiverId, caller, callId) => {
     console.log('[NOTIFICATION] 👤 Caller:', caller.profile?.name || 'Someone');
 
     try {
-        const receiver = await User.findById(receiverId).select('fcmTokens fcmTokensApp');
+        const receiver = await User.findById(receiverId).select('fcmTokensWeb fcmTokensApp');
         const allTokens = getAllFcmTokens(receiver);
 
         if (!receiver || allTokens.length === 0) {
@@ -173,25 +172,25 @@ export const notifyVideoCall = async (receiverId, caller, callId) => {
         };
 
         const results = [];
-        const invalidTokens = [];
+        const invalidPlatforms = [];
 
-        for (const token of allTokens) {
+        for (const { token, platform } of allTokens) {
             const result = await fcmService.sendNotification(token, {
                 title,
                 body,
-                icon: caller.profile?.photos?.[0]?.url || '/logo-192x192.png'
+                icon: caller.profile?.photos?.[0]?.url || '/Hetnaz.png'
             }, data);
 
             results.push(result);
 
             if (!result.success && result.invalidToken) {
-                invalidTokens.push(token);
+                invalidPlatforms.push(platform);
             }
         }
 
         // Auto-cleanup
-        if (invalidTokens.length > 0) {
-            await fcmCleanup.removeInvalidTokens(receiverId, invalidTokens);
+        for (const platform of invalidPlatforms) {
+            await fcmCleanup.removeInvalidToken(receiverId, platform);
         }
 
         const successCount = results.filter(r => r.success).length;
@@ -219,7 +218,7 @@ export const notifyLowBalance = async (userId, currentBalance) => {
     console.log('[NOTIFICATION] 💰 Balance:', currentBalance);
 
     try {
-        const user = await User.findById(userId).select('fcmTokens fcmTokensApp');
+        const user = await User.findById(userId).select('fcmTokensWeb fcmTokensApp');
         const allTokens = getAllFcmTokens(user);
 
         if (!user || allTokens.length === 0) {
@@ -236,11 +235,11 @@ export const notifyLowBalance = async (userId, currentBalance) => {
         };
 
         const results = [];
-        for (const token of allTokens) {
+        for (const { token } of allTokens) {
             const result = await fcmService.sendNotification(token, {
                 title,
                 body,
-                icon: '/logo-192x192.png'
+                icon: '/Hetnaz.png'
             }, data);
             results.push(result);
         }
@@ -267,7 +266,7 @@ export const notifyDailyReward = async (userId, rewardAmount = 10) => {
     console.log('[NOTIFICATION] 👤 User ID:', userId);
 
     try {
-        const user = await User.findById(userId).select('fcmTokens fcmTokensApp');
+        const user = await User.findById(userId).select('fcmTokensWeb fcmTokensApp');
         const allTokens = getAllFcmTokens(user);
 
         if (!user || allTokens.length === 0) {
@@ -284,11 +283,11 @@ export const notifyDailyReward = async (userId, rewardAmount = 10) => {
         };
 
         const results = [];
-        for (const token of allTokens) {
+        for (const { token } of allTokens) {
             const result = await fcmService.sendNotification(token, {
                 title,
                 body,
-                icon: '/logo-192x192.png'
+                icon: '/Hetnaz.png'
             }, data);
             results.push(result);
         }
@@ -315,7 +314,7 @@ export const notifyNewNearbyUser = async (maleUserId, femaleUser, distance = nul
     console.log('[NOTIFICATION] 💃 New Female:', femaleUser.profile?.name);
 
     try {
-        const maleUser = await User.findById(maleUserId).select('fcmTokens fcmTokensApp');
+        const maleUser = await User.findById(maleUserId).select('fcmTokensWeb fcmTokensApp');
         const allTokens = getAllFcmTokens(maleUser);
 
         if (!maleUser || allTokens.length === 0) {
@@ -331,10 +330,10 @@ export const notifyNewNearbyUser = async (maleUserId, femaleUser, distance = nul
 
         // Helper: Validate icon URL
         const getValidIconUrl = (url) => {
-            if (!url || typeof url !== 'string') return '/logo-192x192.png';
-            if (url.startsWith('data:')) return '/logo-192x192.png';
+            if (!url || typeof url !== 'string') return '/Hetnaz.png';
+            if (url.startsWith('data:')) return '/Hetnaz.png';
             if (url.startsWith('http://') || url.startsWith('https://')) return url;
-            return '/logo-192x192.png';
+            return '/Hetnaz.png';
         };
 
         const data = {
@@ -345,7 +344,7 @@ export const notifyNewNearbyUser = async (maleUserId, femaleUser, distance = nul
         };
 
         const results = [];
-        for (const token of allTokens) {
+        for (const { token } of allTokens) {
             const result = await fcmService.sendNotification(token, {
                 title,
                 body,

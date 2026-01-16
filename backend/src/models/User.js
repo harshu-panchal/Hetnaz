@@ -55,14 +55,14 @@ const userSchema = new mongoose.Schema(
     },
 
     // Firebase Cloud Messaging tokens for push notifications
-    // fcmTokens = Web tokens, fcmTokensApp = Mobile App tokens
-    fcmTokens: {
-      type: [String],
-      default: [],
+    // Single token per platform (replaced on each login from that platform)
+    fcmTokensWeb: {
+      type: String,
+      default: null,
     },
     fcmTokensApp: {
-      type: [String],
-      default: [],
+      type: String,
+      default: null,
     },
 
     // Chat-Related Fields (Harsh - Chat Domain)

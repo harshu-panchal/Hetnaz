@@ -221,7 +221,7 @@
                     if (Notification.permission === 'granted') {
                         new Notification(payload.notification?.title || 'New Message', {
                             body: payload.notification?.body,
-                            icon: payload.notification?.icon || '/logo-192x192.png',
+                            icon: payload.notification?.icon || '/Hetnaz.png',
                             data: payload.data
                         });
                     }
@@ -287,7 +287,7 @@
                 log('🧪 Showing test notification...', 'info');
                 new Notification('🎉 Test Notification', {
                     body: 'This is a local test notification!',
-                    icon: '/logo-192x192.png',
+                    icon: '/Hetnaz.png',
                     badge: '/badge-72x72.png'
                 });
                 updateStatus('✅ Test notification sent!', 'success');

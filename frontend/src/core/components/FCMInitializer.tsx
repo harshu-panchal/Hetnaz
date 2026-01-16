@@ -39,7 +39,7 @@ export const FCMInitializer = () => {
                     fcmService.onForegroundMessage((payload: any) => {
                         const title = payload.notification?.title || 'New Message';
                         const body = payload.notification?.body || 'You have a notification';
-                        fcmService.showNotification(title, { body, icon: '/logo-192x192.png' });
+                        fcmService.showNotification(title, { body, icon: '/Hetnaz.png' });
                     });
                 }
             } catch (e) {

@@ -63,7 +63,7 @@ export const sendNotification = async (fcmToken, notification, data = {}) => {
             },
             data: { ...data, timestamp: new Date().toISOString() },
             android: { priority: 'high', notification: { sound: 'default' } },
-            webpush: { notification: { icon: '/logo-192x192.png' } }
+            webpush: { notification: { icon: '/Hetnaz.png' } }
         };
 
         const sendPromise = messaging.send(message);

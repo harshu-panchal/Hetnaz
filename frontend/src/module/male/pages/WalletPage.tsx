@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WalletHeader } from '../components/WalletHeader';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
 import { TransactionItem } from '../components/TransactionItem';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -143,6 +144,7 @@ export const WalletPage = () => {
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto shadow-xl bg-background-light dark:bg-background-dark pb-20 font-display">
       {/* Top App Bar */}
+      <MaleTopNavbar />
       <WalletHeader onHelpClick={handleHelpClick} />
 
       {/* Profile / Balance Header */}

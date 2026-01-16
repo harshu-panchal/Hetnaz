@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChatListHeader } from '../components/ChatListHeader';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { SearchBar } from '../components/SearchBar';
 import { ChatListItem } from '../components/ChatListItem';
@@ -115,7 +116,7 @@ export const ChatListPage = () => {
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-hidden pb-20">
-      <div className="h-4 w-full bg-background-light dark:bg-background-dark shrink-0" />
+      <MaleTopNavbar />
 
       <ChatListHeader />
 

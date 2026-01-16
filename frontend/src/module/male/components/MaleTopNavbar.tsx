@@ -21,7 +21,7 @@ export const MaleTopNavbar = ({ title }: MaleTopNavbarProps) => {
         ) : (
           <div className="flex items-center gap-2">
             <div className="p-1 shadow-md overflow-hidden bg-white">
-              <img src="/HETNAZlogo.jpg" alt="HETNAZ" className="w-8 h-8 object-cover" />
+              <img src="/Hetnaz.png" alt="HETNAZ" className="w-8 h-8 object-cover" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">HETNAZ</span>
           </div>

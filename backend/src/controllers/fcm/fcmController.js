@@ -10,9 +10,11 @@ import User from '../../models/User.js';
  * Register/Update FCM token for a user (NON-BLOCKING)
  * POST /api/fcm/register
  * Body: { fcmToken: string, platform: 'web' | 'app' }
+ * 
+ * Stores single token per platform (replaces existing)
  */
 export const registerFCMToken = async (req, res, next) => {
-    const { fcmToken, platform = 'web' } = req.body; // Default to 'web' for backward compatibility
+    const { fcmToken, platform = 'web' } = req.body;
     const userId = req.user?.id;
 
     if (!fcmToken || !userId) {
@@ -36,18 +38,10 @@ export const registerFCMToken = async (req, res, next) => {
     setImmediate(async () => {
         try {
             // Determine which field to update based on platform
-            const tokenField = normalizedPlatform === 'app' ? 'fcmTokensApp' : 'fcmTokens';
+            const tokenField = normalizedPlatform === 'app' ? 'fcmTokensApp' : 'fcmTokensWeb';
 
-            await User.findByIdAndUpdate(userId, { $addToSet: { [tokenField]: fcmToken } });
-
-            // Cleanup: Keep only last 5 tokens per platform (non-critical, can fail silently)
-            const user = await User.findById(userId).select('fcmTokens fcmTokensApp').lean();
-
-            if (normalizedPlatform === 'app' && user?.fcmTokensApp?.length > 5) {
-                await User.findByIdAndUpdate(userId, { fcmTokensApp: user.fcmTokensApp.slice(-5) });
-            } else if (normalizedPlatform === 'web' && user?.fcmTokens?.length > 5) {
-                await User.findByIdAndUpdate(userId, { fcmTokens: user.fcmTokens.slice(-5) });
-            }
+            // Simple string replacement (not array)
+            await User.findByIdAndUpdate(userId, { [tokenField]: fcmToken });
 
             console.log(`[FCM] ✅ Token registered for ${normalizedPlatform} platform, user: ${userId}`);
         } catch (e) {
@@ -63,13 +57,18 @@ export const registerFCMToken = async (req, res, next) => {
 export const sendTestNotification = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        const user = await User.findById(userId).select('fcmTokens profile phoneNumber').lean();
+        const user = await User.findById(userId).select('fcmTokensWeb fcmTokensApp profile phoneNumber').lean();
 
         if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
-        if (!user.fcmTokens || user.fcmTokens.length === 0) {
+        // Collect all available tokens (both platforms)
+        const tokens = [];
+        if (user.fcmTokensWeb) tokens.push({ token: user.fcmTokensWeb, platform: 'web' });
+        if (user.fcmTokensApp) tokens.push({ token: user.fcmTokensApp, platform: 'app' });
+
+        if (tokens.length === 0) {
             return res.status(400).json({ status: 'error', message: 'No FCM tokens registered.' });
         }
 
@@ -78,26 +77,32 @@ export const sendTestNotification = async (req, res, next) => {
 
         const notification = {
             title: '🎉 Test Notification',
-            body: 'This is a test push notification from Toki App!',
-            icon: '/logo-192x192.png'
+            body: 'This is a test push notification from HETNAZ!',
+            icon: '/Hetnaz.png'
         };
 
         const data = { type: 'test', timestamp: new Date().toISOString() };
 
-        // Send in parallel
+        // Send to all tokens
         const results = await Promise.all(
-            user.fcmTokens.map(token => fcmService.sendNotification(token, notification, data))
+            tokens.map(async ({ token, platform }) => {
+                const result = await fcmService.sendNotification(token, notification, data);
+                return { ...result, platform };
+            })
         );
 
         const successCount = results.filter(r => r.success).length;
 
         // Cleanup invalid tokens in background
-        const invalidTokens = results.filter(r => !r.success && r.invalidToken).map((_, i) => user.fcmTokens[i]);
-        if (invalidTokens.length > 0) {
-            setImmediate(async () => {
-                await User.findByIdAndUpdate(userId, { $pull: { fcmTokens: { $in: invalidTokens } } });
-            });
-        }
+        setImmediate(async () => {
+            for (const result of results) {
+                if (!result.success && result.invalidToken) {
+                    const field = result.platform === 'app' ? 'fcmTokensApp' : 'fcmTokensWeb';
+                    await User.findByIdAndUpdate(userId, { [field]: null });
+                    console.log(`[FCM] 🧹 Cleared invalid ${result.platform} token for user: ${userId}`);
+                }
+            }
+        });
 
         res.status(200).json({
             status: 'success',
@@ -113,15 +118,13 @@ export const sendTestNotification = async (req, res, next) => {
 /**
  * Remove FCM token for a user
  * DELETE /api/fcm/token
- * Body: { fcmToken: string, platform: 'web' | 'app' }
+ * Body: { platform: 'web' | 'app' }
+ * 
+ * Sets the platform token to null
  */
 export const removeFCMToken = async (req, res, next) => {
-    const { fcmToken, platform = 'web' } = req.body;
+    const { platform = 'web' } = req.body;
     const userId = req.user?.id;
-
-    if (!fcmToken) {
-        return res.status(400).json({ status: 'error', message: 'FCM token is required' });
-    }
 
     // Validate platform
     const validPlatforms = ['web', 'app'];
@@ -136,13 +139,11 @@ export const removeFCMToken = async (req, res, next) => {
         data: { platform: normalizedPlatform }
     });
 
-    // Background removal
+    // Background removal - set to null
     setImmediate(async () => {
         try {
-            // Determine which field to update based on platform
-            const tokenField = normalizedPlatform === 'app' ? 'fcmTokensApp' : 'fcmTokens';
-
-            await User.findByIdAndUpdate(userId, { $pull: { [tokenField]: fcmToken } });
+            const tokenField = normalizedPlatform === 'app' ? 'fcmTokensApp' : 'fcmTokensWeb';
+            await User.findByIdAndUpdate(userId, { [tokenField]: null });
             console.log(`[FCM] ✅ Token removed from ${normalizedPlatform} platform, user: ${userId}`);
         } catch (e) {
             console.error('[FCM-BG] Token removal error:', e.message);
