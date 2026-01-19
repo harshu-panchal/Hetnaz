@@ -44,6 +44,16 @@ const startServer = async () => {
     // Connect to MongoDB
     await database.connect();
 
+    // PERFORMANCE: Reset all users online status on startup
+    // This ensures no user is left "stuck" as online if the server crashed
+    try {
+      const User = (await import('./models/User.js')).default;
+      await User.updateMany({}, { isOnline: false, socketId: null });
+      logger.info('✅ Reset all users online status for consistency');
+    } catch (err) {
+      logger.error('❌ Failed to reset users online status:', err);
+    }
+
     // Initialize Razorpay
     if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
       initializeRazorpay();

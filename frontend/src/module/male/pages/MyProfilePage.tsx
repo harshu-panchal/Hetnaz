@@ -4,6 +4,7 @@ import { useAuth } from '../../../core/context/AuthContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
+import { useSocket } from '../../../core/context/SocketContext';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { WalletBalance } from '../components/WalletBalance';
@@ -41,6 +42,7 @@ export const MyProfilePage = () => {
   const navigate = useNavigate();
   const { user, logout, isLoading: isAuthLoading } = useAuth();
   const { coinBalance, addNotification } = useGlobalState();
+  const { isConnected } = useSocket();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [stats, setStats] = useState({
@@ -142,7 +144,7 @@ export const MyProfilePage = () => {
               name: profile.name,
               avatar: profile.avatar,
               isPremium: false,
-              isOnline: true,
+              isOnline: isConnected,
               memberTier: user?.memberTier || 'basic',
             }}
             onEditClick={() => navigate('/male/my-profile/profile')}

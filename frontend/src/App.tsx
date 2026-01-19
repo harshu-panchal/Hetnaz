@@ -11,7 +11,7 @@ import { VideoCallModal } from './shared/components/VideoCallModal';
 import { InAppNotificationToast } from './shared/components/InAppNotificationToast';
 import { FCMInitializer } from './core/components/FCMInitializer';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
-
+import { SocketQuerySync } from './core/components/SocketQuerySync';
 import { ProtectedRoute } from './core/components/ProtectedRoute';
 
 // Auth pages - keep as regular imports for fast login experience
@@ -89,6 +89,7 @@ function App() {
         <AuthProvider>
           <FCMInitializer />
           <SocketProvider>
+            <SocketQuerySync />
             <GlobalStateProvider>
               <VideoCallProvider>
                 <BrowserRouter>

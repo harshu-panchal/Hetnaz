@@ -12,6 +12,8 @@ import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { PermissionPrompt } from '../../../shared/components/PermissionPrompt';
 import { usePermissions } from '../../../core/hooks/usePermissions';
+import { useSocket } from '../../../core/context/SocketContext';
+import socketService from '../../../core/services/socket.service';
 import userService from '../../../core/services/user.service';
 import type { FemaleDashboardData } from '../types/female.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
@@ -23,6 +25,7 @@ const FemaleDashboardContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isConnected } = useSocket();
   const { addNotification } = useGlobalState();
   const { navigationItems, handleNavigationClick } = useFemaleNavigation();
   const { hasRequestedPermissions } = usePermissions();
@@ -82,6 +85,50 @@ const FemaleDashboardContent = () => {
     };
   }, [user, addNotification, hasRequestedPermissions, fetchDashboardData]);
 
+  // Handle real-time online status updates for other users
+  useEffect(() => {
+    const handleUserOnline = (data: { userId: string }) => {
+      setDashboardData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          activeChats: prev.activeChats.map(chat => {
+            // chat.userId is the other user's ID
+            if (chat.userId === data.userId) return { ...chat, isOnline: true };
+            return chat;
+          })
+        };
+      });
+    };
+
+    const handleUserOffline = (data: { userId: string; lastSeen?: string }) => {
+      setDashboardData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          activeChats: prev.activeChats.map(chat => {
+            if (chat.userId === data.userId) {
+              return {
+                ...chat,
+                isOnline: false,
+                timestamp: data.lastSeen ? new Date(data.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : chat.timestamp
+              };
+            }
+            return chat;
+          })
+        };
+      });
+    };
+
+    socketService.on('user:online', handleUserOnline);
+    socketService.on('user:offline', handleUserOffline);
+
+    return () => {
+      socketService.off('user:online', handleUserOnline);
+      socketService.off('user:offline', handleUserOffline);
+    };
+  }, []);
+
   useEffect(() => {
     if (user && user.role === 'female' && user.approvalStatus !== 'approved') {
       navigate('/verification-pending');
@@ -131,7 +178,7 @@ const FemaleDashboardContent = () => {
       <div className="flex p-4 pt-4 @container">
         <div className="flex w-full flex-col gap-4">
           <ProfileHeader
-            user={dashboardData?.user || { name: t('loading'), avatar: '', isPremium: false, isOnline: true }}
+            user={dashboardData?.user ? { ...dashboardData.user, isOnline: isConnected } : { name: t('loading'), avatar: '', isPremium: false, isOnline: isConnected }}
           />
           <EarningsCard
             totalEarnings={dashboardData?.earnings.totalEarnings || 0}
