@@ -78,8 +78,8 @@ export const getAllReports = async (req, res, next) => {
         const skip = (page - 1) * limit;
 
         const reports = await Report.find(query)
-            .populate('reporterId', 'profile.name phoneNumber role')
-            .populate('reportedId', 'profile.name phoneNumber role')
+            .populate('reporterId', 'profile phoneNumber role')
+            .populate('reportedId', 'profile phoneNumber role')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(parseInt(limit));
@@ -124,9 +124,16 @@ export const updateReportStatus = async (req, res, next) => {
 
         await report.save();
 
-        // If action is to block user, handle it
-        if (adminAction === 'permanently_blocked') {
-            await User.findByIdAndUpdate(report.reportedId, { isBlocked: true });
+        // If action is to block user, handle it properly with metadata
+        if (adminAction === 'permanently_blocked' || adminAction === 'temporarily_blocked') {
+            const reportedUser = await User.findById(report.reportedId);
+            if (reportedUser) {
+                reportedUser.isBlocked = true;
+                reportedUser.blockReason = `Admin action on report: ${report.reason}`;
+                reportedUser.blockedAt = new Date();
+                reportedUser.blockedByAdmin = adminId;
+                await reportedUser.save();
+            }
         }
 
         res.status(200).json({
