@@ -67,17 +67,17 @@ export const getDashboardStats = async () => {
             $match: {
                 createdAt: { $gte: thirtyDaysAgo },
                 status: 'completed',
-                type: { $in: ['coin_purchase', 'withdrawal'] }
+                type: { $in: ['purchase', 'withdrawal'] }
             }
         },
         {
             $group: {
                 _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
                 deposits: {
-                    $sum: { $cond: [{ $eq: ['$type', 'coin_purchase'] }, '$amount', 0] }
+                    $sum: { $cond: [{ $eq: ['$type', 'purchase'] }, '$amountINR', 0] }
                 },
                 payouts: {
-                    $sum: { $cond: [{ $eq: ['$type', 'withdrawal'] }, '$amount', 0] }
+                    $sum: { $cond: [{ $eq: ['$type', 'withdrawal'] }, '$amountINR', 0] }
                 }
             }
         },
@@ -127,7 +127,7 @@ export const getDashboardStats = async () => {
                 _id: null,
                 totalDeposits: {
                     $sum: {
-                        $cond: [{ $eq: ['$type', 'coin_purchase'] }, '$amount', 0]
+                        $cond: [{ $eq: ['$type', 'purchase'] }, '$amountINR', 0]
                     }
                 }
             }
