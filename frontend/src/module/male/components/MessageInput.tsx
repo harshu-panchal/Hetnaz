@@ -14,6 +14,7 @@ interface MessageInputProps {
   coinCost?: number;
   disabled?: boolean;
   isSending?: boolean;
+  onLowCoins?: () => void; // Callback when user tries to send without enough coins
 }
 
 export const MessageInput = ({
@@ -23,9 +24,9 @@ export const MessageInput = ({
   onTypingStart,
   onTypingStop,
   placeholder = 'Type a message...',
-
   disabled = false,
   isSending = false,
+  onLowCoins,
 }: MessageInputProps) => {
   const [message, setMessage] = useState('');
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
@@ -36,12 +37,20 @@ export const MessageInput = ({
   const imagePickerRef = useRef<ImagePickerRef>(null);
 
   const handleSend = () => {
-    if (message.trim() && !disabled && !isSending) {
-      onSendMessage(message.trim());
-      setMessage('');
-      inputRef.current?.focus();
-      if (onTypingStop) {
-        onTypingStop();
+    if (message.trim() && !isSending) {
+      // If disabled (low coins), trigger the callback instead of sending
+      if (disabled && onLowCoins) {
+        onLowCoins();
+        return;
+      }
+
+      if (!disabled) {
+        onSendMessage(message.trim());
+        setMessage('');
+        inputRef.current?.focus();
+        if (onTypingStop) {
+          onTypingStop();
+        }
       }
     }
   };
@@ -201,13 +210,6 @@ export const MessageInput = ({
           )}
         </button>
       </div>
-
-      {/* Low balance warning */}
-      {disabled && (
-        <p className="text-xs text-red-500 text-center mt-2">
-          Not enough coins. <span className="underline cursor-pointer">Buy more coins</span>
-        </p>
-      )}
     </div>
   );
 };

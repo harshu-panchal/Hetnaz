@@ -748,6 +748,11 @@ export const ChatWindowPage = () => {
           coinCost={MESSAGE_COST}
           disabled={coinBalance < MESSAGE_COST || isSending || isUploadingImage || isBlockedByMe || isBlockedByOther}
           isSending={isSending || isUploadingImage}
+          onLowCoins={() => {
+            setRequiredCoinsModal(currentMessageCost);
+            setModalAction(t('actionSendMessage'));
+            setIsBalanceModalOpen(true);
+          }}
         />
       </div>
 

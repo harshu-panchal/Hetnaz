@@ -10,8 +10,6 @@ import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
 import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
-import { PermissionPrompt } from '../../../shared/components/PermissionPrompt';
-import { usePermissions } from '../../../core/hooks/usePermissions';
 import { useSocket } from '../../../core/context/SocketContext';
 import socketService from '../../../core/services/socket.service';
 import userService from '../../../core/services/user.service';
@@ -21,14 +19,14 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 const FemaleDashboardContent = () => {
   const { t } = useTranslation();
   const [dashboardData, setDashboardData] = useState<FemaleDashboardData | null>(null);
-  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
+
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isConnected } = useSocket();
   const { addNotification } = useGlobalState();
   const { navigationItems, handleNavigationClick } = useFemaleNavigation();
-  const { hasRequestedPermissions } = usePermissions();
+
 
   const quickActions = useMemo(() => [
     { id: 'earnings', icon: 'trending_up', label: t('viewEarnings') },
@@ -60,10 +58,7 @@ const FemaleDashboardContent = () => {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Show permission prompt on first app open (deferred)
-    if (!hasRequestedPermissions()) {
-      setTimeout(() => setShowPermissionPrompt(true), 2000);
-    }
+
 
     // Welcome notification (deferred to not block main thread)
     if (user?.role === 'female' && user?.approvalStatus === 'approved') {
@@ -83,7 +78,7 @@ const FemaleDashboardContent = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user, addNotification, hasRequestedPermissions, fetchDashboardData]);
+  }, [user, addNotification, fetchDashboardData]);
 
   // Handle real-time online status updates for other users
   useEffect(() => {
@@ -163,15 +158,7 @@ const FemaleDashboardContent = () => {
 
   return (
     <div className="relative flex w-full flex-col bg-background-light dark:bg-background-dark overflow-x-hidden pb-20">
-      {showPermissionPrompt && (
-        <PermissionPrompt
-          onRequestPermissions={() => setShowPermissionPrompt(false)}
-          onDismiss={() => {
-            localStorage.setItem('hetnaz_permissions_requested', 'true');
-            setShowPermissionPrompt(false);
-          }}
-        />
-      )}
+
 
       <FemaleTopNavbar />
 

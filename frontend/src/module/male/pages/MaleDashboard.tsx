@@ -6,8 +6,6 @@ import { ActiveChatsList } from '../components/ActiveChatsList';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
-import { PermissionPrompt } from '../../../shared/components/PermissionPrompt';
-import { usePermissions } from '../../../core/hooks/usePermissions';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
 import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
@@ -25,7 +23,7 @@ export const MaleDashboard = () => {
   const { chats: rawChats, isLoading: isChatsLoading, refreshChats } = useOptimizedChatList();
   const { updateBalance } = useGlobalState();
 
-  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
+
   const navigate = useNavigate();
   const { user } = useAuth();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
@@ -34,8 +32,7 @@ export const MaleDashboard = () => {
   const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState(false);
   const [dailyRewardData, setDailyRewardData] = useState({ amount: 0, newBalance: 0 });
 
-  // Permission management
-  const { hasRequestedPermissions } = usePermissions();
+
 
   // PHASED BOOT: Check and claim daily reward 3 seconds AFTER dashboard mount
   // This ensures the initial paint and critical chat list fetch have priority
@@ -67,10 +64,7 @@ export const MaleDashboard = () => {
     refreshChats();
     // Nearby users fetched via hook automatically
 
-    // Show permission prompt on first app open
-    if (!hasRequestedPermissions()) {
-      setTimeout(() => setShowPermissionPrompt(true), 1000);
-    }
+
   }, []);
 
   // Use optimized hooks which share cache
@@ -158,18 +152,7 @@ export const MaleDashboard = () => {
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col bg-gradient-to-br from-pink-50 via-rose-50/30 to-white dark:from-[#1a0f14] dark:via-[#2d1a24] dark:to-[#0a0a0a] overflow-x-hidden pb-24">
-      {/* Permission Prompt - Shows on first app open */}
-      {showPermissionPrompt && (
-        <PermissionPrompt
-          onRequestPermissions={() => {
-            setShowPermissionPrompt(false);
-          }}
-          onDismiss={() => {
-            localStorage.setItem('hetnaz_permissions_requested', 'true');
-            setShowPermissionPrompt(false);
-          }}
-        />
-      )}
+
 
       <MaleTopNavbar />
 

@@ -85,33 +85,89 @@ export const WithdrawalRequestCard = ({
         </div>
       </div>
 
-      {/* Payment Method */}
-      <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-        <div className="flex items-center gap-2 mb-2">
+      {/* Payment Method - Enhanced for Manual Transfer */}
+      <div className="mb-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+        <div className="flex items-center gap-2 mb-3">
           <MaterialSymbol
             name={request.payoutMethod === 'UPI' ? 'account_balance_wallet' : 'account_balance'}
-            className="text-gray-400"
-            size={20}
+            className="text-blue-600 dark:text-blue-400"
+            size={24}
           />
-          <span className="text-sm font-medium text-gray-900 dark:text-white">
-            {request.payoutMethod === 'UPI' ? 'UPI' : 'Bank Transfer'}
+          <span className="text-base font-bold text-gray-900 dark:text-white">
+            Payment Details - {request.payoutMethod === 'UPI' ? 'UPI Transfer' : 'Bank Transfer'}
           </span>
         </div>
+
         {request.payoutMethod === 'UPI' && request.payoutDetails.upiId && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 ml-7">
-            UPI ID: <span className="font-mono">{request.payoutDetails.upiId}</span>
-          </p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-300 dark:border-blue-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">UPI ID</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">
+                {request.payoutDetails.upiId}
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(request.payoutDetails.upiId);
+                  alert('UPI ID copied to clipboard!');
+                }}
+                className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                title="Copy UPI ID"
+              >
+                <MaterialSymbol name="content_copy" size={18} className="text-blue-600 dark:text-blue-400" />
+              </button>
+            </div>
+          </div>
         )}
+
         {request.payoutMethod === 'bank' && (
-          <div className="ml-7 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+          <div className="space-y-3">
             {request.payoutDetails.accountHolderName && (
-              <p>Account: <span className="font-medium text-gray-900 dark:text-white">{request.payoutDetails.accountHolderName}</span></p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-300 dark:border-blue-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Account Holder Name</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-white">{request.payoutDetails.accountHolderName}</p>
+              </div>
             )}
             {request.payoutDetails.accountNumber && (
-              <p className="font-mono">A/C: {request.payoutDetails.accountNumber}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-300 dark:border-blue-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Account Number</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">{request.payoutDetails.accountNumber}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(request.payoutDetails.accountNumber);
+                      alert('Account number copied to clipboard!');
+                    }}
+                    className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                    title="Copy Account Number"
+                  >
+                    <MaterialSymbol name="content_copy" size={18} className="text-blue-600 dark:text-blue-400" />
+                  </button>
+                </div>
+              </div>
             )}
             {request.payoutDetails.ifscCode && (
-              <p className="font-mono">IFSC: {request.payoutDetails.ifscCode}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-300 dark:border-blue-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">IFSC Code</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">{request.payoutDetails.ifscCode}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(request.payoutDetails.ifscCode);
+                      alert('IFSC code copied to clipboard!');
+                    }}
+                    className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                    title="Copy IFSC Code"
+                  >
+                    <MaterialSymbol name="content_copy" size={18} className="text-blue-600 dark:text-blue-400" />
+                  </button>
+                </div>
+              </div>
+            )}
+            {request.payoutDetails.bankName && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-300 dark:border-blue-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Bank Name</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-white">{request.payoutDetails.bankName}</p>
+              </div>
             )}
           </div>
         )}

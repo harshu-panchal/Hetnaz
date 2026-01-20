@@ -81,7 +81,7 @@ export const sendOTP = async (mobile, otp) => {
 
     // Fetch current platform name from DB
     const settings = await AppSettings.getSettings();
-    const platformName = settings.general?.platformName || 'MatchMint';
+    const platformName = settings.general?.platformName || 'HETNAZ';
 
     const message = `Welcome to the ${platformName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
 
