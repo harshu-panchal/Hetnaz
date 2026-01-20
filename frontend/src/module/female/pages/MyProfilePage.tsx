@@ -387,8 +387,8 @@ export const MyProfilePage = () => {
                     if (isLoggingOut) return;
                     setIsLoggingOut(true);
                     addNotification({
-                      title: t('logoutSuccess') || 'Logged Out',
-                      message: t('logoutSuccessMessage') || 'You have been successfully logged out.',
+                      title: 'logoutSuccess',
+                      message: 'logoutSuccessMessage',
                       type: 'system'
                     });
                     logout();

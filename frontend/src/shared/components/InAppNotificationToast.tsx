@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGlobalState } from '../../core/context/GlobalStateContext';
 import { MaterialSymbol } from './MaterialSymbol';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../../core/hooks/useTranslation';
 
 export const InAppNotificationToast = () => {
     const { notifications, clearNotification, user } = useGlobalState();
@@ -39,6 +40,7 @@ interface NotificationItemProps {
 }
 
 const NotificationItem = ({ notification, onClick, onClose }: NotificationItemProps) => {
+    const { t } = useTranslation();
     const [progress, setProgress] = useState(100);
 
     useEffect(() => {
@@ -53,6 +55,14 @@ const NotificationItem = ({ notification, onClick, onClose }: NotificationItemPr
         return () => clearInterval(timer);
     }, []);
 
+    // Helper to format type (e.g., video_call -> typeVideoCall)
+    const formatTypeKey = (type: string) => {
+        const camelType = type.split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('');
+        return `type${camelType}`;
+    };
+
     return (
         <div
             onClick={onClick}
@@ -63,7 +73,7 @@ const NotificationItem = ({ notification, onClick, onClose }: NotificationItemPr
                 {notification.avatar ? (
                     <img
                         src={notification.avatar}
-                        alt={notification.title}
+                        alt={t(notification.title)}
                         className="size-12 rounded-xl object-cover ring-2 ring-pink-100 dark:ring-pink-900/30"
                     />
                 ) : (
@@ -85,14 +95,14 @@ const NotificationItem = ({ notification, onClick, onClose }: NotificationItemPr
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
                     <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate pr-2">
-                        {notification.title}
+                        {t(notification.title)}
                     </h4>
                     <span className="text-[10px] font-medium text-pink-600 dark:text-pink-400 uppercase tracking-wider">
-                        {notification.type}
+                        {t(formatTypeKey(notification.type))}
                     </span>
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                    {notification.message}
+                    {t(notification.message)}
                 </p>
             </div>
 

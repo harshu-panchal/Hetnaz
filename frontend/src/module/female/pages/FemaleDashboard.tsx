@@ -72,8 +72,8 @@ const FemaleDashboardContent = () => {
         localStorage.setItem('hetnaz_female_welcome_shown', 'true');
         setTimeout(() => {
           addNotification({
-            title: 'Welcome to HETNAZ',
-            message: 'Your journey begins here. Explore and connect seamlessly.',
+            title: t('welcomeTitle'),
+            message: t('welcomeMessage'),
             type: 'system'
           });
         }, 3000);

@@ -167,7 +167,7 @@ export const NotificationsPage = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
                   <h3 className={`text-sm tracking-tight truncate ${notification.isRead ? 'font-semibold text-slate-700 dark:text-gray-300' : 'font-bold text-slate-900 dark:text-white'}`}>
-                    {notification.title}
+                    {t(notification.title)}
                   </h3>
                   <button
                     onClick={(e) => handleDeleteNotification(notification.id, e)}
@@ -177,7 +177,7 @@ export const NotificationsPage = () => {
                   </button>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                  {notification.message}
+                  {t(notification.message)}
                 </p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <MaterialSymbol name="schedule" size={12} className="text-slate-400" />

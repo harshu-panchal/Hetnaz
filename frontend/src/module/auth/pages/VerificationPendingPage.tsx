@@ -32,8 +32,8 @@ export const VerificationPendingPage = () => {
 
     const handleLogout = () => {
         addNotification({
-            title: t('logoutSuccess') || 'Logged Out',
-            message: t('logoutSuccessMessage') || 'You have been successfully logged out.',
+            title: 'logoutSuccess',
+            message: 'logoutSuccessMessage',
             type: 'system'
         });
         logout();
