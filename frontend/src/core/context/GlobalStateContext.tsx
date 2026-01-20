@@ -37,6 +37,7 @@ interface GlobalState {
     saveToChatCache: (chatId: string, messages: any[]) => void;
     loadFromChatCache: (chatId: string) => Promise<any[]>;
     appSettings: any | null;
+    sessionStartTime: Date;
 }
 
 export interface InAppNotification {
@@ -94,6 +95,7 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
         }
         return [];
     });
+    const [sessionStartTime] = useState(() => new Date());
     const [chatCache, setChatCache] = useState<Record<string, any[]>>({});
     const [appSettings, setAppSettings] = useState<any | null>(null);
 
@@ -184,7 +186,7 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
         localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
     }, []);
 
-    const unreadCount = persistentNotifications.filter(n => !n.isRead).length;
+    const unreadCount = persistentNotifications.filter(n => !n.isRead && n.timestamp >= sessionStartTime).length;
 
     const saveToChatCache = useCallback((chatId: string, messages: any[]) => {
         const trimmedMessages = messages.slice(-100); // Keep last 100 messages
@@ -370,6 +372,7 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
         saveToChatCache,
         loadFromChatCache,
         appSettings,
+        sessionStartTime,
     }), [
         user,
         coinBalance,
@@ -390,7 +393,8 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
         chatCache,
         saveToChatCache,
         loadFromChatCache,
-        appSettings
+        appSettings,
+        sessionStartTime
     ]);
 
     return (

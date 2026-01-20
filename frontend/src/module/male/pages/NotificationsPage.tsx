@@ -16,7 +16,8 @@ export const NotificationsPage = () => {
     markNotificationAsRead,
     deletePersistentNotification,
     clearAllPersistentNotifications,
-    unreadCount
+    unreadCount,
+    sessionStartTime
   } = useGlobalState();
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export const NotificationsPage = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const filteredNotifications = useMemo(() => {
-    let filtered = persistentNotifications;
+    let filtered = persistentNotifications.filter(n => n.timestamp >= sessionStartTime);
 
     switch (selectedFilter) {
       case 'unread':

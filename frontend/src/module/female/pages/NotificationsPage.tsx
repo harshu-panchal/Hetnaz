@@ -16,7 +16,8 @@ export const NotificationsPage = () => {
     markNotificationAsRead,
     deletePersistentNotification,
     clearAllPersistentNotifications,
-    unreadCount
+    unreadCount,
+    sessionStartTime
   } = useGlobalState();
 
   useEffect(() => {
@@ -93,7 +94,7 @@ export const NotificationsPage = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0 space-y-3">
-        {persistentNotifications.length === 0 ? (
+        {persistentNotifications.filter(n => n.timestamp >= sessionStartTime).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="p-6 bg-gray-100 dark:bg-[#342d18] rounded-full mb-4">
               <MaterialSymbol name="notifications_off" size={48} className="text-gray-400" />
@@ -101,7 +102,7 @@ export const NotificationsPage = () => {
             <p className="text-gray-500 dark:text-[#cbbc90] text-lg font-medium">{t('noNotificationsFound')}</p>
           </div>
         ) : (
-          persistentNotifications.map((notification) => (
+          persistentNotifications.filter(n => n.timestamp >= sessionStartTime).map((notification) => (
             <div
               key={notification.id}
               onClick={() => handleNotificationClick(notification.id, undefined, notification.chatId, notification.type)}
