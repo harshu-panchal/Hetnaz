@@ -52,7 +52,7 @@ If a developer requests changes outside their authorized scope:
 - Ensure type safety with TypeScript
 - Handle errors appropriately
 
----
+--- 
 
 **Reference**: See `.cursor/commands/developer-permissions.md` for complete authorization rules.
 
