@@ -54,10 +54,10 @@ export const useDiscoveryProfiles = (filter: string = 'all') => {
 
             return profiles;
         },
-        // Keep discovery list fresh for 5 minutes (user location doesn't jump instantly)
-        staleTime: 1000 * 60 * 5,
-        // Keep in memory for 30 minutes so switching tabs doesn't reload
-        gcTime: 1000 * 60 * 30,
+        // Keep discovery list fresh for 10 seconds (online status needs to be relatively fresh)
+        staleTime: 1000 * 10,
+        // Keep in memory for 5 minutes
+        gcTime: 1000 * 60 * 5,
         // Prevent background refetching which causes list jumps
         refetchOnWindowFocus: false,
     });

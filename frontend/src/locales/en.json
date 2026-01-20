@@ -142,6 +142,7 @@
   "away": "Away",
   "viewProfile": "View Profile",
   "sendMessage": "Send Message",
+  "message": "Message",
   "startChat": "Start Chat",
   "coinBalance": "Coin Balance",
   "buyCoins": "Buy Coins",
@@ -540,5 +541,17 @@
   "welcomeMessage": "Your journey begins here. Explore and connect seamlessly.",
   "profileApprovedTitle": "Profile Approved",
   "profileApprovedMessage": "Your account has been approved. You can now use all features.",
-  "referralSuccessfulTitle": "Referral Successful! 🎉"
+  "referralSuccessfulTitle": "Referral Successful! 🎉",
+  "reportUser": "Report User",
+  "reportingUser": "You are reporting {{name}}. Please select a reason below.",
+  "selectReason": "Select Reason",
+  "descriptionOptional": "Description (Optional)",
+  "reportPlaceholder": "Tell us more about the issue...",
+  "submitReport": "Submit",
+  "reportReasonInappropriate": "Inappropriate Behavior",
+  "reportReasonSpam": "Spam or Advertising",
+  "reportReasonHarassment": "Harassment or Bullying",
+  "reportReasonFake": "Fake Profile or Photo",
+  "reportReasonScam": "Scamming or Fraud",
+  "reportReasonOther": "Other Issues"
 }

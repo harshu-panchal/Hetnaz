@@ -280,7 +280,11 @@ export const NearbyFemalesPage = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click
-                handleSendHi(profile.id, profile.name);
+                if (profile.hasChat) {
+                  handleProfileClick(profile.id);
+                } else {
+                  handleSendHi(profile.id, profile.name);
+                }
               }}
               disabled={sendingHiTo === profile.id}
               className="px-4 py-2 rounded-full text-sm font-bold text-white bg-gradient-to-r from-primary to-rose-500 shadow-md active:scale-95 transition-transform disabled:opacity-50 flex items-center gap-1"
@@ -289,8 +293,8 @@ export const NearbyFemalesPage = () => {
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>👋</span>
-                  <span>{t('hi')}</span>
+                  <span>{profile.hasChat ? '💬' : '👋'}</span>
+                  <span>{profile.hasChat ? t('message') : t('hi')}</span>
                 </>
               )}
             </button>

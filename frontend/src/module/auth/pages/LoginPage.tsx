@@ -123,15 +123,15 @@ export const LoginPage = () => {
               </label>
               <div className="relative group transition-all duration-300">
                 <div className={`flex items-center bg-white border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.phone ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500 focus-within:ring-4 focus-within:ring-pink-500/10'}`}>
-                  <div className="flex items-center shrink-0 gap-2 pl-4 pr-3 py-4 bg-gray-50/50 border-r border-gray-100">
+                  <div className="flex items-center shrink-0 gap-1.5 pl-3 pr-2 py-4 bg-gray-50/50 border-r border-gray-100">
                     <img
                       src="https://flagcdn.com/w40/in.png"
                       srcSet="https://flagcdn.com/w80/in.png 2x"
-                      width="24"
+                      width="20"
                       className="rounded-sm shadow-sm opacity-90"
                       alt="India Flag"
                     />
-                    <span className="text-gray-900 font-black text-lg tracking-tight">+91</span>
+                    <span className="text-gray-900 font-black text-base tracking-tight">+91</span>
                   </div>
                   <input
                     id="phone"

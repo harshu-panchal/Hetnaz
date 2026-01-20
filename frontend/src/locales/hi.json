@@ -177,6 +177,7 @@
     "away": "दूर",
     "viewProfile": "प्रोफाइल देखें",
     "sendMessage": "संदेश भेजें",
+    "message": "संदेश",
     "startChat": "चैट शुरू करें",
     "coinBalance": "कॉइन बैलेंस",
     "buyCoins": "कॉइन खरीदें",
@@ -570,5 +571,17 @@
     "logoutSuccess": "लॉगआउट हो गया",
     "logoutSuccessMessage": "आप सफलतापूर्वक लॉगआउट हो गए हैं।",
     "welcomeTitle": "HETNAZ में आपका स्वागत है",
-    "welcomeMessage": "आपकी यात्रा यहाँ से शुरू होती है। निर्बाध रूप से खोजें और जुड़ें।"
+    "welcomeMessage": "आपकी यात्रा यहाँ से शुरू होती है। निर्बाध रूप से खोजें और जुड़ें।",
+    "reportUser": "उपयोगकर्ता की रिपोर्ट करें",
+    "reportingUser": "आप {{name}} की रिपोर्ट कर रहे हैं। कृपया नीचे एक कारण चुनें।",
+    "selectReason": "कारण चुनें",
+    "descriptionOptional": "विवरण (वैकल्पिक)",
+    "reportPlaceholder": "हमें समस्या के बारे में और बताएं...",
+    "submitReport": "जमा करें",
+    "reportReasonInappropriate": "अनुचित व्यवहार",
+    "reportReasonSpam": "स्पैम या विज्ञापन",
+    "reportReasonHarassment": "उत्पीड़न या डराना",
+    "reportReasonFake": "नकली प्रोफ़ाइल या फ़ोटो",
+    "reportReasonScam": "धोखाधड़ी",
+    "reportReasonOther": "अन्य समस्याएं"
 }

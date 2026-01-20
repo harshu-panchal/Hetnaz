@@ -119,9 +119,9 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-[#230f16] w-full max-w-lg rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="bg-white dark:bg-[#230f16] w-full max-w-lg rounded-2xl shadow-xl max-h-[90vh] flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 sticky top-0 bg-white dark:bg-[#230f16] z-10">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-[#230f16] z-10">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit Profile</h2>
                     <button
                         onClick={onClose}
@@ -131,8 +131,8 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 space-y-6">
+                {/* Content - SCROLLABLE */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {/* Photos Section */}
                     <div>
                         <div className="flex items-center justify-between mb-3">
@@ -276,8 +276,8 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#1a0b10]/50 sticky bottom-0">
+                {/* Footer - FIXED */}
+                <div className="p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#1a0b10]/50">
                     <button
                         onClick={handleSave}
                         disabled={isLoading}
