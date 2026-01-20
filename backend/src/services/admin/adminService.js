@@ -385,6 +385,25 @@ export const listTransactions = async (filters, pagination) => {
 
     const total = await Transaction.countDocuments(query);
 
+    // Calculate total revenue from ALL purchase transactions (not just current page)
+    const revenueData = await Transaction.aggregate([
+        {
+            $match: {
+                type: 'purchase',
+                status: 'completed',
+                ...(filters.search && { userId: query.userId })
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                totalRevenue: { $sum: '$amountINR' }
+            }
+        }
+    ]);
+
+    const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
+
     return {
         transactions: transactions.map(t => ({
             id: t._id,
@@ -392,13 +411,14 @@ export const listTransactions = async (filters, pagination) => {
             userName: t.userId?.profile?.name || 'Unknown',
             type: t.type,
             amountCoins: t.amountCoins,
-            amountINR: t.amount,
+            amountINR: t.amountINR,
             direction: t.direction,
             timestamp: t.createdAt,
             status: t.status,
             relatedEntityId: t.relatedEntityId
         })),
         total,
+        totalRevenue,
         page,
         totalPages: Math.ceil(total / limit)
     };

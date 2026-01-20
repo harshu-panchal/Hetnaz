@@ -14,10 +14,11 @@ export const TransactionsPage = () => {
   const [transactions, setTransactions] = useState<AdminTransaction[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ search: '', type: 'all', status: 'all' });
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick, isCollapsed, toggleCollapse } = useAdminNavigation();
 
   // Transaction details modal state
   const [selectedTransaction, setSelectedTransaction] = useState<AdminTransaction | null>(null);
@@ -41,6 +42,7 @@ export const TransactionsPage = () => {
       setTransactions(data.transactions);
       setTotal(data.total);
       setTotalPages(data.totalPages);
+      setTotalRevenue(data.totalRevenue || 0);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     } finally {
@@ -59,9 +61,6 @@ export const TransactionsPage = () => {
     const totalDebits = transactions
       .filter((t) => t.direction === 'debit' && t.status === 'completed')
       .reduce((sum, t) => sum + t.amountCoins, 0);
-    const totalRevenue = transactions
-      .filter((t) => t.type === 'purchase' && t.status === 'completed' && t.amountINR)
-      .reduce((sum, t) => sum + (t.amountINR || 0), 0);
 
     return {
       totalTransactions,
@@ -70,7 +69,6 @@ export const TransactionsPage = () => {
       failedTransactions,
       totalCredits,
       totalDebits,
-      totalRevenue,
     };
   }, [transactions]);
 
@@ -101,10 +99,12 @@ export const TransactionsPage = () => {
         onClose={() => setIsSidebarOpen(false)}
         items={navigationItems}
         onItemClick={handleNavigationClick}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={toggleCollapse}
       />
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64">
+      <div className={`flex-1 p-4 md:p-6 mt-[57px] transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
@@ -171,7 +171,7 @@ export const TransactionsPage = () => {
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
                   <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
-                    {formatCurrency(stats.totalRevenue)}
+                    {formatCurrency(totalRevenue)}
                   </p>
                 </div>
                 <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
@@ -269,8 +269,8 @@ export const TransactionsPage = () => {
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
                     <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${selectedTransaction.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
-                        selectedTransaction.status === 'pending' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' :
-                          'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                      selectedTransaction.status === 'pending' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' :
+                        'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                       }`}>
                       {selectedTransaction.status.charAt(0).toUpperCase() + selectedTransaction.status.slice(1)}
                     </span>
@@ -311,8 +311,8 @@ export const TransactionsPage = () => {
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Direction</p>
                   <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${selectedTransaction.direction === 'credit'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                    : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                     }`}>
                     <MaterialSymbol name={selectedTransaction.direction === 'credit' ? 'arrow_upward' : 'arrow_downward'} size={14} />
                     {selectedTransaction.direction === 'credit' ? 'Credit' : 'Debit'}
