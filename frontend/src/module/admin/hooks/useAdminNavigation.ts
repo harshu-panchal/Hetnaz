@@ -24,6 +24,11 @@ export const useAdminNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Load collapsed state from localStorage
+    const saved = localStorage.getItem('admin_sidebar_collapsed');
+    return saved === 'true';
+  });
   const { stats } = useAdminStats();
 
   // On desktop (lg+), sidebar should always be open
@@ -38,6 +43,14 @@ export const useAdminNavigation = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const newValue = !prev;
+      localStorage.setItem('admin_sidebar_collapsed', String(newValue));
+      return newValue;
+    });
+  };
 
   const navigationItems: NavItem[] = useMemo(() => [
     {
@@ -155,5 +168,7 @@ export const useAdminNavigation = () => {
     setIsSidebarOpen,
     navigationItems,
     handleNavigationClick,
+    isCollapsed,
+    toggleCollapse,
   };
 };

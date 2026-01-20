@@ -24,9 +24,11 @@ interface AdminSidebarProps {
   onClose: () => void;
   items: NavItem[];
   onItemClick?: (itemId: string) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSidebarProps) => {
+export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed = false, onToggleCollapse }: AdminSidebarProps) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['users', 'finance']));
 
   useEffect(() => {
@@ -98,23 +100,41 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
         />
       )}
 
-      {/* Sidebar - WordPress Style */}
+      {/* Sidebar - Enhanced with Collapse */}
       <div
         className={`
-          fixed top-0 h-full w-64 bg-[#1d2327] z-[9999] transition-transform duration-300 ease-out
+          fixed top-0 h-full bg-[#1d2327] z-[9999] transition-all duration-300 ease-out
           lg:left-0 lg:translate-x-0 lg:shadow-none
-          ${isOpen ? 'left-0 translate-x-0 shadow-2xl' : 'left-0 -translate-x-full lg:translate-x-0'}
+          ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
+          ${isOpen ? 'left-0 translate-x-0 shadow-2xl w-64' : 'left-0 -translate-x-full lg:translate-x-0'}
         `}
       >
-        {/* Header - WordPress Style */}
+        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#2c3338] h-[57px] bg-[#1d2327]">
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 transition-opacity duration-300 ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
             <div className="w-8 h-8 flex items-center justify-center overflow-hidden shadow-md">
               <img src="/HETNAZlogo.jpg" alt="HETNAZ" className="w-full h-full object-cover" />
             </div>
-            <span className="text-sm font-semibold text-white">HETNAZ Admin</span>
+            <span className="text-sm font-semibold text-white whitespace-nowrap">HETNAZ Admin</span>
           </div>
-          {/* Close button - Only on mobile */}
+
+          {/* Collapse Toggle - Desktop only */}
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="hidden lg:flex items-center justify-center size-8 rounded hover:bg-[#2c3338] transition-colors active:scale-95"
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <MaterialSymbol
+                name={isCollapsed ? "chevron_right" : "chevron_left"}
+                size={20}
+                className="text-gray-400"
+              />
+            </button>
+          )}
+
+          {/* Close button - Mobile only */}
           <button
             onClick={onClose}
             className="flex items-center justify-center size-8 rounded hover:bg-[#2c3338] transition-colors active:scale-95 lg:hidden"
@@ -124,7 +144,7 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
           </button>
         </div>
 
-        {/* Navigation Items - WordPress Style */}
+        {/* Navigation Items */}
         <nav className="flex flex-col py-2 overflow-y-auto max-h-[calc(100vh-110px)] wp-scrollbar">
           {items.map((item) => {
             const isExpanded = expandedItems.has(item.id);
@@ -136,9 +156,10 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
                 <button
                   onClick={() => handleItemClick(item.id, hasSubItems)}
                   className={`flex items-center gap-3 px-4 py-2.5 w-full transition-all duration-150 relative group ${item.isActive && !hasSubItems
-                    ? 'bg-[#2c3338] text-[#72aee6] border-l-4 border-[#72aee6]'
-                    : 'text-[#c3c4c7] hover:bg-[#2c3338] hover:text-white border-l-4 border-transparent'
+                      ? 'bg-[#2c3338] text-[#72aee6] border-l-4 border-[#72aee6]'
+                      : 'text-[#c3c4c7] hover:bg-[#2c3338] hover:text-white border-l-4 border-transparent'
                     }`}
+                  title={isCollapsed ? item.label : undefined}
                 >
                   <MaterialSymbol
                     name={item.icon}
@@ -146,15 +167,15 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
                     size={20}
                     className="flex-shrink-0"
                   />
-                  <span className="flex-1 text-left text-sm font-normal">
+                  <span className={`flex-1 text-left text-sm font-normal transition-opacity duration-300 ${isCollapsed ? 'lg:opacity-0 lg:w-0 lg:overflow-hidden' : 'opacity-100'}`}>
                     {item.label}
                   </span>
                   {item.hasBadge && (
-                    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#d63638] text-white text-[10px] font-semibold">
+                    <span className={`flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#d63638] text-white text-[10px] font-semibold transition-opacity duration-300 ${isCollapsed ? 'lg:absolute lg:top-1 lg:right-1' : ''}`}>
                       {item.badgeCount}
                     </span>
                   )}
-                  {hasSubItems && (
+                  {hasSubItems && !isCollapsed && (
                     <MaterialSymbol
                       name="expand_more"
                       size={18}
@@ -163,8 +184,8 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
                   )}
                 </button>
 
-                {/* Sub Items */}
-                {hasSubItems && isExpanded && (
+                {/* Sub Items - Only show when not collapsed */}
+                {hasSubItems && isExpanded && !isCollapsed && (
                   <div className="bg-[#23282d] border-l-4 border-[#2c3338]">
                     {item.subItems!.map((subItem) => (
                       <button
@@ -174,8 +195,8 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
                           if (window.innerWidth < 1024) onClose();
                         }}
                         className={`flex items-center gap-2 pl-12 pr-4 py-2 w-full text-sm transition-all duration-150 relative ${subItem.isActive
-                          ? 'text-[#72aee6] bg-[#1d2327]'
-                          : 'text-[#a7aaad] hover:text-[#72aee6] hover:bg-[#1d2327]'
+                            ? 'text-[#72aee6] bg-[#1d2327]'
+                            : 'text-[#a7aaad] hover:text-[#72aee6] hover:bg-[#1d2327]'
                           }`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
@@ -197,8 +218,8 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick }: AdminSideb
           })}
         </nav>
 
-        {/* Footer - WordPress Style */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-[#2c3338] bg-[#1d2327]">
+        {/* Footer */}
+        <div className={`absolute bottom-0 left-0 right-0 p-3 border-t border-[#2c3338] bg-[#1d2327] transition-opacity duration-300 ${isCollapsed ? 'lg:opacity-0' : 'opacity-100'}`}>
           <div className="text-[10px] text-[#787c82] text-center">
             © {new Date().getFullYear()} HETNAZ Admin
           </div>

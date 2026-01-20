@@ -12,7 +12,7 @@ export const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick, isCollapsed, toggleCollapse } = useAdminNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -111,10 +111,12 @@ export const AdminDashboard = () => {
         onClose={() => setIsSidebarOpen(false)}
         items={navigationItems}
         onItemClick={handleNavigationClick}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={toggleCollapse}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 p-4 sm:p-6 mt-[57px] lg:ml-64">
+      {/* Main Content - Dynamic margin based on collapse state */}
+      <div className={`flex-1 p-4 sm:p-6 mt-[57px] transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         <div className="max-w-7xl mx-auto space-y-5">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
