@@ -553,5 +553,11 @@
   "reportReasonHarassment": "Harassment or Bullying",
   "reportReasonFake": "Fake Profile or Photo",
   "reportReasonScam": "Scamming or Fraud",
-  "reportReasonOther": "Other Issues"
+  "reportReasonOther": "Other Issues",
+  "blockedByAdmin": "Your account has been temporarily blocked. Please contact support.",
+  "cannotCommunicateBlocked": "You cannot communicate with this user.",
+  "userBlockedYou": "This user has blocked you.",
+  "youBlockedUser": "You have blocked this user. Unblock them to communicate.",
+  "accountBlocked": "Account Blocked",
+  "communicationBlocked": "Communication Blocked"
 }

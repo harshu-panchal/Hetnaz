@@ -58,6 +58,11 @@ const reportSchema = new mongoose.Schema(
             ref: 'User',
         },
         reviewedAt: Date,
+        // Track if reporter automatically blocked the reported user
+        autoBlocked: {
+            type: Boolean,
+            default: true, // Reporter auto-blocks reported user on submit
+        },
     },
     {
         timestamps: true,

@@ -8,7 +8,6 @@ interface UserDetailModalProps {
   onClose: () => void;
   user: AdminUser | null;
   onBlockToggle?: (userId: string, isBlocked: boolean) => void;
-  onVerifyToggle?: (userId: string, isVerified: boolean) => void;
   onDelete?: (userId: string) => void;
 }
 
@@ -17,7 +16,6 @@ export const UserDetailModal = ({
   onClose,
   user,
   onBlockToggle,
-  onVerifyToggle,
   onDelete,
 }: UserDetailModalProps) => {
   useEffect(() => {
@@ -105,11 +103,10 @@ export const UserDetailModal = ({
               {/* Status Badges */}
               <div className="flex flex-wrap gap-3">
                 <span
-                  className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
-                    user.role === 'male'
-                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                      : 'bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300'
-                  }`}
+                  className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${user.role === 'male'
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+                    : 'bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300'
+                    }`}
                 >
                   {user.role.charAt(0).toUpperCase() + user.role.slice(1)} User
                 </span>
@@ -193,11 +190,10 @@ export const UserDetailModal = ({
                   onBlockToggle?.(user.id, !user.isBlocked);
                   onClose();
                 }}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  user.isBlocked
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-red-600 text-white hover:bg-red-700'
-                }`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${user.isBlocked
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
               >
                 {user.isBlocked ? (
                   <>
@@ -211,18 +207,6 @@ export const UserDetailModal = ({
                   </>
                 )}
               </button>
-              {!user.isVerified && (
-                <button
-                  onClick={() => {
-                    onVerifyToggle?.(user.id, true);
-                    onClose();
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                >
-                  <MaterialSymbol name="verified" size={20} className="inline mr-1" />
-                  Verify User
-                </button>
-              )}
             </div>
             <div className="flex gap-2">
               <button

@@ -172,7 +172,7 @@ export const NotificationsPage = () => {
                   </h3>
                   <button
                     onClick={(e) => handleDeleteNotification(notification.id, e)}
-                    className="shrink-0 p-1.5 opacity-0 group-hover:opacity-100 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full transition-all text-gray-400 hover:text-rose-500"
+                    className="shrink-0 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full transition-all text-gray-400 hover:text-rose-500"
                   >
                     <MaterialSymbol name="close" size={16} />
                   </button>

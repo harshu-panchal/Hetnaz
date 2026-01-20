@@ -13,11 +13,20 @@ export const getMyChatList = async () => {
 };
 
 export const getOrCreateChat = async (otherUserId: string) => {
-    const language = localStorage.getItem('user_language') || 'en';
-    const response = await apiClient.post('/chat/chats', { otherUserId }, {
-        params: { language }
-    });
-    return response.data.data.chat;
+    try {
+        const language = localStorage.getItem('user_language') || 'en';
+        const response = await apiClient.post('/chat/chats', { otherUserId }, {
+            params: { language }
+        });
+        return response.data.data.chat;
+    } catch (error: any) {
+        // Handle blocking errors with user-friendly messages
+        if (error.response?.status === 403 && error.response?.data?.blocked) {
+            const blockData = error.response.data;
+            throw new Error(blockData.message || 'You cannot communicate with this user.');
+        }
+        throw error;
+    }
 };
 
 export const getChatById = async (chatId: string) => {
@@ -41,24 +50,45 @@ export const sendMessage = async (
     messageType: 'text' | 'image' = 'text',
     imageUrl?: string
 ) => {
-    const payload: any = { chatId, content, messageType };
+    try {
+        const payload: any = { chatId, content, messageType };
 
-    if (messageType === 'image' && imageUrl) {
-        payload.attachments = [{ type: 'image', url: imageUrl }];
+        if (messageType === 'image' && imageUrl) {
+            payload.attachments = [{ type: 'image', url: imageUrl }];
+        }
+
+        const response = await apiClient.post('/chat/messages', payload);
+        return response.data.data;
+    } catch (error: any) {
+        if (error.response?.status === 403 && error.response?.data?.blocked) {
+            throw new Error(error.response.data.message || 'You cannot communicate with this user.');
+        }
+        throw error;
     }
-
-    const response = await apiClient.post('/chat/messages', payload);
-    return response.data.data;
 };
 
 export const sendHiMessage = async (receiverId: string) => {
-    const response = await apiClient.post('/chat/messages/hi', { receiverId });
-    return response.data.data;
+    try {
+        const response = await apiClient.post('/chat/messages/hi', { receiverId });
+        return response.data.data;
+    } catch (error: any) {
+        if (error.response?.status === 403 && error.response?.data?.blocked) {
+            throw new Error(error.response.data.message || 'You cannot communicate with this user.');
+        }
+        throw error;
+    }
 };
 
 export const sendGift = async (chatId: string, giftIds: string[], content?: string) => {
-    const response = await apiClient.post('/chat/messages/gift', { chatId, giftIds, content });
-    return response.data.data;
+    try {
+        const response = await apiClient.post('/chat/messages/gift', { chatId, giftIds, content });
+        return response.data.data;
+    } catch (error: any) {
+        if (error.response?.status === 403 && error.response?.data?.blocked) {
+            throw new Error(error.response.data.message || 'You cannot communicate with this user.');
+        }
+        throw error;
+    }
 };
 
 export const getAvailableGifts = async () => {

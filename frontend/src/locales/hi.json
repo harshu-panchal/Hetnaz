@@ -583,5 +583,11 @@
     "reportReasonHarassment": "उत्पीड़न या डराना",
     "reportReasonFake": "नकली प्रोफ़ाइल या फ़ोटो",
     "reportReasonScam": "धोखाधड़ी",
-    "reportReasonOther": "अन्य समस्याएं"
+    "reportReasonOther": "अन्य समस्याएं",
+    "blockedByAdmin": "आपका खाता अस्थायी रूप से ब्लॉक कर दिया गया है। कृपया सहायता से संपर्क करें।",
+    "cannotCommunicateBlocked": "आप इस उपयोगकर्ता के साथ संवाद नहीं कर सकते।",
+    "userBlockedYou": "इस उपयोगकर्ता ने आपको ब्लॉक कर दिया है।",
+    "youBlockedUser": "आपने इस उपयोगकर्ता को ब्लॉक किया है। संवाद करने के लिए अनब्लॉक करें।",
+    "accountBlocked": "खाता ब्लॉक किया गया",
+    "communicationBlocked": "संवाद ब्लॉक किया गया"
 }

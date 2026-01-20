@@ -33,12 +33,26 @@ export const createReport = async (req, res, next) => {
             reason,
             description,
             chatId,
-            status: 'pending'
+            status: 'pending',
+            autoBlocked: true // Reporter auto-blocks reported user
         });
+
+        // AUTO-BLOCK: Reporter blocks reported user from communication
+        // Add reportedId to reporter's blockedUsers array
+        await User.findByIdAndUpdate(
+            reporterId,
+            { $addToSet: { blockedUsers: reportedId } }
+        );
+
+        // Add reporterId to reported user's blockedBy array
+        await User.findByIdAndUpdate(
+            reportedId,
+            { $addToSet: { blockedBy: reporterId } }
+        );
 
         res.status(201).json({
             status: 'success',
-            message: 'Report submitted successfully',
+            message: 'Report submitted successfully. You can no longer communicate with this user.',
             data: { report }
         });
     } catch (error) {

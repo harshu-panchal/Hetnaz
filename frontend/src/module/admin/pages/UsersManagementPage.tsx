@@ -14,7 +14,7 @@ export const UsersManagementPage = () => {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({ search: '', role: 'all', status: 'all' });
+  const [filters, setFilters] = useState({ search: '', role: 'all', blocked: 'all' });
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
 
   useEffect(() => {
@@ -51,17 +51,6 @@ export const UsersManagementPage = () => {
     }
   };
 
-  const handleVerifyToggle = async (userId: string, isVerified: boolean) => {
-    try {
-      await adminService.toggleVerifyUser(userId);
-      setUsers((prev) =>
-        prev.map((user) => (user.id === userId ? { ...user, isVerified } : user))
-      );
-    } catch (error) {
-      console.error('Failed to toggle verification:', error);
-      alert('Failed to update verification status');
-    }
-  };
 
   const handleDelete = async (userId: string) => {
     if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
@@ -192,7 +181,6 @@ export const UsersManagementPage = () => {
                   users={users}
                   onUserClick={handleUserClick}
                   onBlockToggle={handleBlockToggle}
-                  onVerifyToggle={handleVerifyToggle}
                   onDelete={handleDelete}
                 />
 

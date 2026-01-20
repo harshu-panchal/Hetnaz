@@ -65,6 +65,33 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Blocking Relationships & Admin Block Tracking
+    // Users that this user has blocked (cannot communicate with them)
+    blockedUsers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    }],
+    // Users who have blocked this user (this user cannot communicate with them)
+    blockedBy: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    }],
+    // Admin-initiated block information
+    blockReason: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Block reason cannot exceed 500 characters'],
+    },
+    blockedAt: {
+      type: Date,
+    },
+    blockedByAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', // Admin who blocked this user
+    },
+
     // Chat-Related Fields (Harsh - Chat Domain)
     socketId: {
       type: String,

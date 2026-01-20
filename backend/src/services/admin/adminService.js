@@ -440,13 +440,26 @@ export const updateAppSettings = async (newSettings, adminId) => {
 };
 
 /**
- * Toggle user block status
+ * Toggle user block status (with reason tracking)
  */
-export const toggleBlockUser = async (userId, adminId) => {
+export const toggleBlockUser = async (userId, adminId, reason = null) => {
     const user = await User.findById(userId);
     if (!user) throw new NotFoundError('User not found');
 
     user.isBlocked = !user.isBlocked;
+
+    if (user.isBlocked) {
+        // Blocking user - track admin action
+        user.blockReason = reason || 'Admin-initiated block';
+        user.blockedAt = new Date();
+        user.blockedByAdmin = adminId;
+    } else {
+        // Unblocking user - clear block metadata
+        user.blockReason = undefined;
+        user.blockedAt = undefined;
+        user.blockedByAdmin = undefined;
+    }
+
     await user.save();
 
     // Log the change
@@ -458,7 +471,10 @@ export const toggleBlockUser = async (userId, adminId) => {
         actionType: 'user_management',
         targetUserId: userId,
         targetUserName: user.profile?.name || user.fullName,
-        details: { message: `User ${user.isBlocked ? 'blocked' : 'unblocked'} by admin` }
+        details: {
+            message: `User ${user.isBlocked ? 'blocked' : 'unblocked'} by admin`,
+            reason: user.isBlocked ? reason : null
+        }
     });
 
     return user;

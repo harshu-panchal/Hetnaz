@@ -7,7 +7,6 @@ interface UserTableProps {
   users: AdminUser[];
   onUserClick?: (user: AdminUser) => void;
   onBlockToggle?: (userId: string, isBlocked: boolean) => void;
-  onVerifyToggle?: (userId: string, isVerified: boolean) => void;
   onDelete?: (userId: string) => void;
 }
 
@@ -15,13 +14,11 @@ export const UserTable = ({
   users,
   onUserClick,
   onBlockToggle,
-  onVerifyToggle,
   onDelete,
 }: UserTableProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'male' | 'female'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
-  const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'lastLoginAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -42,13 +39,7 @@ export const UserTable = ({
         (statusFilter === 'active' && !user.isBlocked) ||
         (statusFilter === 'blocked' && user.isBlocked);
 
-      // Verification filter
-      const matchesVerification =
-        verificationFilter === 'all' ||
-        (verificationFilter === 'verified' && user.isVerified) ||
-        (verificationFilter === 'unverified' && !user.isVerified);
-
-      return matchesSearch && matchesRole && matchesStatus && matchesVerification;
+      return matchesSearch && matchesRole && matchesStatus;
     });
 
     // Sort
@@ -79,7 +70,7 @@ export const UserTable = ({
     });
 
     return filtered;
-  }, [users, searchQuery, roleFilter, statusFilter, verificationFilter, sortBy, sortOrder]);
+  }, [users, searchQuery, roleFilter, statusFilter, sortBy, sortOrder]);
 
   const handleSort = (field: 'name' | 'createdAt' | 'lastLoginAt') => {
     if (sortBy === field) {
@@ -159,40 +150,6 @@ export const UserTable = ({
               <option value="blocked">Blocked</option>
             </select>
           </div>
-        </div>
-
-        {/* Additional Filters */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            onClick={() => setVerificationFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              verificationFilter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            All Verification
-          </button>
-          <button
-            onClick={() => setVerificationFilter('verified')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              verificationFilter === 'verified'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            Verified Only
-          </button>
-          <button
-            onClick={() => setVerificationFilter('unverified')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              verificationFilter === 'unverified'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            Unverified Only
-          </button>
         </div>
 
         {/* Results Count */}
@@ -300,11 +257,10 @@ export const UserTable = ({
                     </td>
                     <td className="px-4 py-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.role === 'male'
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === 'male'
                             ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
                             : 'bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300'
-                        }`}
+                          }`}
                       >
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                       </span>
@@ -330,24 +286,14 @@ export const UserTable = ({
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => onBlockToggle?.(user.id, !user.isBlocked)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            user.isBlocked
+                          className={`p-2 rounded-lg transition-colors ${user.isBlocked
                               ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
                               : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
-                          }`}
+                            }`}
                           title={user.isBlocked ? 'Unblock user' : 'Block user'}
                         >
                           <MaterialSymbol name={user.isBlocked ? 'lock_open' : 'block'} size={20} />
                         </button>
-                        {!user.isVerified && (
-                          <button
-                            onClick={() => onVerifyToggle?.(user.id, true)}
-                            className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
-                            title="Verify user"
-                          >
-                            <MaterialSymbol name="verified" size={20} />
-                          </button>
-                        )}
                         <button
                           onClick={() => onDelete?.(user.id)}
                           className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors"
