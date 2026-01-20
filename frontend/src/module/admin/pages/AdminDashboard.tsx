@@ -140,8 +140,8 @@ export const AdminDashboard = () => {
             />
             <StatCard
               label="Revenue"
-              value={formatCurrency(dashboardData.stats.revenue.deposits)}
-              subValue="Total Deposits"
+              value={formatCurrency(dashboardData.stats.revenue.profit)}
+              subValue="Net Profit"
               icon="trending_up"
               color="purple"
             />
