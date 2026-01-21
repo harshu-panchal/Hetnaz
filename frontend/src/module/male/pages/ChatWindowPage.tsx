@@ -129,8 +129,7 @@ export const ChatWindowPage = () => {
         setHasMore(moreAvailable);
         saveToChatCache(activeChatId, msgData);
 
-        // Join chat room
-        socketService.connect();
+        // Join chat room (socket already connected by SocketContext)
         socketService.joinChat(activeChatId);
 
         // Mark as read and update global list

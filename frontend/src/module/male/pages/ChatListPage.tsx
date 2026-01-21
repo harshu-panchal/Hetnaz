@@ -40,7 +40,7 @@ export const ChatListPage = () => {
       refreshChats();
     }
 
-    socketService.connect();
+    // Socket is managed by SocketContext - no need to connect here
 
     const handleNewMessage = () => {
       refreshChats();

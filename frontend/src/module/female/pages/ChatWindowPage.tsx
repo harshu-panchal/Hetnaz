@@ -114,8 +114,7 @@ export const ChatWindowPage = () => {
         setIsBlockedByMe(!!chat.isBlockedByMe);
         setIsBlockedByOther(!!chat.isBlockedByOther);
 
-        // Join chat room
-        socketService.connect();
+        // Join chat room (socket already connected by SocketContext)
         socketService.joinChat(chatId);
 
         // Mark as read and update global list (for badges)

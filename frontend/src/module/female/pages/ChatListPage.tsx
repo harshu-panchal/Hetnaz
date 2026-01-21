@@ -38,8 +38,7 @@ export const ChatListPage = () => {
     refreshChats();
     fetchAvailableBalance();
 
-    // Connect socket
-    socketService.connect();
+    // Socket is managed by SocketContext - no need to connect here
 
     // Listen for new messages to update chat list
     const handleNewMessage = () => {
