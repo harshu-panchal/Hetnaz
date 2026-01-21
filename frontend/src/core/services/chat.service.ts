@@ -4,10 +4,10 @@ import apiClient from '../api/client';
 // CHAT LIST & MANAGEMENT
 // ========================
 
-export const getMyChatList = async () => {
+export const getMyChatList = async (search?: string) => {
     const language = localStorage.getItem('user_language') || 'en';
     const response = await apiClient.get('/chat/chats', {
-        params: { language }
+        params: { language, search }
     });
     return response.data.data.chats;
 };

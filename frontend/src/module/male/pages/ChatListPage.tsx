@@ -20,14 +20,25 @@ export const ChatListPage = () => {
   const { user } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Use optimized hook
-  const { chats, isLoading, error, refreshChats } = useOptimizedChatList();
+  // Debounce search query to avoid frequent API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400); // 400ms debounce
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Use optimized hook with debounced search
+  const { chats, isLoading, error, refreshChats } = useOptimizedChatList(debouncedSearch);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    // Initial fetch (will load from cache first inside hook, then we trigger network)
-    refreshChats();
+    // Trigger network refetch if not searching
+    if (!debouncedSearch) {
+      refreshChats();
+    }
 
     socketService.connect();
 
@@ -41,9 +52,12 @@ export const ChatListPage = () => {
       socketService.off('message:new', handleNewMessage);
       socketService.off('message:notification', handleNewMessage);
     };
-  }, []); // refreshChats is stable
+  }, [debouncedSearch, refreshChats]);
 
   const formatTimestamp = (date: string | Date): string => {
+    if (!date || date === '1970-01-01T00:00:00.000Z' || new Date(date).getTime() === 0) {
+      return '';
+    }
     const d = new Date(date);
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
@@ -82,7 +96,7 @@ export const ChatListPage = () => {
         oddsUserId: otherUser._id || '',
         userName: otherUser.name || 'User',
         userAvatar: otherUser.avatar || '',
-        lastMessage: lastMsg.content || t('startChatting'),
+        lastMessage: lastMsg.content || (chat.isNewPotentialChat ? t('startNewConversation') : t('startChatting')),
         timestamp: formatTimestamp(chat.lastMessageAt),
         isOnline: !!otherUser.isOnline,
         hasUnread: (chat.unreadCount || 0) > 0,
@@ -90,11 +104,14 @@ export const ChatListPage = () => {
         messageType: lastMsg.messageType || 'text',
         intimacy: chat.intimacy || { level: 1, points: 0, nextLevelPoints: 100 },
         distance: distanceStr,
+        isNewPotentialChat: !!chat.isNewPotentialChat
       };
     });
   }, [chats, t, user]);
 
   const filteredChats = useMemo(() => {
+    // If we have a debounced search, the backend already handled the filtering and discovery.
+    // We just return transformedChats directly but still apply a final local filter for ultra-responsiveness.
     if (!searchQuery.trim()) {
       return transformedChats;
     }

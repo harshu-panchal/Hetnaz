@@ -54,37 +54,66 @@ export const deleteAccount = async (req, res, next) => {
             throw new NotFoundError('User not found');
         }
 
-        // Soft delete user
-        user.isActive = false;
-        user.isDeleted = true;
+        // Import models
+        const Chat = (await import('../../models/Chat.js')).default;
+        const Transaction = (await import('../../models/Transaction.js')).default;
+        const Withdrawal = (await import('../../models/Withdrawal.js')).default;
+        const DeletedAccount = (await import('../../models/DeletedAccount.js')).default;
 
-        // Clear personal data (Privacy)
-        if (user.profile) {
-            user.profile.name = 'Deleted User';
-            user.profile.name_en = 'Deleted User';
-            user.profile.name_hi = 'डिलीट किया गया उपयोगकर्ता';
-            user.profile.bio = '';
-            user.profile.bio_en = '';
-            user.profile.bio_hi = '';
-            user.profile.photos = [];
-            user.profile.location = {
-                city: '',
-                state: '',
-                country: '',
-                coordinates: { type: 'Point', coordinates: [0, 0] }
-            };
-        }
+        // Gather statistics before deletion
+        const [totalChats, totalTransactions, totalWithdrawals] = await Promise.all([
+            Chat.countDocuments({ 'participants.userId': userId }),
+            Transaction.countDocuments({ userId }),
+            Withdrawal.countDocuments({ userId })
+        ]);
 
-        user.phoneNumber = `deleted_${user._id}_${Date.now()}`; // Allow phone number reuse
-        await user.save({ validateBeforeSave: false });
+        const totalEarnings = await Transaction.aggregate([
+            { $match: { userId: user._id, direction: 'credit', status: 'completed' } },
+            { $group: { _id: null, total: { $sum: '$amountCoins' } } }
+        ]);
 
-        // Handle cascading deactivation (mark chats as inactive)
-        const { default: relationshipManager } = await import('../../core/relationships/relationshipManager.js');
-        await relationshipManager.handleCascadeDelete(userId, 'user');
+        const totalSpent = await Transaction.aggregate([
+            { $match: { userId: user._id, direction: 'debit', status: 'completed' } },
+            { $group: { _id: null, total: { $sum: '$amountCoins' } } }
+        ]);
+
+        // Create DeletedAccount record for audit
+        await DeletedAccount.create({
+            phoneNumber: user.phoneNumber,
+            name: user.profile?.name || user.profile?.name_en || 'Unknown',
+            email: user.email,
+            role: user.role,
+            deletionSnapshot: {
+                userId: user._id,
+                coinBalance: user.coinBalance || 0,
+                totalEarnings: totalEarnings[0]?.total || 0,
+                totalSpent: totalSpent[0]?.total || 0,
+                totalChats,
+                totalMatches: 0, // Can be enhanced if you have a matches collection
+                registrationDate: user.createdAt,
+                approvalStatus: user.approvalStatus,
+            },
+            deletedBy: 'self',
+        });
+
+        // Delete all user data (hard delete for clean slate on re-registration)
+        await Promise.all([
+            // Delete all chats where user is a participant
+            Chat.deleteMany({ 'participants.userId': userId }),
+            // Delete all transactions
+            Transaction.deleteMany({ userId }),
+            // Delete all withdrawals
+            Withdrawal.deleteMany({ userId }),
+            // Delete messages (if you have a separate Message collection)
+            // Message.deleteMany({ $or: [{ senderId: userId }, { receiverId: userId }] }),
+        ]);
+
+        // Finally, delete the user account
+        await User.findByIdAndDelete(userId);
 
         res.status(200).json({
             status: 'success',
-            message: 'Account deleted successfully'
+            message: 'Account and all associated data deleted successfully'
         });
     } catch (error) {
         next(error);

@@ -585,3 +585,24 @@ export const updateAdminSecret = async (req, res, next) => {
         next(error);
     }
 };
+
+/**
+ * Get deleted accounts list
+ */
+export const getDeletedAccounts = async (req, res, next) => {
+    try {
+        const { search = '', role = 'all', page = 1, limit = 20 } = req.query;
+
+        const result = await adminService.getDeletedAccounts(
+            { search, role },
+            { page, limit }
+        );
+
+        res.status(200).json({
+            status: 'success',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};

@@ -18,7 +18,7 @@ import { calculateDistance, formatDistance } from '../../utils/distanceCalculato
 export const getMyChatList = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        const { language = 'en' } = req.query;
+        const { language = 'en', search = '' } = req.query;
 
         // Trigger auto-messages for male users (non-blocking)
         if (req.user.role === 'male') {
@@ -28,12 +28,14 @@ export const getMyChatList = async (req, res, next) => {
             });
         }
 
-        // Fetch chats
-        const chats = await Chat.find({
+        // Fetch existing chats
+        const chatQuery = {
             'participants.userId': userId,
             isActive: true,
             deletedBy: { $not: { $elemMatch: { userId } } }
-        })
+        };
+
+        const chats = await Chat.find(chatQuery)
             .select('participants lastMessage lastMessageAt createdAt messageCountByUser intimacyLevel')
             .populate({
                 path: 'participants.userId',
@@ -44,7 +46,7 @@ export const getMyChatList = async (req, res, next) => {
                 select: 'content messageType senderId createdAt status'
             })
             .sort({ lastMessageAt: -1 })
-            .limit(50)
+            .limit(search ? 100 : 50) // Increase limit during search to find more matches
             .lean();
 
         // Use location from req.user (already populated in auth middleware)
@@ -53,31 +55,16 @@ export const getMyChatList = async (req, res, next) => {
 
         // Transform chats for frontend
         const transformedChats = chats.map(chat => {
-            // Ensure userId is compared as string
             const currentUserId = userId.toString();
-
-            // Safety check: Filter out participants with null/undefined userId (deleted users)
             const validParticipants = chat.participants.filter(p => p.userId && p.userId._id);
 
-            if (validParticipants.length < 2) {
-                console.warn(`[CHAT-LIST] Chat ${chat._id} has invalid participants - skipping`);
-                return null;
-            }
+            if (validParticipants.length < 2) return null;
 
-            const otherParticipant = validParticipants.find(
-                p => p.userId._id.toString() !== currentUserId
-            );
-            const myParticipant = validParticipants.find(
-                p => p.userId._id.toString() === currentUserId
-            );
+            const otherParticipant = validParticipants.find(p => p.userId._id.toString() !== currentUserId);
+            const myParticipant = validParticipants.find(p => p.userId._id.toString() === currentUserId);
 
-            // Safety check - if no other participant found, skip this chat
-            if (!otherParticipant || !myParticipant) {
-                console.warn(`[CHAT-LIST] Chat ${chat._id} missing valid participants - skipping`);
-                return null;
-            }
+            if (!otherParticipant || !myParticipant) return null;
 
-            // CRITICAL: Handle translated names with original fallback
             const otherUserDoc = otherParticipant.userId;
             const name = (language === 'hi' ? otherUserDoc.profile?.name_hi : otherUserDoc.profile?.name_en) ||
                 otherUserDoc.profile?.name ||
@@ -108,20 +95,76 @@ export const getMyChatList = async (req, res, next) => {
                 lastMessageAt: chat.lastMessageAt,
                 unreadCount: myParticipant.unreadCount,
                 createdAt: chat.createdAt,
-                // Intimacy level based ONLY on male messages
                 intimacy: (() => {
                     const maleParticipant = validParticipants.find(p => p.role === 'male');
                     const maleUserId = maleParticipant?.userId._id.toString();
-                    // When using lean(), Map becomes a plain object
                     const maleMessageCount = maleUserId ? (chat.messageCountByUser?.[maleUserId] || 0) : 0;
                     return getLevelInfo(maleMessageCount);
                 })(),
             };
-        }).filter(Boolean); // Remove null entries
+        }).filter(Boolean);
+
+        let finalChats = transformedChats;
+
+        // Enhancement: If searching, also find matching users (opposite gender) without chat history
+        if (search && search.trim().length > 0) {
+            const query = search.trim();
+
+            // 1. Filter existing chats locally for better UX
+            finalChats = transformedChats.filter(chat =>
+                chat.otherUser.name.toLowerCase().includes(query.toLowerCase())
+            );
+
+            // 2. Fetch users of opposite role who don't have a chat with current user
+            const oppositeRole = req.user.role === 'male' ? 'female' : 'male';
+            const existingUserIds = transformedChats.map(c => c.otherUser._id.toString());
+
+            const potentialUsers = await User.find({
+                role: oppositeRole,
+                approvalStatus: 'approved',
+                isActive: true,
+                isDeleted: false,
+                _id: { $nin: [userId, ...existingUserIds] },
+                $or: [
+                    { 'profile.name': { $regex: query, $options: 'i' } },
+                    { 'profile.name_en': { $regex: query, $options: 'i' } },
+                    { 'profile.name_hi': { $regex: query, $options: 'i' } }
+                ]
+            })
+                .select('profile.name profile.photos profile.name_hi profile.name_en profile.location isOnline lastSeen isVerified role')
+                .limit(10)
+                .lean();
+
+            // Transform potential users to match chat item format
+            const potentialChats = potentialUsers.map(u => {
+                const name = (language === 'hi' ? u.profile?.name_hi : u.profile?.name_en) || u.profile?.name || `User ${u._id.toString().slice(-4)}`;
+
+                return {
+                    _id: `new_${u._id}`, // Fake ID for frontend
+                    isNewPotentialChat: true,
+                    otherUser: {
+                        _id: u._id,
+                        name: name,
+                        avatar: u.profile?.photos?.[0]?.url || null,
+                        isOnline: u.isOnline,
+                        lastSeen: u.lastSeen,
+                        isVerified: u.isVerified,
+                        distance: null
+                    },
+                    lastMessage: { content: 'Start a new conversation' },
+                    lastMessageAt: new Date(0), // Sort to bottom
+                    unreadCount: 0,
+                    createdAt: new Date(),
+                    intimacy: getLevelInfo(0)
+                };
+            });
+
+            finalChats = [...finalChats, ...potentialChats];
+        }
 
         res.status(200).json({
             status: 'success',
-            data: { chats: transformedChats }
+            data: { chats: finalChats }
         });
     } catch (error) {
         next(error);
@@ -203,6 +246,15 @@ export const getOrCreateChat = async (req, res, next) => {
             p => p.userId._id.toString() === currentUserId
         );
 
+        if (!otherParticipant || !myParticipant) {
+            throw new NotFoundError('Invalid chat participants');
+        }
+
+        const [me, other] = await Promise.all([
+            User.findById(userId).select('blockedUsers').lean(),
+            User.findById(otherParticipant.userId._id).select('blockedUsers').lean()
+        ]);
+
         const transformedChat = {
             _id: chat._id,
             otherUser: {
@@ -217,6 +269,8 @@ export const getOrCreateChat = async (req, res, next) => {
             lastMessageAt: chat.lastMessageAt,
             unreadCount: myParticipant?.unreadCount || 0,
             createdAt: chat.createdAt,
+            isBlockedByMe: !!me?.blockedUsers?.some(id => id.toString() === otherParticipant.userId._id.toString()),
+            isBlockedByOther: !!other?.blockedUsers?.some(id => id.toString() === userId.toString()),
             // Intimacy level based ONLY on male messages
             intimacy: (() => {
                 const maleParticipant = chat.participants.find(p => p.role === 'male');
@@ -294,6 +348,8 @@ export const getChatById = async (req, res, next) => {
             lastMessageAt: chat.lastMessageAt,
             unreadCount: myParticipant.unreadCount,
             createdAt: chat.createdAt,
+            isBlockedByMe: !!me?.blockedUsers?.some(id => id.toString() === otherParticipant.userId._id.toString()),
+            isBlockedByOther: !!other?.blockedUsers?.some(id => id.toString() === userId.toString()),
             // Intimacy level based ONLY on male messages
             intimacy: (() => {
                 const maleParticipant = chat.participants.find(p => p.role === 'male');

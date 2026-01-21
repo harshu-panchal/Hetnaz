@@ -199,6 +199,63 @@ export const getPendingFemales = async (pagination, status = 'pending') => {
     const { page = 1, limit = 20 } = pagination;
     const skip = (page - 1) * limit;
 
+    // Handle "deleted" status separately
+    if (status === 'deleted') {
+        const DeletedAccount = (await import('../../models/DeletedAccount.js')).default;
+
+        const [deletedAccounts, total] = await Promise.all([
+            DeletedAccount.find({ role: 'female' })
+                .sort({ deletedAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            DeletedAccount.countDocuments({ role: 'female' })
+        ]);
+
+        // Get counts for all statuses
+        const [statusCounts, deletedCount] = await Promise.all([
+            User.aggregate([
+                { $match: { role: 'female' } },
+                { $group: { _id: '$approvalStatus', count: { $sum: 1 } } }
+            ]),
+            DeletedAccount.countDocuments({ role: 'female' })
+        ]);
+
+        const stats = {
+            all: statusCounts.reduce((sum, s) => sum + s.count, 0),
+            pending: statusCounts.find(s => s._id === 'pending')?.count || 0,
+            approved: statusCounts.find(s => s._id === 'approved')?.count || 0,
+            rejected: statusCounts.find(s => s._id === 'rejected')?.count || 0,
+            resubmit_requested: statusCounts.find(s => s._id === 'resubmit_requested')?.count || 0,
+            deleted: deletedCount
+        };
+
+        // Transform deleted accounts to match user format
+        const users = deletedAccounts.map(acc => ({
+            _id: acc._id,
+            phoneNumber: acc.phoneNumber,
+            profile: {
+                name: acc.name,
+                name_en: acc.name,
+                name_hi: acc.name
+            },
+            approvalStatus: 'deleted',
+            createdAt: acc.deletionSnapshot?.registrationDate,
+            deletedAt: acc.deletedAt,
+            deletedBy: acc.deletedBy,
+            deletionSnapshot: acc.deletionSnapshot
+        }));
+
+        return {
+            users,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            stats
+        };
+    }
+
+    // Regular query for active users
     const query = {
         role: 'female'
     };
@@ -217,9 +274,12 @@ export const getPendingFemales = async (pagination, status = 'pending') => {
     const total = await User.countDocuments(query);
 
     // Get counts for all statuses for the tabs
-    const statusCounts = await User.aggregate([
-        { $match: { role: 'female' } },
-        { $group: { _id: '$approvalStatus', count: { $sum: 1 } } }
+    const [statusCounts, deletedCount] = await Promise.all([
+        User.aggregate([
+            { $match: { role: 'female' } },
+            { $group: { _id: '$approvalStatus', count: { $sum: 1 } } }
+        ]),
+        (await import('../../models/DeletedAccount.js')).default.countDocuments({ role: 'female' })
     ]);
 
     const stats = {
@@ -227,7 +287,8 @@ export const getPendingFemales = async (pagination, status = 'pending') => {
         pending: statusCounts.find(s => s._id === 'pending')?.count || 0,
         approved: statusCounts.find(s => s._id === 'approved')?.count || 0,
         rejected: statusCounts.find(s => s._id === 'rejected')?.count || 0,
-        resubmit_requested: statusCounts.find(s => s._id === 'resubmit_requested')?.count || 0
+        resubmit_requested: statusCounts.find(s => s._id === 'resubmit_requested')?.count || 0,
+        deleted: deletedCount
     };
 
     return {
@@ -548,4 +609,55 @@ export const deleteUser = async (userId, adminId) => {
     });
 
     return true;
+};
+
+/**
+ * Get deleted accounts list
+ */
+export const getDeletedAccounts = async (filters, pagination) => {
+    const { page = 1, limit = 20 } = pagination;
+    const { search, role } = filters;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+
+    if (role && role !== 'all') {
+        query.role = role;
+    }
+
+    if (search) {
+        query.$or = [
+            { phoneNumber: { $regex: search, $options: 'i' } },
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+        ];
+    }
+
+    const DeletedAccount = (await import('../../models/DeletedAccount.js')).default;
+
+    const [accounts, total] = await Promise.all([
+        DeletedAccount.find(query)
+            .sort({ deletedAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean(),
+        DeletedAccount.countDocuments(query)
+    ]);
+
+    return {
+        accounts: accounts.map(acc => ({
+            id: acc._id,
+            phoneNumber: acc.phoneNumber,
+            name: acc.name,
+            email: acc.email,
+            role: acc.role,
+            deletedAt: acc.deletedAt,
+            deletedBy: acc.deletedBy,
+            deletionReason: acc.deletionReason,
+            snapshot: acc.deletionSnapshot
+        })),
+        total,
+        page: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit))
+    };
 };

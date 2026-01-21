@@ -1,6 +1,6 @@
 import { useChatList } from '../queries/useChatQuery';
 
-export const useOptimizedChatList = () => {
+export const useOptimizedChatList = (search?: string) => {
     // TanStack Query handles caching, background refetching, and deduping automatically.
     // staleTime in useChatQuery ensures we read from cache instantly.
     const {
@@ -8,7 +8,7 @@ export const useOptimizedChatList = () => {
         isLoading,
         error,
         refetch
-    } = useChatList();
+    } = useChatList(search);
 
     // Map React Query error to string if present
     const errorMessage = error ? (error as any).message || 'Failed to load chats' : null;

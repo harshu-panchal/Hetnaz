@@ -14,6 +14,7 @@ import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
 import logger from '../utils/logger.js';
 import { getEnvConfig } from '../config/env.js';
+import { memoryCache } from '../utils/cache.js';
 
 const { jwtSecret } = getEnvConfig();
 
@@ -64,13 +65,24 @@ export const setupChatHandlers = (io) => {
         lastHeartbeat.set(userId, Date.now());
         socket.join(userId);
 
-        // Background DB update (non-blocking)
-        setImmediate(() => {
-            User.findByIdAndUpdate(userId, { isOnline: true, socketId: socket.id, lastSeen: new Date() }).catch(() => { });
+        // Update DB immediately (don't defer) - critical for online status accuracy
+        User.findByIdAndUpdate(userId, {
+            isOnline: true,
+            socketId: socket.id,
+            lastSeen: new Date()
+        }).catch((err) => {
+            logger.error(`Failed to update online status for ${userId}:`, err.message);
         });
 
-        // Broadcast online (lightweight)
-        socket.broadcast.emit('user:online', { userId });
+        // Invalidate discover cache for online filter (so new online users appear immediately)
+        memoryCache.keys().forEach(key => {
+            if (key.includes('discover:females:') && key.includes(':online:')) {
+                memoryCache.del(key);
+            }
+        });
+
+        // Broadcast online (lightweight) - ensure userId is string
+        socket.broadcast.emit('user:online', { userId: userId.toString() });
 
         // HEARTBEAT
         socket.on('heartbeat', () => {
@@ -123,7 +135,9 @@ export const setupChatHandlers = (io) => {
             try {
                 await Message.findByIdAndUpdate(data.messageId, { status: 'read', readAt: new Date() });
                 socket.to(`chat:${data.chatId}`).emit('message:read', { messageId: data.messageId, chatId: data.chatId, readBy: userId });
-            } catch (e) { }
+            } catch (e) {
+                logger.error('Error in message:read:', e);
+            }
         });
 
         // BALANCE REQUEST
@@ -131,7 +145,40 @@ export const setupChatHandlers = (io) => {
             try {
                 const user = await User.findById(userId).select('coinBalance').lean();
                 socket.emit('balance:update', { balance: user?.coinBalance || 0 });
-            } catch (e) { }
+            } catch (e) {
+                logger.error('Error in balance:request:', e);
+            }
+        });
+
+        // USER STATUS REQUEST - Get real-time online status of a user
+        socket.on('user:status:request', async (data) => {
+            try {
+                const { targetUserId } = data;
+                if (!targetUserId) return;
+
+                // Check if user is currently connected (real-time)
+                const isOnline = activeUsers.has(targetUserId);
+                const lastBeat = lastHeartbeat.get(targetUserId);
+                const isActive = lastBeat && (Date.now() - lastBeat) < HEARTBEAT_TIMEOUT;
+
+                // If not in active connections, check database
+                if (!isOnline || !isActive) {
+                    const user = await User.findById(targetUserId).select('isOnline lastSeen').lean();
+                    socket.emit('user:status:response', {
+                        userId: targetUserId,
+                        isOnline: user?.isOnline || false,
+                        lastSeen: user?.lastSeen || new Date()
+                    });
+                } else {
+                    socket.emit('user:status:response', {
+                        userId: targetUserId,
+                        isOnline: true,
+                        lastSeen: new Date()
+                    });
+                }
+            } catch (e) {
+                console.error('Status request error:', e);
+            }
         });
 
         // DISCONNECT
@@ -141,11 +188,24 @@ export const setupChatHandlers = (io) => {
                 activeUsers.delete(userId);
                 lastHeartbeat.delete(userId);
 
-                setImmediate(() => {
-                    User.findByIdAndUpdate(userId, { isOnline: false, socketId: null, lastSeen: new Date() }).catch(() => { });
+                // Update DB immediately - critical for online status accuracy
+                User.findByIdAndUpdate(userId, {
+                    isOnline: false,
+                    socketId: null,
+                    lastSeen: new Date()
+                }).catch((err) => {
+                    logger.error(`Failed to update offline status for ${userId}:`, err.message);
                 });
 
-                socket.broadcast.emit('user:offline', { userId, lastSeen: new Date() });
+                // Invalidate discover cache for online filter (so offline users disappear immediately)
+                memoryCache.keys().forEach(key => {
+                    if (key.includes('discover:females:') && key.includes(':online:')) {
+                        memoryCache.del(key);
+                    }
+                });
+
+                // Ensure userId is string for frontend comparison
+                socket.broadcast.emit('user:offline', { userId: userId.toString(), lastSeen: new Date() });
             }
         });
     });
@@ -173,11 +233,24 @@ const cleanupStaleConnections = async (io) => {
         activeUsers.delete(userId);
         lastHeartbeat.delete(userId);
 
-        setImmediate(() => {
-            User.findByIdAndUpdate(userId, { isOnline: false, socketId: null, lastSeen: new Date() }).catch(() => { });
+        // Update DB immediately - critical for online status accuracy
+        User.findByIdAndUpdate(userId, {
+            isOnline: false,
+            socketId: null,
+            lastSeen: new Date()
+        }).catch((err) => {
+            logger.error(`Failed to update offline status during cleanup for ${userId}:`, err.message);
         });
 
-        io.emit('user:offline', { userId, lastSeen: new Date() });
+        // Invalidate discover cache for online filter
+        memoryCache.keys().forEach(key => {
+            if (key.includes('discover:females:') && key.includes(':online:')) {
+                memoryCache.del(key);
+            }
+        });
+
+        // Ensure userId is string for frontend comparison
+        io.emit('user:offline', { userId: userId.toString(), lastSeen: new Date() });
     }
 };
 

@@ -222,6 +222,9 @@ export const ChatWindowPage = () => {
   useEffect(() => {
     if (!chatInfo) return;
 
+    // Request real-time status when entering chat
+    socketService.requestUserStatus(chatInfo.otherUser._id);
+
     // User online/offline status updates
     const handleUserOnline = (data: { userId: string }) => {
       if (data.userId === chatInfo.otherUser._id) {
@@ -237,6 +240,15 @@ export const ChatWindowPage = () => {
         setChatInfo(prev => prev ? {
           ...prev,
           otherUser: { ...prev.otherUser, isOnline: false, lastSeen: data.lastSeen }
+        } : null);
+      }
+    };
+
+    const handleUserStatusResponse = (data: { userId: string; isOnline: boolean; lastSeen: string }) => {
+      if (data.userId === chatInfo.otherUser._id) {
+        setChatInfo(prev => prev ? {
+          ...prev,
+          otherUser: { ...prev.otherUser, isOnline: data.isOnline, lastSeen: data.lastSeen }
         } : null);
       }
     };
@@ -257,12 +269,14 @@ export const ChatWindowPage = () => {
     socketService.on('chat:typing', handleTyping);
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
+    socketService.on('user:status:response', handleUserStatusResponse);
     socketService.on('user:blocked_by', handleBlockedBy);
 
     return () => {
       socketService.off('chat:typing', handleTyping);
       socketService.off('user:online', handleUserOnline);
       socketService.off('user:offline', handleUserOffline);
+      socketService.off('user:status:response', handleUserStatusResponse);
       socketService.off('user:blocked_by', handleBlockedBy);
     };
   }, [chatId, chatInfo, currentUserId, t]);

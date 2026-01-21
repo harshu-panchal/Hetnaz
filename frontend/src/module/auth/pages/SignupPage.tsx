@@ -1,9 +1,10 @@
 // @ts-nocheck
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { normalizePhoneNumber } from '../../../core/utils/phoneNumber';
+import { useAuth } from '../../../core/context/AuthContext';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -21,8 +22,20 @@ interface OnboardingFormData {
 export const SignupPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const location = useLocation();
+  const { isAuthenticated, user } = useAuth();
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const aadhaarInputRef = useRef<HTMLInputElement>(null);
+
+  // If already authenticated, redirect to source or dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const from = (location.state as any)?.from?.pathname ||
+        (user.role === 'female' ? '/female/dashboard' :
+          user.role === 'admin' ? '/admin/dashboard' : '/male/discover');
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate, location]);
 
   const [formData, setFormData] = useState<OnboardingFormData>(() => {
     const saved = localStorage.getItem('signup_form_data');
@@ -172,7 +185,8 @@ export const SignupPage = () => {
         state: {
           mode: 'signup',
           phoneNumber: normalizedPhone,
-          signupData: payload // For OTP resend if needed
+          signupData: payload, // For OTP resend if needed
+          from: (location.state as any)?.from // Pass along the 'from' location
         }
       });
     } catch (error: any) {

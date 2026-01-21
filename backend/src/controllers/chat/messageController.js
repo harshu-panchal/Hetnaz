@@ -11,8 +11,6 @@ import Gift from '../../models/Gift.js';
 import Transaction from '../../models/Transaction.js';
 import AppSettings from '../../models/AppSettings.js';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
-import transactionManager from '../../core/transactions/transactionManager.js';
-import dataValidation from '../../core/validation/dataValidation.js';
 import logger from '../../utils/logger.js';
 import { checkLevelUp, getLevelInfo } from '../../utils/intimacyLevel.js';
 import { emitNewMessage, emitBalanceUpdate } from '../../socket/chatHandlers.js';
@@ -68,6 +66,17 @@ export const sendMessage = async (req, res, next) => {
         if (!chat) {
             throw new NotFoundError('Chat not found');
         }
+
+        // Get receiver ID from chat participants
+        const otherParticipant = chat.participants.find(
+            p => p.userId.toString() !== senderId.toString()
+        );
+
+        if (!otherParticipant) {
+            throw new BadRequestError('Recipient not found in this chat');
+        }
+
+        const receiverId = otherParticipant.userId;
 
         // 1. STAGE 1: Parallelize configuration and basic user checks (Fast)
         const [sender, receiver, MESSAGE_COST] = await Promise.all([

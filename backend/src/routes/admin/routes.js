@@ -46,6 +46,8 @@ router.delete('/gifts/:id', adminController.deleteGift);
 router.get('/reports', reportController.getAllReports);
 router.patch('/reports/:id', reportController.updateReportStatus);
 
+// Deleted Accounts
+router.get('/deleted-accounts', adminController.getDeletedAccounts);
 
 // Admin Profile Management
 router.get('/profile', adminController.getAdminProfile);

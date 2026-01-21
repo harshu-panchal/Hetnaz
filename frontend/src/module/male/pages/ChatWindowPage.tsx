@@ -23,6 +23,7 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 
 import { useQueryClient } from '@tanstack/react-query';
 import { CHAT_KEYS } from '../../../core/queries/useChatQuery';
+import { MaterialSymbol } from '../types/material-symbol';
 
 // Message cost constant
 const MESSAGE_COST = 50;
@@ -98,31 +99,57 @@ export const ChatWindowPage = () => {
       try {
         setIsLoading(true);
 
+        let activeChatId = chatId;
+
+        // Enhancement: If chatId smells like a discovery ID (new_USERID), get or create the real chat
+        if (chatId.startsWith('new_')) {
+          const targetUserId = chatId.replace('new_', '');
+          console.log(`[CHAT] Initiating new chat discovery for user: ${targetUserId}`);
+
+          const chat = await chatService.getOrCreateChat(targetUserId);
+          if (chat && chat._id) {
+            activeChatId = chat._id;
+            // Update URL to the real chatId silently so refreshes work
+            navigate(`/male/chat/${activeChatId}`, { replace: true });
+          } else {
+            throw new Error('Failed to create chat with this user');
+          }
+        }
+
         // Get chat info by ID
-        const chat = await chatService.getChatById(chatId);
+        const chat = await chatService.getChatById(activeChatId);
         setChatInfo(chat);
         setIntimacy(chat.intimacy);
         setIsBlockedByMe(!!chat.isBlockedByMe);
         setIsBlockedByOther(!!chat.isBlockedByOther);
 
-        // Get messages (limited to 10 initially)
-        const { messages: msgData, hasMore: moreAvailable } = await chatService.getChatMessages(chatId, { limit: MESSAGES_PER_PAGE });
+        // Get messages
+        const { messages: msgData, hasMore: moreAvailable } = await chatService.getChatMessages(activeChatId, { limit: MESSAGES_PER_PAGE });
         setMessages(msgData);
         setHasMore(moreAvailable);
-        saveToChatCache(chatId, msgData);
+        saveToChatCache(activeChatId, msgData);
 
         // Join chat room
         socketService.connect();
-        socketService.joinChat(chatId);
+        socketService.joinChat(activeChatId);
 
-        // Mark as read and update global list (for badges)
-        await chatService.markChatAsRead(chatId);
+        // Mark as read and update global list
+        await chatService.markChatAsRead(activeChatId);
         queryClient.invalidateQueries({ queryKey: CHAT_KEYS.lists() });
 
         setError(null);
       } catch (err: any) {
         console.error('Failed to load chat:', err);
-        setError(err.response?.data?.message || t('errorFailedToLoadChat'));
+        const status = err.response?.status;
+        const backendMessage = err.response?.data?.message;
+
+        if (status === 404) {
+          setError(t('errorChatNotFound') || 'This chat is no longer available.');
+        } else if (status === 403) {
+          setError(backendMessage || t('errorAccessDenied') || 'You do not have permission to view this chat.');
+        } else {
+          setError(backendMessage || err.message || t('errorFailedToLoadChat'));
+        }
       } finally {
         setIsLoading(false);
       }
@@ -252,6 +279,9 @@ export const ChatWindowPage = () => {
   useEffect(() => {
     if (!chatInfo) return;
 
+    // Request real-time status when entering chat
+    socketService.requestUserStatus(chatInfo.otherUser._id);
+
     const handleTyping = (data: { chatId: string; userId: string; isTyping: boolean }) => {
       if (data.chatId === chatId && data.userId !== currentUserId) {
         setIsOtherTyping(data.isTyping);
@@ -276,6 +306,15 @@ export const ChatWindowPage = () => {
       }
     };
 
+    const handleUserStatusResponse = (data: { userId: string; isOnline: boolean; lastSeen: string }) => {
+      if (data.userId === chatInfo.otherUser._id) {
+        setChatInfo(prev => prev ? {
+          ...prev,
+          otherUser: { ...prev.otherUser, isOnline: data.isOnline, lastSeen: data.lastSeen }
+        } : null);
+      }
+    };
+
     const handleBlockedBy = (data: { blockedBy: string; blockedByName: string }) => {
       if (data.blockedBy === chatInfo.otherUser._id) {
         setIsBlockedByOther(true);
@@ -286,12 +325,14 @@ export const ChatWindowPage = () => {
     socketService.on('chat:typing', handleTyping);
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
+    socketService.on('user:status:response', handleUserStatusResponse);
     socketService.on('user:blocked_by', handleBlockedBy);
 
     return () => {
       socketService.off('chat:typing', handleTyping);
       socketService.off('user:online', handleUserOnline);
       socketService.off('user:offline', handleUserOffline);
+      socketService.off('user:status:response', handleUserStatusResponse);
       socketService.off('user:blocked_by', handleBlockedBy);
     };
   }, [chatId, chatInfo, currentUserId, t]);
@@ -573,23 +614,32 @@ export const ChatWindowPage = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background-light dark:bg-background-dark">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark items-center justify-center">
+      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+      <p className="text-gray-500 font-medium animate-pulse">{t('loadingChat') || 'Opening chat...'}</p>
+    </div>
+  );
 
   if (!chatInfo) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-background-light dark:bg-background-dark p-4">
-        <p className="text-gray-500 dark:text-gray-400 mb-4">{t('chatNotFound')}</p>
+      <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark items-center justify-center p-8 text-center">
+        <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
+          <MaterialSymbol name="chat_off" size={40} className="text-gray-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+          {error?.includes('permission') || error?.includes('blocked')
+            ? (t('accessDeniedTitle') || 'Access Denied')
+            : (t('chatNotAvailableTitle') || 'Chat Not Available')}
+        </h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-xs mx-auto text-sm leading-relaxed">
+          {error || (t('chatNotAvailableDesc') || 'This chat might have been closed or is temporarily unavailable.')}
+        </p>
         <button
           onClick={() => navigate('/male/chats')}
-          className="px-4 py-2 bg-primary text-white rounded-lg"
+          className="w-full max-w-xs py-3.5 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/25 active:scale-95 transition-all"
         >
-          {t('goBack')}
+          {t('goBackToChats') || 'Go Back to Chats'}
         </button>
       </div>
     );

@@ -123,6 +123,13 @@ export const OtpVerificationPage = () => {
 
                 login(response.data.token, response.data.data.user);
 
+                // Respect the 'from' location if it exists
+                const from = (state as any)?.from?.pathname;
+                if (from) {
+                    navigate(from, { replace: true });
+                    return;
+                }
+
                 // Navigation based on role
                 const user = response.data.data.user;
                 if (user.role === 'female') {

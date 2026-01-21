@@ -197,6 +197,10 @@ export const verifySignupOtp = async (phoneNumber, otpCode, io = null) => {
         }
     }
 
+    // Remove from DeletedAccount collection if re-registering with same phone number
+    const DeletedAccount = (await import('../../models/DeletedAccount.js')).default;
+    await DeletedAccount.deleteOne({ phoneNumber: normalizedPhone });
+
     // CRITICAL: Auto-translate name and bio for caching (cost optimization)
     // This translates once on signup and caches both languages in DB
     const { translateProfileData } = await import('../translate/translateService.js');

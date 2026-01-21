@@ -37,18 +37,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             if (storedToken) {
                 setToken(storedToken);
-                // Optimistically set user from storage immediately (fast path)
+
+                // If we have a cached user, we can be authenticated immediately
                 if (storedUser) {
                     const profile = (storedUser._id || storedUser.profile)
                         ? mapUserToProfile(storedUser)
                         : storedUser;
                     setUserState(profile);
                     setIsAuthenticated(true);
+                    setIsLoading(false);
                 }
-                // Set loading to false immediately so UI can render with cached data
-                setIsLoading(false);
+                // If we have token but NO cached user, we MUST wait for the fetch
+                // to avoid flickering into 'not authenticated' state
 
-                // Refresh profile in background (non-blocking)
+                // Refresh profile in background
                 try {
                     const rawUser = await fetchUserProfile();
                     const profile = mapUserToProfile(rawUser);
@@ -64,10 +66,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         setUserState(null);
                         setIsAuthenticated(false);
                     }
+                } finally {
+                    setIsLoading(false);
                 }
             } else {
                 clearAuth();
                 setToken(null);
+                setIsAuthenticated(false);
                 setIsLoading(false);
             }
         };

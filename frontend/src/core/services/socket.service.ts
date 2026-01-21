@@ -141,6 +141,11 @@ class SocketService {
             this.emit('user:offline', data);
         });
 
+        // User status response (for real-time status queries)
+        this.socket.on('user:status:response', (data) => {
+            this.emit('user:status:response', data);
+        });
+
         // New message
         this.socket.on('message:new', (data) => {
             this.emit('message:new', data);
@@ -295,6 +300,13 @@ class SocketService {
      */
     requestBalance() {
         this.socket?.emit('balance:request');
+    }
+
+    /**
+     * Request real-time online status of a user
+     */
+    requestUserStatus(targetUserId: string) {
+        this.socket?.emit('user:status:request', { targetUserId });
     }
 
     /**

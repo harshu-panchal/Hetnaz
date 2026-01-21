@@ -1,16 +1,30 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { normalizePhoneNumber } from '../../../core/utils/phoneNumber';
 import { loginWithOtp } from '../services/auth.service';
+import { useAuth } from '../../../core/context/AuthContext';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const location = useLocation();
+  const { isAuthenticated, user } = useAuth();
   const [formData, setFormData] = useState<{ phone: string }>({
     phone: '',
   });
+
+  // If already authenticated, redirect to source or dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const from = (location.state as any)?.from?.pathname ||
+        (user.role === 'female' ? '/female/dashboard' :
+          user.role === 'admin' ? '/admin/dashboard' : '/male/discover');
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate, location]);
+
   const [errors, setErrors] = useState<{ phone?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -43,7 +57,11 @@ export const LoginPage = () => {
         const normalizedPhone = normalizePhoneNumber(formData.phone);
         await loginWithOtp(normalizedPhone);
         navigate('/otp-verification', {
-          state: { mode: 'login', phoneNumber: normalizedPhone }
+          state: {
+            mode: 'login',
+            phoneNumber: normalizedPhone,
+            from: (location.state as any)?.from // Pass along the 'from' location
+          }
         });
       } catch (err: any) {
         // Convert technical errors to user-friendly messages

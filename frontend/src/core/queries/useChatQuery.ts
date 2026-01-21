@@ -14,11 +14,11 @@ export const CHAT_KEYS = {
 };
 
 // Fetch list of all chats
-export const useChatList = () => {
+export const useChatList = (search?: string) => {
     return useQuery({
-        queryKey: CHAT_KEYS.lists(),
-        queryFn: chatService.getMyChatList,
-        staleTime: 1000 * 60, // 1 minute stale time (real-time updates handled by socket)
+        queryKey: search ? [...CHAT_KEYS.lists(), search] : CHAT_KEYS.lists(),
+        queryFn: () => chatService.getMyChatList(search),
+        staleTime: search ? 0 : 1000 * 60, // Don't cache search results for long
     });
 };
 
