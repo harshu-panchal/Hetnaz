@@ -18,9 +18,11 @@ const { nodeEnv } = getEnvConfig();
 
 const app = express();
 
+// CORS configuration (Must be before other middleware)
+app.use(cors(corsOptions));
+
 // Security middleware
 app.use(securityHeaders);
-app.use(cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

@@ -26,9 +26,12 @@ export const corsOptions = {
 
     const allowedOrigins = [
       cleanFrontendUrl,
+      'https://hetnaz.in',
+      'https://www.hetnaz.in',
       'http://localhost:5173',
-      'http://localhost:3000'
-    ].filter(Boolean);
+      'http://localhost:3000',
+      'http://localhost:5000'
+    ].map(o => o?.replace(/\/$/, '')).filter(Boolean);
 
     const isAllowedVercel = cleanOrigin.endsWith('.vercel.app');
 
@@ -36,11 +39,15 @@ export const corsOptions = {
       callback(null, true);
     } else {
       console.warn(`⚠️ CORS Warning: Origin ${origin} not explicitly allowed.`);
+      // Still allow for now to prevent breaking, but warn
       callback(null, true);
     }
   },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: true,
   optionsSuccessStatus: 200,
+  preflightContinue: false
 };
 
 /**
