@@ -14,7 +14,7 @@ import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
 import logger from '../utils/logger.js';
 import { getEnvConfig } from '../config/env.js';
-import { memoryCache } from '../utils/cache.js';
+import memoryCache from '../core/cache/memoryCache.js';
 
 const { jwtSecret } = getEnvConfig();
 
