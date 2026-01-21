@@ -75,9 +75,9 @@ export const setupChatHandlers = (io) => {
         });
 
         // Invalidate discover cache for online filter (so new online users appear immediately)
-        memoryCache.keys().forEach(key => {
+        Array.from(memoryCache.keys()).forEach(key => {
             if (key.includes('discover:females:') && key.includes(':online:')) {
-                memoryCache.del(key);
+                memoryCache.delete(key);
             }
         });
 
@@ -198,9 +198,9 @@ export const setupChatHandlers = (io) => {
                 });
 
                 // Invalidate discover cache for online filter (so offline users disappear immediately)
-                memoryCache.keys().forEach(key => {
+                Array.from(memoryCache.keys()).forEach(key => {
                     if (key.includes('discover:females:') && key.includes(':online:')) {
-                        memoryCache.del(key);
+                        memoryCache.delete(key);
                     }
                 });
 
@@ -243,9 +243,9 @@ const cleanupStaleConnections = async (io) => {
         });
 
         // Invalidate discover cache for online filter
-        memoryCache.keys().forEach(key => {
+        Array.from(memoryCache.keys()).forEach(key => {
             if (key.includes('discover:females:') && key.includes(':online:')) {
-                memoryCache.del(key);
+                memoryCache.delete(key);
             }
         });
 

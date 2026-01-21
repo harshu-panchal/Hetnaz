@@ -4,6 +4,7 @@
  * @purpose: Handle chat list, message history, chat creation
  */
 
+import mongoose from 'mongoose';
 import Chat from '../../models/Chat.js';
 import Message from '../../models/Message.js';
 import User from '../../models/User.js';
@@ -30,9 +31,9 @@ export const getMyChatList = async (req, res, next) => {
 
         // Fetch existing chats
         const chatQuery = {
-            'participants.userId': userId,
+            'participants.userId': new mongoose.Types.ObjectId(userId),
             isActive: true,
-            deletedBy: { $not: { $elemMatch: { userId } } }
+            'deletedBy.userId': { $nin: [new mongoose.Types.ObjectId(userId)] }
         };
 
         const chats = await Chat.find(chatQuery)
@@ -70,6 +71,16 @@ export const getMyChatList = async (req, res, next) => {
                 otherUserDoc.profile?.name ||
                 `User ${otherUserDoc.phoneNumber}`;
 
+            // Check if current user deleted this chat
+            const userDeleteRecord = chat.deletedBy?.find(d => d.userId.toString() === currentUserId);
+            const deletedAt = userDeleteRecord?.deletedAt;
+
+            // If user deleted chat and last message is before deletion, show placeholder
+            let lastMessageToShow = chat.lastMessage;
+            if (deletedAt && chat.lastMessageAt && new Date(chat.lastMessageAt) <= new Date(deletedAt)) {
+                lastMessageToShow = null; // Will show "Start chatting" or similar
+            }
+
             return {
                 _id: chat._id,
                 otherUser: {
@@ -91,7 +102,7 @@ export const getMyChatList = async (req, res, next) => {
                         return null;
                     })()
                 },
-                lastMessage: chat.lastMessage,
+                lastMessage: lastMessageToShow,
                 lastMessageAt: chat.lastMessageAt,
                 unreadCount: myParticipant.unreadCount,
                 createdAt: chat.createdAt,
@@ -389,13 +400,22 @@ export const getChatMessages = async (req, res, next) => {
             throw new NotFoundError('Chat not found');
         }
 
+        // Check if current user deleted this chat - if so, only show messages after deletion
+        const userDeleteRecord = chat.deletedBy.find(d => d.userId.toString() === userId.toString());
+        const deletedAt = userDeleteRecord?.deletedAt;
+
         // Build query
         const query = {
             chatId,
             isDeleted: false
         };
 
-        if (before) {
+        // If user deleted chat, only show messages created after deletion
+        if (deletedAt) {
+            query.createdAt = before
+                ? { $lt: new Date(before), $gt: deletedAt }
+                : { $gt: deletedAt };
+        } else if (before) {
             query.createdAt = { $lt: new Date(before) };
         }
 

@@ -31,9 +31,17 @@ export const getDashboardData = async (req, res, next) => {
             Withdrawal.aggregate([{ $match: { userId: currentUserId, status: 'completed' } }, { $group: { _id: null, total: { $sum: '$coinsRequested' } } }]),
             Withdrawal.aggregate([{ $match: { userId: currentUserId, status: 'pending' } }, { $group: { _id: null, total: { $sum: '$coinsRequested' } } }]),
             Message.countDocuments({ receiverId: currentUserId }),
-            Chat.countDocuments({ 'participants.userId': currentUserId, isActive: true }),
-            Chat.find({ 'participants.userId': currentUserId, isActive: true, deletedBy: { $not: { $elemMatch: { userId: currentUserId } } } })
-                .populate('participants.userId', 'profile phoneNumber isOnline lastSeen')
+            Chat.countDocuments({
+                'participants.userId': currentUserId,
+                isActive: true,
+                'deletedBy.userId': { $nin: [currentUserId] }
+            }),
+            Chat.find({
+                'participants.userId': currentUserId,
+                isActive: true,
+                'deletedBy.userId': { $nin: [currentUserId] }
+            })
+                .populate('participants.userId', 'profile.name profile.photos profile.name_hi profile.name_en profile.location phoneNumber isOnline lastSeen isVerified role')
                 .populate('lastMessage')
                 .sort({ lastMessageAt: -1 }).limit(5).lean()
         ]);
@@ -92,7 +100,11 @@ export const getStats = async (req, res, next) => {
         const currentUserId = new mongoose.Types.ObjectId(req.user.id);
         const [msgs, chats] = await Promise.all([
             Message.countDocuments({ receiverId: currentUserId }),
-            Chat.countDocuments({ 'participants.userId': currentUserId, isActive: true })
+            Chat.countDocuments({
+                'participants.userId': currentUserId,
+                isActive: true,
+                'deletedBy.userId': { $nin: [currentUserId] }
+            })
         ]);
 
         res.status(200).json({
@@ -111,9 +123,9 @@ export const getActiveChats = async (req, res, next) => {
         const chats = await Chat.find({
             'participants.userId': new mongoose.Types.ObjectId(userId),
             isActive: true,
-            deletedBy: { $not: { $elemMatch: { userId: new mongoose.Types.ObjectId(userId) } } }
+            'deletedBy.userId': { $nin: [new mongoose.Types.ObjectId(userId)] }
         })
-            .populate('participants.userId', 'profile phoneNumber isOnline lastSeen')
+            .populate('participants.userId', 'profile.name profile.photos profile.name_hi profile.name_en profile.location phoneNumber isOnline lastSeen isVerified role')
             .populate('lastMessage')
             .sort({ lastMessageAt: -1 })
             .limit(5)
@@ -135,12 +147,22 @@ const transformChat = (chat, userId) => {
     const me = validParticipants.find(p => p.userId._id.toString() === userId);
     if (!other || !other.userId) return null;
 
+    // Check if current user deleted this chat
+    const userDeleteRecord = chat.deletedBy?.find(d => d.userId.toString() === userId.toString());
+    const deletedAt = userDeleteRecord?.deletedAt;
+
+    // If user deleted chat and last message is before deletion, show placeholder
+    let lastMessageContent = chat.lastMessage?.content || 'No messages yet';
+    if (deletedAt && chat.lastMessageAt && new Date(chat.lastMessageAt) <= new Date(deletedAt)) {
+        lastMessageContent = 'Start a new conversation';
+    }
+
     return {
         id: chat._id,
         userId: other.userId._id,
         userName: other.userId.profile?.name || `User ${other.userId.phoneNumber}`,
         userAvatar: other.userId.profile?.photos?.[0]?.url || null,
-        lastMessage: chat.lastMessage?.content || 'No messages yet',
+        lastMessage: lastMessageContent,
         timestamp: chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
         isOnline: other.userId.isOnline,
         hasUnread: (me?.unreadCount || 0) > 0,

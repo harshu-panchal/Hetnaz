@@ -165,6 +165,9 @@ export const sendMessage = async (req, res, next) => {
                     lastMessage: message._id,
                     lastMessageAt: new Date()
                 },
+                $pull: {
+                    deletedBy: { userId: receiverId } // Remove receiver's delete record so chat reappears for them
+                },
                 $inc: {
                     totalMessageCount: intensityPoints,
                     [`messageCountByUser.${senderId}`]: intensityPoints,
@@ -371,7 +374,10 @@ export const sendHiMessage = async (req, res, next) => {
                 $set: {
                     lastMessage: message._id,
                     lastMessageAt: new Date(),
-                    isActive: true,
+                    isActive: true
+                },
+                $pull: {
+                    deletedBy: { userId: receiverId } // Remove receiver's delete record
                 },
                 $inc: {
                     totalMessageCount: 1,
@@ -577,7 +583,10 @@ export const sendGift = async (req, res, next) => {
                 $set: {
                     lastMessage: message._id,
                     lastMessageAt: new Date(),
-                    isActive: true,
+                    isActive: true
+                },
+                $pull: {
+                    deletedBy: { userId: receiverId } // Remove receiver's delete record
                 },
                 $inc: {
                     totalMessageCount: 1,

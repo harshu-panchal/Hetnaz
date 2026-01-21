@@ -54,6 +54,13 @@ class MemoryCache {
     }
 
     /**
+     * Alias for delete
+     */
+    del(key) {
+        return this.delete(key);
+    }
+
+    /**
      * Delete all keys matching a pattern
      * @param {string} pattern - Pattern to match (e.g., 'user:*')
      */
@@ -64,6 +71,21 @@ class MemoryCache {
                 this.delete(key);
             }
         }
+    }
+
+    /**
+     * Alias for deletePattern
+     */
+    delPattern(pattern) {
+        return this.deletePattern(pattern);
+    }
+
+    /**
+     * Get all keys in cache
+     * @returns {IterableIterator<string>}
+     */
+    keys() {
+        return this.cache.keys();
     }
 
     /**
