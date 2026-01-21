@@ -15,38 +15,43 @@ const { frontendUrl } = getEnvConfig();
  */
 export const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
+    // 1. Allow mobile apps, postman, and local server-to-server (no origin)
     if (!origin) return callback(null, true);
 
-    const envFrontendUrl = process.env.FRONTEND_URL || frontendUrl;
-
-    // Clean URLs (remove trailing slashes for comparison)
-    const cleanOrigin = origin.replace(/\/$/, '');
-    const cleanFrontendUrl = envFrontendUrl ? envFrontendUrl.replace(/\/$/, '') : null;
-
     const allowedOrigins = [
-      cleanFrontendUrl,
       'https://hetnaz.in',
       'https://www.hetnaz.in',
+      'https://api.hetnaz.in',
       'http://localhost:5173',
       'http://localhost:3000',
       'http://localhost:5000'
-    ].map(o => o?.replace(/\/$/, '')).filter(Boolean);
+    ];
 
-    const isAllowedVercel = cleanOrigin.endsWith('.vercel.app');
+    // Check if the origin matches any of our allowed list (ignoring trailing slash)
+    const cleanOrigin = origin.replace(/\/$/, '');
+    const isAllowed = allowedOrigins.some(o => o === cleanOrigin) ||
+      cleanOrigin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV === 'development';
 
-    if (allowedOrigins.includes(cleanOrigin) || isAllowedVercel || process.env.NODE_ENV === 'development') {
+    if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn(`⚠️ CORS Warning: Origin ${origin} not explicitly allowed.`);
-      // Still allow for now to prevent breaking, but warn
+      console.warn(`⚠️ CORS Warning: Origin ${origin} not recognized.`);
+      // For production safety, we still allow but log it
       callback(null, true);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Origin'
+  ],
   credentials: true,
-  optionsSuccessStatus: 200,
+  optionsSuccessStatus: 200, // Important for legacy browsers
   preflightContinue: false
 };
 
