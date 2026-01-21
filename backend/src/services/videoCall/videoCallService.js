@@ -19,14 +19,20 @@ import logger from '../../utils/logger.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../../utils/errors.js';
 import earningBatchService from '../wallet/earningBatchService.js';
 
-// Environment config
-const VIDEO_CALL_DURATION = parseInt(process.env.VIDEO_CALL_DURATION_SECONDS, 10) || 300;
-const CALL_TIMEOUT = parseInt(process.env.CALL_CONNECTION_TIMEOUT_SECONDS, 10) || 45;
-
-// Helper function to get video call cost from AppSettings
-const getVideoCallCost = async () => {
+// Helper function to get video call config from AppSettings (Priority) or Env (Fallback)
+const getDynamicConfig = async () => {
     const settings = await AppSettings.getSettings();
-    return settings.messageCosts.videoCall;
+    const envConfig = {
+        durationSeconds: parseInt(process.env.VIDEO_CALL_DURATION_SECONDS, 10) || 300,
+        connectionTimeout: parseInt(process.env.CALL_CONNECTION_TIMEOUT_SECONDS, 10) || 20,
+        price: settings.messageCosts?.videoCall || 500
+    };
+
+    return {
+        price: settings.messageCosts?.videoCall || envConfig.price,
+        durationSeconds: settings.videoCall?.durationSeconds || envConfig.durationSeconds,
+        connectionTimeoutSeconds: settings.videoCall?.connectionTimeoutSeconds || envConfig.connectionTimeout
+    };
 };
 
 /**
@@ -85,7 +91,8 @@ export const validateCallRequest = async (callerId, receiverId) => {
     }
 
     // 5. Check caller has enough coins
-    const VIDEO_CALL_PRICE = await getVideoCallCost();
+    const callConfig = await getDynamicConfig();
+    const VIDEO_CALL_PRICE = callConfig.price;
     if (caller.coinBalance < VIDEO_CALL_PRICE) {
         throw new BadRequestError(`Insufficient coins. Video call costs ${VIDEO_CALL_PRICE} coins.`);
     }
@@ -110,8 +117,10 @@ export const initiateCall = async (callerId, receiverId) => {
         // Validate
         const { chat } = await validateCallRequest(callerId, receiverId);
 
-        // Get video call cost
-        const VIDEO_CALL_PRICE = await getVideoCallCost();
+        // Get video call config (Dynamic from Admin Panel)
+        const callConfig = await getDynamicConfig();
+        const VIDEO_CALL_PRICE = callConfig.price;
+        const VIDEO_CALL_DURATION = callConfig.durationSeconds;
 
         // Check for existing active call (double-check) for both participants
         const [existingCallerCall, existingReceiverCall] = await Promise.all([
@@ -259,12 +268,13 @@ export const markCallConnected = async (callId) => {
         }
 
         // Batch Credit to Receiver (Optimized)
+        const callConfig = await getDynamicConfig();
         earningBatchService.addEarning(videoCall.receiverId.toString(), {
             amount: videoCall.coinAmount,
             type: 'video_call_earned',
             relatedUserId: videoCall.callerId,
             relatedChatId: videoCall.chatId,
-            description: `Video call earnings (${VIDEO_CALL_DURATION / 60} min)`,
+            description: `Video call earnings (${callConfig.durationSeconds / 60} min)`,
         });
 
         // Create transaction record for Caller (Immediate)
@@ -276,7 +286,7 @@ export const markCallConnected = async (callId) => {
             relatedUserId: videoCall.receiverId,
             relatedChatId: videoCall.chatId,
             status: 'completed',
-            description: `Video call (${VIDEO_CALL_DURATION / 60} min)`,
+            description: `Video call (${callConfig.durationSeconds / 60} min)`,
             metadata: { videoCallId: videoCall._id },
         });
 
@@ -509,9 +519,8 @@ export const cleanupStaleCalls = async () => {
 
 // Export config for use in handlers
 export const VIDEO_CALL_CONFIG = {
-    DURATION: VIDEO_CALL_DURATION,
-    TIMEOUT: CALL_TIMEOUT,
-    // PRICE is now dynamic, fetch via getVideoCallCost()
+    // These will be used mainly for ring timeouts in handlers
+    TIMEOUT: parseInt(process.env.CALL_CONNECTION_TIMEOUT_SECONDS, 10) || 20,
 };
 
 export default {
@@ -528,4 +537,5 @@ export default {
     getActiveCallForUser,
     cleanupStaleCalls,
     VIDEO_CALL_CONFIG,
+    getDynamicConfig
 };

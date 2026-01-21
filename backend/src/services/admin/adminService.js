@@ -504,6 +504,9 @@ export const updateAppSettings = async (newSettings, adminId) => {
     if (newSettings.general) Object.assign(settings.general, newSettings.general);
     if (newSettings.withdrawal) Object.assign(settings.withdrawal, newSettings.withdrawal);
     if (newSettings.messageCosts) Object.assign(settings.messageCosts, newSettings.messageCosts);
+    if (newSettings.videoCall) Object.assign(settings.videoCall, newSettings.videoCall);
+    if (newSettings.security) Object.assign(settings.security, newSettings.security);
+    if (newSettings.adminPhones) settings.adminPhones = newSettings.adminPhones;
 
     await settings.save();
 

@@ -122,6 +122,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             logger.info(`📞 Sent call:incoming to room ${receiverId}`);
 
             // Start ringing timeout
+            const callConfig = await videoCallService.getDynamicConfig();
             const timeoutId = setTimeout(async () => {
                 try {
                     await videoCallService.handleMissedCall(videoCall._id.toString());
@@ -135,7 +136,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 } catch (error) {
                     logger.error(`Missed call handling error: ${error.message}`);
                 }
-            }, (videoCallService.VIDEO_CALL_CONFIG.TIMEOUT || 20) * 1000);
+            }, (callConfig.connectionTimeoutSeconds || 20) * 1000);
 
             activeCallTimers.set(videoCall._id.toString(), {
                 timer: timeoutId,

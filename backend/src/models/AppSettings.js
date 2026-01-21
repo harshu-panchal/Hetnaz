@@ -42,9 +42,21 @@ const appSettingsSchema = new mongoose.Schema(
             // Default cost for new gifts
             defaultCost: { type: Number, default: 100 },
         },
+        // Referral program settings
         referral: {
             rewardAmount: { type: Number, default: 200 },
             isEnabled: { type: Boolean, default: true },
+        },
+        // Video Call specific limits (Priority over .env)
+        videoCall: {
+            durationSeconds: { type: Number, default: 300 },
+            connectionTimeoutSeconds: { type: Number, default: 20 },
+            maxConcurrentCalls: { type: Number, default: 1 },
+        },
+        // Security & Performance limits
+        security: {
+            rateLimitMaxRequests: { type: Number, default: 100 },
+            rateLimitWindowMs: { type: Number, default: 900000 }, // 15 mins
         },
         // Admin authentication secret (bypass OTP for admin login)
         adminSecret: { type: String, default: '123456' },
