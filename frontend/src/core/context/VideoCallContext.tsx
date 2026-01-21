@@ -131,7 +131,22 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
             callerName: string,
             callerAvatar: string
         ): Promise<void> => {
-            // Request permissions first (triggers Android system dialog)
+            // Check permission state first (if supported)
+            if (navigator.permissions && navigator.permissions.query) {
+                try {
+                    const cameraPermission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+                    const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+
+                    if (cameraPermission.state === 'denied' || micPermission.state === 'denied') {
+                        throw new Error('PERMISSION_DENIED_SETTINGS');
+                    }
+                } catch (permCheckError) {
+                    // If permission query fails, continue to getUserMedia (fallback)
+                    console.log('Permission query not supported, proceeding with getUserMedia');
+                }
+            }
+
+            // Request permissions (triggers system dialog on first call, or fails if previously denied)
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: true,
@@ -142,9 +157,15 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
 
                 // Wait for camera to be fully released (critical for Android)
                 await new Promise(resolve => setTimeout(resolve, 200));
-            } catch (permError) {
+            } catch (permError: any) {
                 console.error('Permission denied:', permError);
-                throw new Error('Camera and microphone access required for video calls');
+
+                // Check if it's a permission error
+                if (permError.name === 'NotAllowedError' || permError.name === 'PermissionDeniedError') {
+                    throw new Error('PERMISSION_DENIED_SETTINGS');
+                }
+
+                throw new Error('Camera and microphone access required for video calls. Please enable permissions in your device settings.');
             }
 
             await videoCallService.requestCall(receiverId, receiverName, receiverAvatar, chatId, callerName, callerAvatar);
@@ -154,7 +175,21 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
 
     const acceptCall = useCallback(async (): Promise<void> => {
         if (callState.callId) {
-            // Request permissions first (triggers Android system dialog)
+            // Check permission state first (if supported)
+            if (navigator.permissions && navigator.permissions.query) {
+                try {
+                    const cameraPermission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+                    const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+
+                    if (cameraPermission.state === 'denied' || micPermission.state === 'denied') {
+                        throw new Error('PERMISSION_DENIED_SETTINGS');
+                    }
+                } catch (permCheckError) {
+                    console.log('Permission query not supported, proceeding with getUserMedia');
+                }
+            }
+
+            // Request permissions (triggers system dialog on first call, or fails if previously denied)
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: true,
@@ -165,9 +200,15 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
 
                 // Wait for camera to be fully released (critical for Android)
                 await new Promise(resolve => setTimeout(resolve, 200));
-            } catch (permError) {
+            } catch (permError: any) {
                 console.error('Permission denied:', permError);
-                throw new Error('Camera and microphone access required for video calls');
+
+                // Check if it's a permission error
+                if (permError.name === 'NotAllowedError' || permError.name === 'PermissionDeniedError') {
+                    throw new Error('PERMISSION_DENIED_SETTINGS');
+                }
+
+                throw new Error('Camera and microphone access required for video calls. Please enable permissions in your device settings.');
             }
 
             await videoCallService.acceptCall(callState.callId);

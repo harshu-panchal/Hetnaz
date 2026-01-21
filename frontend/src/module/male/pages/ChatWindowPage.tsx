@@ -687,15 +687,25 @@ export const ChatWindowPage = () => {
               user?.photos?.[0] || ''
             );
           } catch (err: any) {
-            setError(err.message || t('errorFailedToStartCall'));
+            // Special handling for permission denied errors
+            if (err.message === 'PERMISSION_DENIED_SETTINGS') {
+              setError(
+                'Camera and microphone access blocked. Please enable permissions in your browser settings:\n' +
+                '1. Tap the lock icon in the address bar\n' +
+                '2. Enable Camera and Microphone\n' +
+                '3. Refresh the page and try again'
+              );
+            } else {
+              setError(err.message || t('errorFailedToStartCall'));
+            }
           }
         }}
       />
 
       {error && (
-        <div className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">✕</button>
+        <div className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm flex items-start justify-between gap-2">
+          <span className="whitespace-pre-line flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 shrink-0">✕</button>
         </div>
       )}
 

@@ -130,7 +130,7 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
             success: successCount > 0,
             successCount,
             totalCount: results.length,
-            cleanedUp: invalidTokens.length
+            cleanedUp: invalidResults.length
         };
 
     } catch (error) {

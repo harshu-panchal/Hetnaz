@@ -42,6 +42,11 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
     const isOnboarding = location.pathname.startsWith('/onboarding') ||
         location.pathname === '/verification-pending';
 
+    // CRITICAL: Redirect unapproved females to verification pending page
+    if (user && user.role === 'female' && user.approvalStatus !== 'approved' && !isOnboarding) {
+        return <Navigate to="/verification-pending" replace />;
+    }
+
     return (
         <>
             {isMissingLocation && !isOnboarding && (
