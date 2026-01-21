@@ -36,19 +36,25 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         }
 
         let timeoutId: ReturnType<typeof setTimeout>;
+        let isConnecting = false;
 
         // PHASED BOOT: Wait 1.5s after Auth to connect Sockets
         // This gives the main dashboard thread priority for its initial REST fetches
         timeoutId = setTimeout(() => {
             console.log('[REAL-TIME] ⚡ Delayed socket connection sequence started');
+            isConnecting = true;
             socketService.connect();
             setConnected(true);
         }, 1500);
 
         return () => {
             clearTimeout(timeoutId);
-            socketService.disconnect();
-            setConnected(false);
+            // Only disconnect if we actually started connecting AND auth is now false
+            // Don't disconnect on re-renders when still authenticated
+            if (!isAuthenticated && isConnecting) {
+                socketService.disconnect();
+                setConnected(false);
+            }
         };
     }, [isAuthenticated]);
 
