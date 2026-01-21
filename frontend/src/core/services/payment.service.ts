@@ -81,7 +81,7 @@ export const initiatePayment = async (
                 key: orderData.keyId || RAZORPAY_KEY_ID,
                 amount: orderData.amount,
                 currency: orderData.currency,
-                name: 'MatchMint',
+                name: 'HETNAZ',
                 description: `Purchase ${orderData.plan.coins} Coins`,
                 order_id: orderData.orderId,
                 prefill: {

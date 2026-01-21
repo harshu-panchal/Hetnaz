@@ -76,13 +76,14 @@ export const sendSMS = async (mobile, message, templateId) => {
  * @param {string} otp 
  */
 export const sendOTP = async (mobile, otp) => {
-    // Template from screenshot: Welcome to the ##var## powered by SMSINDIAHUB. Your OTP for registration is ##var##
+    // DLT Template: Welcome to the ##var## powered by SMSINDIAHUB. Your OTP for registration is ##var##
+    // Template ID: 1007801291964877107
+    // First ##var## = Platform Name
+    // Second ##var## = OTP Code
     const templateId = SMS_OTP_TEMPLATE_ID;
 
-    // Fetch current platform name from DB
-    const settings = await AppSettings.getSettings();
-    const platformName = settings.general?.platformName || 'HETNAZ';
-
+    // Use HETNAZ as platform name (matches approved DLT template format)
+    const platformName = 'HETNAZ';
     const message = `Welcome to the ${platformName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
 
     return await sendSMS(mobile, message, templateId);
