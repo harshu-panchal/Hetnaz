@@ -140,53 +140,68 @@ export const getActiveChats = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-// HELPERS: Performance optimized & defensive
+// HELPERS: Performance optimized & highly robust
 const transformChat = (chat, userId, language = 'en') => {
-    const stringUserId = userId.toString();
+    try {
+        const stringUserId = userId.toString();
+        const participants = chat.participants || [];
 
-    // Defensive: Handle case where participants might not be fully populated
-    const participants = chat.participants || [];
+        // 1. Identify "me" and the "other" participant with strict ID checking
+        const me = participants.find(p => {
+            const pId = (p.userId?._id || p.userId || '').toString();
+            return pId === stringUserId;
+        });
 
-    // Get "me" and "other"
-    const me = participants.find(p => {
-        const pId = (p.userId?._id || p.userId || '').toString();
-        return pId === stringUserId;
-    });
+        const other = participants.find(p => {
+            const pId = (p.userId?._id || p.userId || '').toString();
+            return pId !== stringUserId && pId && pId !== '[object Object]';
+        });
 
-    const other = participants.find(p => {
-        const pId = (p.userId?._id || p.userId || '').toString();
-        return pId !== stringUserId;
-    });
+        // 2. Safety: If we can't find both participants, this chat is malformed
+        if (!other || !me || !other.userId) return null;
 
-    if (!other || !me) return null;
+        // 3. Resolve the Other User's data (handle populated/unpopulated cases)
+        const otherUser = other.userId;
+        const otherUserId = (otherUser._id || otherUser).toString();
 
-    // Correctly handle populated / unpopulated user data
-    const otherUser = other.userId || {};
-    const otherUserId = (otherUser._id || otherUser).toString();
-    if (!otherUserId || typeof otherUserId !== 'string') return null;
+        // Final safety check for the [object Object] bug
+        if (!otherUserId || otherUserId === '[object Object]') return null;
 
-    const otherProfile = otherUser.profile || {};
+        const otherProfile = otherUser.profile || {};
 
-    // Check if current user deleted this chat
-    const userDeleteRecord = chat.deletedBy?.find(d => d.userId.toString() === stringUserId);
-    const deletedAt = userDeleteRecord?.deletedAt;
+        // 4. Determine Display Name & Bio based on language
+        let displayName = otherProfile.name;
+        if (language === 'hi' && otherProfile.name_hi) displayName = otherProfile.name_hi;
+        if (language === 'en' && otherProfile.name_en) displayName = otherProfile.name_en;
 
-    // If user deleted chat and last message is before deletion, show placeholder
-    let lastMessageContent = chat.lastMessage?.content || 'No messages yet';
-    if (deletedAt && chat.lastMessageAt && new Date(chat.lastMessageAt) <= new Date(deletedAt)) {
-        lastMessageContent = 'Start a new conversation';
+        if (!displayName) {
+            displayName = otherUser.phoneNumber ? `User ${otherUser.phoneNumber.slice(-4)}` : `User ${otherUserId.slice(-4)}`;
+        }
+
+        // 5. Handle Chat Deletion logic
+        const userDeleteRecord = chat.deletedBy?.find(d => d.userId.toString() === stringUserId);
+        const deletedAt = userDeleteRecord?.deletedAt;
+
+        let lastMessageContent = chat.lastMessage?.content || 'No messages yet';
+        if (deletedAt && chat.lastMessageAt && new Date(chat.lastMessageAt) <= new Date(deletedAt)) {
+            lastMessageContent = 'Start a new conversation';
+        }
+
+        // 6. Assemble clean data for frontend
+        return {
+            id: chat._id,
+            userId: otherUserId,
+            userName: displayName,
+            userAvatar: otherProfile.photos?.[0]?.url || null,
+            lastMessage: lastMessageContent,
+            timestamp: chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+            isOnline: !!otherUser.isOnline,
+            hasUnread: (me.unreadCount || 0) > 0,
+        };
+    } catch (err) {
+        console.error('[TRANSFORM_CHAT_ERROR]', err);
+        return null; // Return null on any error to prevent dashboard crash
     }
-
-    return {
-        id: chat._id,
-        userId: otherUserId,
-        userName: otherProfile.name || (language === 'hi' ? otherProfile.name_hi : otherProfile.name_en) || `User ${otherUserId.slice(-4)}`,
-        userAvatar: otherProfile.photos?.[0]?.url || null,
-        lastMessage: lastMessageContent,
-        timestamp: chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-        isOnline: !!otherUser.isOnline,
-        hasUnread: (me.unreadCount || 0) > 0,
-    };
 };
 
 const formatUser = (user) => ({
