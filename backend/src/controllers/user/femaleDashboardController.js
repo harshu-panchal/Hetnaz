@@ -156,8 +156,17 @@ const transformChat = (chat, userId, language = 'en') => {
         // 1. Identify "me" and the "other" participant
         const me = participants.find(p => getRawId(p.userId) === stringUserId);
 
-        // Find the other participant (even if userId is null/deleted)
-        const other = participants.find(p => getRawId(p.userId) !== stringUserId);
+        // Find the other participant - strictly requires valid userId for this requirement
+        const other = participants.find(p => {
+            const pId = getRawId(p.userId);
+            return pId && pId !== stringUserId;
+        });
+
+        // HIDE CHAT: If the other user record is missing/deleted, do not show the chat
+        if (!other || !other.userId) {
+            console.warn(`[CHAT-TRACE] Hiding chat ${chat._id} because male user is deleted/missing`);
+            return null;
+        }
 
         // 2. Safety: If 'me' is missing, the data is truly broken for this user
         if (!me) {
@@ -165,18 +174,15 @@ const transformChat = (chat, userId, language = 'en') => {
             return null;
         }
 
-        // 3. Resolve the Other User's data (handle potentially missing/deleted users)
-        const otherUser = other?.userId || {};
-        let otherUserId = getRawId(otherUser);
+        // 3. Resolve the Other User's data
+        const otherUser = other.userId;
+        const otherUserId = getRawId(otherUser);
 
-        // Trace corrupted but recoverable data
-        if (!otherUserId) {
-            otherUserId = `deleted_${chat._id.toString().slice(-4)}`;
-        }
+        if (!otherUserId) return null;
 
         const otherProfile = otherUser.profile || {};
 
-        // 4. Determine Display Name (Handle deleted users gracefully)
+        // 4. Determine Display Name (Male User Name)
         let displayName = otherProfile.name || (language === 'hi' ? otherProfile.name_hi : otherProfile.name_en);
         if (!displayName) {
             displayName = otherUser.phoneNumber ? `User ${otherUser.phoneNumber.slice(-4)}` : `User ${otherUserId.slice(-4)}`;
