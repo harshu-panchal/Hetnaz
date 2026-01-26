@@ -138,17 +138,33 @@ export const getActiveChats = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-// HELPERS
+// HELPERS: Performance optimized & defensive
 const transformChat = (chat, userId) => {
-    const validParticipants = chat.participants.filter(p => p.userId && p.userId._id);
-    if (validParticipants.length < 2) return null;
+    const stringUserId = userId.toString();
 
-    const other = validParticipants.find(p => p.userId._id.toString() !== userId);
-    const me = validParticipants.find(p => p.userId._id.toString() === userId);
-    if (!other || !other.userId) return null;
+    // Defensive: Handle case where participants might not be fully populated
+    const participants = chat.participants || [];
+
+    // Get "me" and "other"
+    const me = participants.find(p => {
+        const pId = (p.userId?._id || p.userId || '').toString();
+        return pId === stringUserId;
+    });
+
+    const other = participants.find(p => {
+        const pId = (p.userId?._id || p.userId || '').toString();
+        return pId !== stringUserId;
+    });
+
+    if (!other || !me) return null;
+
+    // Correctly handle populated / unpopulated user data
+    const otherUser = other.userId || {};
+    const otherUserId = (otherUser._id || otherUser).toString();
+    const otherProfile = otherUser.profile || {};
 
     // Check if current user deleted this chat
-    const userDeleteRecord = chat.deletedBy?.find(d => d.userId.toString() === userId.toString());
+    const userDeleteRecord = chat.deletedBy?.find(d => d.userId.toString() === stringUserId);
     const deletedAt = userDeleteRecord?.deletedAt;
 
     // If user deleted chat and last message is before deletion, show placeholder
@@ -159,20 +175,20 @@ const transformChat = (chat, userId) => {
 
     return {
         id: chat._id,
-        userId: other.userId._id,
-        userName: other.userId.profile?.name || `User ${other.userId.phoneNumber}`,
-        userAvatar: other.userId.profile?.photos?.[0]?.url || null,
+        userId: otherUserId,
+        userName: otherProfile.name || (language === 'hi' ? otherProfile.name_hi : otherProfile.name_en) || `User ${otherUserId.slice(-4)}`,
+        userAvatar: otherProfile.photos?.[0]?.url || null,
         lastMessage: lastMessageContent,
         timestamp: chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-        isOnline: other.userId.isOnline,
-        hasUnread: (me?.unreadCount || 0) > 0,
+        isOnline: !!otherUser.isOnline,
+        hasUnread: (me.unreadCount || 0) > 0,
     };
 };
 
 const formatUser = (user) => ({
-    id: user._id,
+    id: user._id || user.id,
     name: user.profile?.name || 'Anonymous',
     avatar: user.profile?.photos?.[0]?.url || null,
     isPremium: false,
-    isOnline: user.isOnline,
+    isOnline: !!user.isOnline,
 });

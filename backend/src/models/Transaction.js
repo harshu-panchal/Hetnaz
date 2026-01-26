@@ -108,8 +108,9 @@ const transactionSchema = new mongoose.Schema(
 );
 
 // Indexes for performance
-transactionSchema.index({ userId: 1, direction: 1, type: 1, status: 1 });
-transactionSchema.index({ userId: 1, createdAt: -1 });
+// Comprehensive indexes for financial performance
+transactionSchema.index({ userId: 1, status: 1, direction: 1, createdAt: -1 }); // Optimized for earnings & latest transactions
+transactionSchema.index({ userId: 1, type: 1, status: 1 }); // Optimized for type-based history
 transactionSchema.index({ type: 1, createdAt: -1 });
 transactionSchema.index({ 'payment.razorpayOrderId': 1 });
 transactionSchema.index({ 'payment.razorpayPaymentId': 1 });

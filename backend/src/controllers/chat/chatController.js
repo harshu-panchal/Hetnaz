@@ -54,22 +54,23 @@ export const getMyChatList = async (req, res, next) => {
         const myCoords = req.user?.profile?.location?.coordinates?.coordinates;
         const hasMyCoords = myCoords && myCoords[0] !== 0;
 
-        // Transform chats for frontend
+        // Transform chats for frontend with robustness
         const transformedChats = chats.map(chat => {
             const currentUserId = userId.toString();
-            const validParticipants = chat.participants.filter(p => p.userId && p.userId._id);
+            const participants = chat.participants || [];
 
-            if (validParticipants.length < 2) return null;
-
-            const otherParticipant = validParticipants.find(p => p.userId._id.toString() !== currentUserId);
-            const myParticipant = validParticipants.find(p => p.userId._id.toString() === currentUserId);
+            const myParticipant = participants.find(p => (p.userId?._id || p.userId || '').toString() === currentUserId);
+            const otherParticipant = participants.find(p => (p.userId?._id || p.userId || '').toString() !== currentUserId);
 
             if (!otherParticipant || !myParticipant) return null;
 
-            const otherUserDoc = otherParticipant.userId;
-            const name = (language === 'hi' ? otherUserDoc.profile?.name_hi : otherUserDoc.profile?.name_en) ||
-                otherUserDoc.profile?.name ||
-                `User ${otherUserDoc.phoneNumber}`;
+            const otherUserDoc = otherParticipant.userId || {};
+            const otherUserId = (otherUserDoc._id || otherUserDoc).toString();
+            const otherProfile = otherUserDoc.profile || {};
+
+            const name = (language === 'hi' ? otherProfile.name_hi : otherProfile.name_en) ||
+                otherProfile.name ||
+                `User ${otherUserId.slice(-4)}`;
 
             // Check if current user deleted this chat
             const userDeleteRecord = chat.deletedBy?.find(d => d.userId.toString() === currentUserId);
@@ -78,20 +79,20 @@ export const getMyChatList = async (req, res, next) => {
             // If user deleted chat and last message is before deletion, show placeholder
             let lastMessageToShow = chat.lastMessage;
             if (deletedAt && chat.lastMessageAt && new Date(chat.lastMessageAt) <= new Date(deletedAt)) {
-                lastMessageToShow = null; // Will show "Start chatting" or similar
+                lastMessageToShow = null;
             }
 
             return {
                 _id: chat._id,
                 otherUser: {
-                    _id: otherUserDoc._id,
+                    _id: otherUserId,
                     name: name,
-                    avatar: otherUserDoc.profile?.photos?.[0]?.url || null,
-                    isOnline: otherUserDoc.isOnline,
+                    avatar: otherProfile.photos?.[0]?.url || null,
+                    isOnline: !!otherUserDoc.isOnline,
                     lastSeen: otherUserDoc.lastSeen,
-                    isVerified: otherUserDoc.isVerified,
+                    isVerified: !!otherUserDoc.isVerified,
                     distance: (() => {
-                        const otherCoords = otherUserDoc.profile?.location?.coordinates?.coordinates;
+                        const otherCoords = otherProfile.location?.coordinates?.coordinates;
                         if (hasMyCoords && otherCoords && otherCoords[0] !== 0) {
                             const dist = calculateDistance(
                                 { lat: myCoords[1], lng: myCoords[0] },
@@ -104,11 +105,11 @@ export const getMyChatList = async (req, res, next) => {
                 },
                 lastMessage: lastMessageToShow,
                 lastMessageAt: chat.lastMessageAt,
-                unreadCount: myParticipant.unreadCount,
+                unreadCount: myParticipant.unreadCount || 0,
                 createdAt: chat.createdAt,
                 intimacy: (() => {
-                    const maleParticipant = validParticipants.find(p => p.role === 'male');
-                    const maleUserId = maleParticipant?.userId._id.toString();
+                    const maleParticipant = participants.find(p => p.role === 'male');
+                    const maleUserId = maleParticipant?.userId?._id?.toString() || maleParticipant?.userId?.toString();
                     const maleMessageCount = maleUserId ? (chat.messageCountByUser?.[maleUserId] || 0) : 0;
                     return getLevelInfo(maleMessageCount);
                 })(),
