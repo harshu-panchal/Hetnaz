@@ -146,23 +146,25 @@ const transformChat = (chat, userId, language = 'en') => {
         const stringUserId = userId.toString();
         const participants = chat.participants || [];
 
-        // 1. Identify "me" and the "other" participant with strict ID checking
+        // 1. Identify "me" and the "other" participant with lean-safe ID checking
         const me = participants.find(p => {
-            const pId = (p.userId?._id || p.userId || '').toString();
+            const pId = p.userId?._id ? p.userId._id.toString() : (p.userId || '').toString();
             return pId === stringUserId;
         });
 
         const other = participants.find(p => {
-            const pId = (p.userId?._id || p.userId || '').toString();
-            return pId !== stringUserId && pId && pId !== '[object Object]';
+            const pId = p.userId?._id ? p.userId._id.toString() : (p.userId || '').toString();
+            return pId !== stringUserId && pId;
         });
 
         // 2. Safety: If we can't find both participants, this chat is malformed
-        if (!other || !me || !other.userId) return null;
+        if (!other || !me) return null;
 
-        // 3. Resolve the Other User's data (handle populated/unpopulated cases)
+        // 3. Resolve the Other User's data
         const otherUser = other.userId;
-        const otherUserId = (otherUser._id || otherUser).toString();
+        const otherUserId = otherUser?._id ? otherUser._id.toString() : (otherUser || '').toString();
+
+        if (!otherUserId || otherUserId === '[object Object]') return null;
 
         // Final safety check for the [object Object] bug
         if (!otherUserId || otherUserId === '[object Object]') return null;

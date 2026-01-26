@@ -59,13 +59,20 @@ export const getMyChatList = async (req, res, next) => {
             const currentUserId = userId.toString();
             const participants = chat.participants || [];
 
-            const myParticipant = participants.find(p => (p.userId?._id || p.userId || '').toString() === currentUserId);
-            const otherParticipant = participants.find(p => (p.userId?._id || p.userId || '').toString() !== currentUserId);
+            const myParticipant = participants.find(p => {
+                const pId = p.userId?._id ? p.userId._id.toString() : (p.userId || '').toString();
+                return pId === currentUserId;
+            });
+
+            const otherParticipant = participants.find(p => {
+                const pId = p.userId?._id ? p.userId._id.toString() : (p.userId || '').toString();
+                return pId !== currentUserId && pId;
+            });
 
             if (!otherParticipant || !myParticipant) return null;
 
             const otherUserDoc = otherParticipant.userId || {};
-            const otherUserId = (otherUserDoc._id || otherUserDoc || '').toString();
+            const otherUserId = otherUserDoc._id ? otherUserDoc._id.toString() : (otherUserDoc || '').toString();
 
             // Safety: Skip if otherUserId is not a valid ID string
             if (!otherUserId || otherUserId === '[object Object]') return null;
