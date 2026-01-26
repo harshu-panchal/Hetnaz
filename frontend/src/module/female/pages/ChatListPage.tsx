@@ -76,20 +76,18 @@ export const ChatListPage = () => {
 
   // Transform API chats to component format
   const transformedChats = useMemo(() => {
-    return chats.map((chat: any) => {
+    console.log('🔄 [DEBUG] Transforming Chats. Raw Input:', chats);
+    const result = chats.map((chat: any) => {
       // Check if the last message was sent by the current user (female)
-      // senderId can be either a string or an object with _id
       const lastMessageSenderId = typeof chat.lastMessage?.senderId === 'string'
         ? chat.lastMessage?.senderId
         : (chat.lastMessage?.senderId as any)?._id;
 
       const lastMessageSentByMe = lastMessageSenderId === currentUserId;
-
-      // Only show as unread/bold if there are unread messages AND the last message was NOT sent by me
       const shouldHighlight = chat.unreadCount > 0 && !lastMessageSentByMe;
 
-      const profileLat = chat.otherUser.profile?.location?.coordinates?.[1] || chat.otherUser.latitude;
-      const profileLng = chat.otherUser.profile?.location?.coordinates?.[0] || chat.otherUser.longitude;
+      const profileLat = chat.otherUser?.profile?.location?.coordinates?.[1] || chat.otherUser?.latitude;
+      const profileLng = chat.otherUser?.profile?.location?.coordinates?.[0] || chat.otherUser?.longitude;
 
       let distanceStr = undefined;
       const userCoord = { lat: currentUser?.latitude || 0, lng: currentUser?.longitude || 0 };
@@ -102,27 +100,32 @@ export const ChatListPage = () => {
 
       return {
         id: chat._id,
-        userId: chat.otherUser._id,
-        userName: chat.otherUser.name,
-        userAvatar: chat.otherUser.avatar || '',
+        userId: chat.otherUser?._id,
+        userName: chat.otherUser?.name || 'Unknown User',
+        userAvatar: chat.otherUser?.avatar || '',
         lastMessage: chat.lastMessage?.content || t('startChatting'),
         timestamp: formatTimestamp(chat.lastMessageAt, t),
-        isOnline: chat.otherUser.isOnline,
+        isOnline: !!chat.otherUser?.isOnline,
         hasUnread: shouldHighlight,
         unreadCount: chat.unreadCount,
         distance: distanceStr,
       };
     });
+    console.log('✅ [DEBUG] Transformed Chats Result:', result);
+    return result;
   }, [chats, currentUserId, currentUser, t]);
 
   const filteredChats = useMemo(() => {
-    if (!searchQuery.trim()) return transformedChats;
-    const query = searchQuery.toLowerCase();
-    return transformedChats.filter(
-      (chat: any) =>
-        chat.userName.toLowerCase().includes(query) ||
-        chat.lastMessage.toLowerCase().includes(query)
-    );
+    const result = !searchQuery.trim()
+      ? transformedChats
+      : transformedChats.filter(
+        (chat: any) =>
+          chat.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+    console.log('🔍 [DEBUG] Filtered Chats (Search Query: "' + searchQuery + '"):', result);
+    return result;
   }, [searchQuery, transformedChats]);
 
   const handleChatClick = (chatId: string) => {

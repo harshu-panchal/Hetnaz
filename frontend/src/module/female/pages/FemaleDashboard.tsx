@@ -38,9 +38,11 @@ const FemaleDashboardContent = () => {
     try {
       setIsLoading(true);
       const data = await userService.getFemaleDashboardData();
+      console.log('📊 [DEBUG] PROCESSED Dashboard Data:', data);
+      console.log('📱 [DEBUG] Active Chats for Dashboard:', data.activeChats);
       setDashboardData(data);
     } catch (error) {
-      console.error('Failed to fetch female dashboard:', error);
+      console.error('❌ [DEBUG] Dashboard Fetch Error:', error);
     } finally {
       setIsLoading(false);
     }

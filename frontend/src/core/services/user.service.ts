@@ -64,8 +64,14 @@ export const getMeStats = async () => {
 };
 
 export const getFemaleDashboardData = async () => {
-    const response = await apiClient.get('/users/female/dashboard');
-    return response.data.data;
+    try {
+        const response = await apiClient.get('/users/female/dashboard');
+        console.log('🔍 [DEBUG] RAW Female Dashboard Data:', response.data);
+        return response.data.data;
+    } catch (error) {
+        console.error('❌ [DEBUG] Female Dashboard Fetch Error:', error);
+        throw error;
+    }
 };
 
 export const blockUser = async (targetUserId: string) => {

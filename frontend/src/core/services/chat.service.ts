@@ -5,11 +5,17 @@ import apiClient from '../api/client';
 // ========================
 
 export const getMyChatList = async (search?: string) => {
-    const language = localStorage.getItem('user_language') || 'en';
-    const response = await apiClient.get('/chat/chats', {
-        params: { language, search }
-    });
-    return response.data.data.chats;
+    try {
+        const language = localStorage.getItem('user_language') || 'en';
+        const response = await apiClient.get('/chat/chats', {
+            params: { language, search }
+        });
+        console.log('🔍 [DEBUG] RAW My Chat List Data:', response.data);
+        return response.data.data.chats;
+    } catch (error) {
+        console.error('❌ [DEBUG] Chat List Fetch Error:', error);
+        throw error;
+    }
 };
 
 export const getOrCreateChat = async (otherUserId: string) => {
