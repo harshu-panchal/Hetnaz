@@ -155,31 +155,29 @@ const transformChat = (chat, userId, language = 'en') => {
 
         // 1. Identify "me" and the "other" participant
         const me = participants.find(p => getRawId(p.userId) === stringUserId);
-        const other = participants.find(p => {
-            const pId = getRawId(p.userId);
-            return pId && pId !== stringUserId;
-        });
 
-        // DEEP TRACING: If still not found, log IDs to PM2 to see what the server is actually seeing
-        if (!other || !me) {
-            const pIds = participants.map(p => ({ role: p.role, id: getRawId(p.userId) }));
-            console.warn(`[CHAT-TRACE] Malformed chat ${chat._id}: MeID=${stringUserId}, FoundIDs=${JSON.stringify(pIds)}`);
+        // Find the other participant (even if userId is null/deleted)
+        const other = participants.find(p => getRawId(p.userId) !== stringUserId);
+
+        // 2. Safety: If 'me' is missing, the data is truly broken for this user
+        if (!me) {
+            console.warn(`[CHAT-TRACE] broken chat ${chat._id}: Me not found`);
             return null;
         }
 
-        // 2. Resolve the Other User's data
-        const otherUser = other.userId;
-        const otherUserId = getRawId(otherUser);
+        // 3. Resolve the Other User's data (handle potentially missing/deleted users)
+        const otherUser = other?.userId || {};
+        let otherUserId = getRawId(otherUser);
 
-        if (!otherUserId) return null;
+        // Trace corrupted but recoverable data
+        if (!otherUserId) {
+            otherUserId = `deleted_${chat._id.toString().slice(-4)}`;
+        }
 
         const otherProfile = otherUser.profile || {};
 
-        // 4. Determine Display Name & Bio based on language
-        let displayName = otherProfile.name;
-        if (language === 'hi' && otherProfile.name_hi) displayName = otherProfile.name_hi;
-        if (language === 'en' && otherProfile.name_en) displayName = otherProfile.name_en;
-
+        // 4. Determine Display Name (Handle deleted users gracefully)
+        let displayName = otherProfile.name || (language === 'hi' ? otherProfile.name_hi : otherProfile.name_en);
         if (!displayName) {
             displayName = otherUser.phoneNumber ? `User ${otherUser.phoneNumber.slice(-4)}` : `User ${otherUserId.slice(-4)}`;
         }
