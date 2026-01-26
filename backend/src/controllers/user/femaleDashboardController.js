@@ -16,6 +16,7 @@ import Chat from '../../models/Chat.js';
 export const getDashboardData = async (req, res, next) => {
     try {
         const userId = req.user.id;
+        const { language = 'en' } = req.query;
         const currentUserId = new mongoose.Types.ObjectId(userId);
 
         // Run all queries in PARALLEL for performance
@@ -51,7 +52,7 @@ export const getDashboardData = async (req, res, next) => {
         const pendingWithdrawals = pendingWithdrawalData.length > 0 ? pendingWithdrawalData[0].total : 0;
         const availableBalance = Math.max(0, totalEarnings - (totalWithdrawals + pendingWithdrawals));
 
-        const transformedChats = chats.map(chat => transformChat(chat, userId)).filter(Boolean);
+        const transformedChats = chats.map(chat => transformChat(chat, userId, language)).filter(Boolean);
 
         res.status(200).json({
             status: 'success',
@@ -120,6 +121,7 @@ export const getStats = async (req, res, next) => {
 export const getActiveChats = async (req, res, next) => {
     try {
         const userId = req.user.id;
+        const { language = 'en' } = req.query;
         const chats = await Chat.find({
             'participants.userId': new mongoose.Types.ObjectId(userId),
             isActive: true,
@@ -133,13 +135,13 @@ export const getActiveChats = async (req, res, next) => {
 
         res.status(200).json({
             status: 'success',
-            data: chats.map(chat => transformChat(chat, userId)).filter(Boolean)
+            data: chats.map(chat => transformChat(chat, userId, language)).filter(Boolean)
         });
     } catch (error) { next(error); }
 };
 
 // HELPERS: Performance optimized & defensive
-const transformChat = (chat, userId) => {
+const transformChat = (chat, userId, language = 'en') => {
     const stringUserId = userId.toString();
 
     // Defensive: Handle case where participants might not be fully populated
@@ -161,6 +163,8 @@ const transformChat = (chat, userId) => {
     // Correctly handle populated / unpopulated user data
     const otherUser = other.userId || {};
     const otherUserId = (otherUser._id || otherUser).toString();
+    if (!otherUserId || typeof otherUserId !== 'string') return null;
+
     const otherProfile = otherUser.profile || {};
 
     // Check if current user deleted this chat

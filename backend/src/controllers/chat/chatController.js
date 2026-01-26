@@ -65,7 +65,10 @@ export const getMyChatList = async (req, res, next) => {
             if (!otherParticipant || !myParticipant) return null;
 
             const otherUserDoc = otherParticipant.userId || {};
-            const otherUserId = (otherUserDoc._id || otherUserDoc).toString();
+            const otherUserId = (otherUserDoc._id || otherUserDoc || '').toString();
+
+            // Safety: Skip if otherUserId is not a valid ID string
+            if (!otherUserId || otherUserId === '[object Object]') return null;
             const otherProfile = otherUserDoc.profile || {};
 
             const name = (language === 'hi' ? otherProfile.name_hi : otherProfile.name_en) ||
