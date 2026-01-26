@@ -30,16 +30,21 @@ export const blockUser = async (req, res, next) => {
             throw new NotFoundError('User to block not found');
         }
 
-        // Add to blocked list if not already there
+        // Bidirectional blocking for performance (Sync blockedUsers AND blockedBy)
         if (!user.blockedUsers.includes(targetUserId)) {
             user.blockedUsers.push(targetUserId);
             await user.save();
+
+            // Sync: Update target user's blockedBy array
+            await User.findByIdAndUpdate(targetUserId, {
+                $addToSet: { blockedBy: userId }
+            });
         }
 
         // Notify the blocked user (standard requirement)
         const io = req.app.get('io');
         if (io) {
-            io.to(targetUserId).emit('user:blocked_by', {
+            io.to(targetUserId.toString()).emit('user:blocked_by', {
                 blockedBy: userId,
                 blockedByName: user.profile?.name || 'Someone'
             });
@@ -69,12 +74,22 @@ export const unblockUser = async (req, res, next) => {
         }
 
         const user = await User.findById(userId);
+        if (!user) throw new NotFoundError('User not found');
 
         // Remove from blocked list
-        user.blockedUsers = user.blockedUsers.filter(
-            id => id.toString() !== targetUserId.toString()
-        );
-        await user.save();
+        const wasBlocked = user.blockedUsers.includes(targetUserId);
+
+        if (wasBlocked) {
+            user.blockedUsers = user.blockedUsers.filter(
+                id => id.toString() !== targetUserId.toString()
+            );
+            await user.save();
+
+            // Sync: Remove from target user's blockedBy array
+            await User.findByIdAndUpdate(targetUserId, {
+                $pull: { blockedBy: userId }
+            });
+        }
 
         logger.info(`🔓 User ${userId} unblocked ${targetUserId}`);
 

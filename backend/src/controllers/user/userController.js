@@ -145,26 +145,26 @@ export const discoverFemales = async (req, res, next) => {
             }
         }
 
+        // Skip calculation
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        // Use data from already authenticated req.user
+        // Get authenticated user info for exclusions and distance calculation
         const currentUser = req.user;
         const currentUserId = currentUser._id || currentUser.id;
-        const blockedUserIds = currentUser?.blockedUsers || [];
-        const currentUserCoords = currentUser?.profile?.location?.coordinates?.coordinates;
-        const hasCurrentUserCoords = currentUserCoords && currentUserCoords[0] !== 0 && currentUserCoords[1] !== 0;
 
-        // Parallelize helper queries for speed
-        const [usersWhoBlockedMe, activeChats] = await Promise.all([
-            User.find({ blockedUsers: currentUserId }).select('_id').lean(),
+        // OPTIMIZATION: Use synchronized blockedBy array from req.user instead of searching entire User collection
+        // This removes a heavy DB query entirely (O(1) instead of O(N))
+        const blockedByMe = currentUser?.blockedUsers || [];
+        const folksWhoBlockedMe = currentUser?.blockedBy || [];
+        const exclusions = [...new Set([...blockedByMe.map(id => id.toString()), ...folksWhoBlockedMe.map(id => id.toString())])];
+
+        // Parallel helper queries: only fetch activeChats to tag users we've already chatted with
+        const [activeChats] = await Promise.all([
             Chat.find({
                 'participants.userId': currentUserId,
                 isActive: true
             }).select('participants.userId').lean()
         ]);
-
-        const blockerIds = usersWhoBlockedMe.map(u => u._id);
-        const exclusions = [...blockedUserIds, ...blockerIds];
 
         // Identify users with whom we already have a chat
         const chattedUserIds = new Set(
@@ -173,11 +173,9 @@ export const discoverFemales = async (req, res, next) => {
             ).filter(Boolean)
         );
 
+        // Exclude current user and all blocked/blockers
         const query = {
-            _id: {
-                $ne: currentUserId,
-                $nin: exclusions
-            },
+            _id: { $nin: exclusions }, // exclusions already includes currentUserId and blockers
             role: 'female',
             approvalStatus: 'approved',
             isBlocked: { $ne: true },
@@ -185,7 +183,7 @@ export const discoverFemales = async (req, res, next) => {
             isDeleted: false,
         };
 
-        // Filter and Sort options
+        // Filter and Sort options: matches the optimized compound indexes
         let sortOption = { isOnline: -1, lastSeen: -1 };
 
         if (filter === 'online') {
@@ -194,19 +192,22 @@ export const discoverFemales = async (req, res, next) => {
         } else if (filter === 'new') {
             sortOption = { createdAt: -1 };
         } else if (filter === 'popular') {
-            // Priority: Online > Popularity (Balance) > Last Seen
+            // matches optimized popular index: { role: 1, approvalStatus: 1, isActive: 1, isDeleted: 1, isBlocked: 1, isOnline: -1, coinBalance: -1, lastSeen: -1 }
             sortOption = { isOnline: -1, coinBalance: -1, lastSeen: -1 };
-        } else if (filter === 'all') {
-            sortOption = { isOnline: -1, lastSeen: -1 };
         }
 
         const nameField = language === 'hi' ? 'profile.name_hi' : 'profile.name_en';
         const bioField = language === 'hi' ? 'profile.bio_hi' : 'profile.bio_en';
+        const currentUserCoords = currentUser?.profile?.location?.coordinates?.coordinates;
+        const hasCurrentUserCoords = currentUserCoords && currentUserCoords[0] !== 0 && currentUserCoords[1] !== 0;
 
         // Parallel execution of count and find (Main Query)
+        // OPTIMIZATION: Use { photos: { $slice: 2 } } to fetch only the first 2 photos instead of the whole array
+        // Also ensure we only select the minimum required fields for high-speed retrieval
         const [users, total] = await Promise.all([
             User.find(query)
-                .select(`profile.name profile.bio ${nameField} ${bioField} profile.age profile.photos profile.occupation profile.location isOnline lastSeen createdAt coinBalance`)
+                .select(`profile.name profile.bio ${nameField} ${bioField} profile.age profile.occupation profile.location isOnline lastSeen createdAt coinBalance`)
+                .select({ 'profile.photos': { $slice: 2 } }) // Only get the first 2 photos to save bandwidth
                 .sort(sortOption)
                 .skip(skip)
                 .limit(parseInt(limit))

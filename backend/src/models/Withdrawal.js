@@ -60,7 +60,6 @@ const withdrawalSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'approved', 'rejected', 'paid', 'cancelled'],
       default: 'pending',
-      index: true,
     },
     // Admin review
     reviewedBy: {

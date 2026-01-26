@@ -268,12 +268,6 @@ const userSchema = new mongoose.Schema(
     // Timestamps
     lastLoginAt: Date,
 
-    blockedUsers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-      },
-    ],
     // Referral Fields
     referralId: {
       type: String,
@@ -305,10 +299,10 @@ userSchema.index({ 'profile.location.coordinates': '2dsphere' });
 userSchema.index({ role: 1, approvalStatus: 1, isActive: 1, isDeleted: 1 });
 userSchema.index({ isOnline: 1, lastSeen: -1 });
 userSchema.index({ coinBalance: -1 });
-// Compound index for discover females query (approved females sorted by lastSeen)
-userSchema.index({ role: 1, approvalStatus: 1, isBlocked: 1, lastSeen: -1 });
-userSchema.index({ role: 1, approvalStatus: 1, isBlocked: 1, createdAt: -1 });
-userSchema.index({ role: 1, approvalStatus: 1, isBlocked: 1, isOnline: 1 });
+// Comprehensive indexes for discovery performance (Role -> Status -> Flags -> Sort)
+userSchema.index({ role: 1, approvalStatus: 1, isActive: 1, isDeleted: 1, isBlocked: 1, isOnline: -1, lastSeen: -1 }); // 'All' and 'Online'
+userSchema.index({ role: 1, approvalStatus: 1, isActive: 1, isDeleted: 1, isBlocked: 1, createdAt: -1 }); // 'New'
+userSchema.index({ role: 1, approvalStatus: 1, isActive: 1, isDeleted: 1, isBlocked: 1, isOnline: -1, coinBalance: -1, lastSeen: -1 }); // 'Popular'
 
 // Virtual: Full name
 userSchema.virtual('fullName').get(function () {

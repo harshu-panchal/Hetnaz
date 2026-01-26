@@ -111,7 +111,6 @@ const transactionSchema = new mongoose.Schema(
 transactionSchema.index({ userId: 1, direction: 1, type: 1, status: 1 });
 transactionSchema.index({ userId: 1, createdAt: -1 });
 transactionSchema.index({ type: 1, createdAt: -1 });
-transactionSchema.index({ status: 1 });
 transactionSchema.index({ 'payment.razorpayOrderId': 1 });
 transactionSchema.index({ 'payment.razorpayPaymentId': 1 });
 
