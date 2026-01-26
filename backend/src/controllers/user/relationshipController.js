@@ -6,6 +6,7 @@ import User from '../../models/User.js';
 import Chat from '../../models/Chat.js';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import logger from '../../utils/logger.js';
+import { invalidateUserCache } from '../../middleware/auth.js';
 
 /**
  * Block a user
@@ -39,6 +40,10 @@ export const blockUser = async (req, res, next) => {
             await User.findByIdAndUpdate(targetUserId, {
                 $addToSet: { blockedBy: userId }
             });
+
+            // PERFORMANCE: Invalidate cache for both users
+            invalidateUserCache(userId);
+            invalidateUserCache(targetUserId);
         }
 
         // Notify the blocked user (standard requirement)
@@ -89,6 +94,10 @@ export const unblockUser = async (req, res, next) => {
             await User.findByIdAndUpdate(targetUserId, {
                 $pull: { blockedBy: userId }
             });
+
+            // PERFORMANCE: Invalidate cache for both users
+            invalidateUserCache(userId);
+            invalidateUserCache(targetUserId);
         }
 
         logger.info(`🔓 User ${userId} unblocked ${targetUserId}`);

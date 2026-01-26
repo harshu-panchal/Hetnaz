@@ -285,6 +285,12 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Internal migration flag
+    blockedBySyncFlag: {
+      type: Boolean,
+      default: false,
+      select: false, // Hide from API responses
+    },
   },
   {
     timestamps: true,
