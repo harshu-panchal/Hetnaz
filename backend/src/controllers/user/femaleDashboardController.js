@@ -146,7 +146,7 @@ const transformChat = (chat, userId, language = 'en') => {
         const stringUserId = userId.toString();
         const participants = chat.participants || [];
 
-        // Helper to extract ID string safely
+        // Helper to extract ID string safely - Ultra Resilient Version
         const getRawId = (u) => {
             if (!u) return '';
             const raw = (u._id || u).toString();
@@ -160,9 +160,10 @@ const transformChat = (chat, userId, language = 'en') => {
             return pId && pId !== stringUserId;
         });
 
-        // TRACING: If we can't find participants, log why to PM2
+        // DEEP TRACING: If still not found, log IDs to PM2 to see what the server is actually seeing
         if (!other || !me) {
-            console.warn(`[CHAT-TRACE] Malformed chat ${chat._id}: MeFound=${!!me}, OtherFound=${!!other}`);
+            const pIds = participants.map(p => ({ role: p.role, id: getRawId(p.userId) }));
+            console.warn(`[CHAT-TRACE] Malformed chat ${chat._id}: MeID=${stringUserId}, FoundIDs=${JSON.stringify(pIds)}`);
             return null;
         }
 
