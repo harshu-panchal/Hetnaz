@@ -146,28 +146,31 @@ const transformChat = (chat, userId, language = 'en') => {
         const stringUserId = userId.toString();
         const participants = chat.participants || [];
 
-        // 1. Identify "me" and the "other" participant with lean-safe ID checking
-        const me = participants.find(p => {
-            const pId = p.userId?._id ? p.userId._id.toString() : (p.userId || '').toString();
-            return pId === stringUserId;
-        });
+        // Helper to extract ID string safely
+        const getRawId = (u) => {
+            if (!u) return '';
+            const raw = (u._id || u).toString();
+            return raw === '[object Object]' ? '' : raw;
+        };
 
+        // 1. Identify "me" and the "other" participant
+        const me = participants.find(p => getRawId(p.userId) === stringUserId);
         const other = participants.find(p => {
-            const pId = p.userId?._id ? p.userId._id.toString() : (p.userId || '').toString();
-            return pId !== stringUserId && pId;
+            const pId = getRawId(p.userId);
+            return pId && pId !== stringUserId;
         });
 
-        // 2. Safety: If we can't find both participants, this chat is malformed
-        if (!other || !me) return null;
+        // TRACING: If we can't find participants, log why to PM2
+        if (!other || !me) {
+            console.warn(`[CHAT-TRACE] Malformed chat ${chat._id}: MeFound=${!!me}, OtherFound=${!!other}`);
+            return null;
+        }
 
-        // 3. Resolve the Other User's data
+        // 2. Resolve the Other User's data
         const otherUser = other.userId;
-        const otherUserId = otherUser?._id ? otherUser._id.toString() : (otherUser || '').toString();
+        const otherUserId = getRawId(otherUser);
 
-        if (!otherUserId || otherUserId === '[object Object]') return null;
-
-        // Final safety check for the [object Object] bug
-        if (!otherUserId || otherUserId === '[object Object]') return null;
+        if (!otherUserId) return null;
 
         const otherProfile = otherUser.profile || {};
 
