@@ -12,7 +12,7 @@ import { getEnvConfig } from '../config/env.js';
 
 const { jwtSecret } = getEnvConfig();
 
-// In-memory user cache: { oderId: { user, timestamp } }
+// In-memory user cache: { userId: { user, timestamp } }
 const userCache = new Map();
 const CACHE_TTL = 30 * 1000; // 30 seconds (shorter for fresher data)
 
@@ -21,20 +21,22 @@ const CACHE_TTL = 30 * 1000; // 30 seconds (shorter for fresher data)
  */
 const getCachedUser = async (userId) => {
   const now = Date.now();
-  const cached = userCache.get(userId);
+  const idStr = userId.toString(); // Force string for Map key consistency
+  const cached = userCache.get(idStr);
 
   if (cached && (now - cached.timestamp) < CACHE_TTL) {
-    return cached.user;
+    // Return a shallow clone to prevent cross-request mutation leakage
+    return { ...cached.user };
   }
 
   // Cache miss - fetch FULL user from DB (no .lean() for compatibility)
-  const user = await User.findById(userId);
+  const user = await User.findById(idStr);
   if (user) {
     // Cache the user's plain object representation
     const userObj = user.toObject();
-    userObj.id = user._id.toString(); // Ensure id field exists
-    userCache.set(userId, { user: userObj, timestamp: now });
-    return userObj;
+    userObj.id = idStr; // Ensure id field exists
+    userCache.set(idStr, { user: userObj, timestamp: now });
+    return { ...userObj };
   }
   return null;
 };
@@ -43,7 +45,7 @@ const getCachedUser = async (userId) => {
  * Invalidate user cache (call this on user update)
  */
 export const invalidateUserCache = (userId) => {
-  userCache.delete(userId);
+  if (userId) userCache.delete(userId.toString());
 };
 
 /**
