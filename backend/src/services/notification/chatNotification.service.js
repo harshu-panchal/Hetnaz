@@ -6,8 +6,7 @@
 import fcmService from '../fcm.service.js';
 import User from '../../models/User.js';
 import fcmCleanup from '../../utils/fcmCleanup.js';
-
-console.log('[NOTIFICATION-HELPER] ✅ Chat notification helper loaded');
+import logger from '../../utils/logger.js';
 
 /**
  * Helper: Get all FCM tokens for a user (both web and app)
@@ -29,10 +28,7 @@ const getAllFcmTokens = (user) => {
  * @returns {Promise<object>} Send result
  */
 export const notifyNewMessage = async (receiverId, sender, messageData) => {
-    console.log('[NOTIFICATION] 📨 === SENDING NEW MESSAGE NOTIFICATION ===');
-    console.log('[NOTIFICATION] 📬 Receiver ID:', receiverId);
-    console.log('[NOTIFICATION] 👤 Sender:', sender.profile?.name || 'Someone');
-    console.log('[NOTIFICATION] 📋 Message type:', messageData.messageType);
+    logger.debug('[NOTIFICATION] Sending new message notification', { receiverId, sender: sender.profile?.name, messageType: messageData.messageType });
 
     try {
         // Get receiver's FCM tokens (both web and app)
@@ -40,11 +36,8 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
         const allTokens = getAllFcmTokens(receiver);
 
         if (!receiver || allTokens.length === 0) {
-            console.log('[NOTIFICATION] ℹ️ Receiver has no FCM tokens');
             return { success: false, reason: 'No FCM tokens' };
         }
-
-        console.log('[NOTIFICATION] 📊 Receiver has', allTokens.length, 'token(s) (web + app)');
 
         // Build notification title and body based on message type
         const senderName = sender.profile?.name || 'Someone';
@@ -87,8 +80,7 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
                 break;
         }
 
-        console.log('[NOTIFICATION] 📢 Title:', title);
-        console.log('[NOTIFICATION] 📝 Body:', body);
+        logger.debug('[NOTIFICATION] Building push payload', { title, bodyLength: body?.length });
 
         // Notification data payload
         const data = {
@@ -103,7 +95,6 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
 
         // Send to all receiver's tokens IN PARALLEL (web + app)
         const results = await Promise.all(allTokens.map(async ({ token, platform }) => {
-            console.log('[NOTIFICATION] 📤 Sending to', platform, 'token:', token.substring(0, 30) + '...');
 
             const result = await fcmService.sendNotification(token, {
                 title,
@@ -115,12 +106,11 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
         }));
 
         const successCount = results.filter(r => r.result.success).length;
-        console.log('[NOTIFICATION] 📊 Success rate:', `${successCount}/${results.length}`);
+        logger.debug('[NOTIFICATION] Push result', { successCount, total: results.length });
 
         // Auto-cleanup invalid tokens
         const invalidResults = results.filter(r => !r.result.success && r.result.invalidToken);
         if (invalidResults.length > 0) {
-            console.log('[NOTIFICATION] 🧹 Auto-cleaning', invalidResults.length, 'invalid token(s)...');
             for (const { platform } of invalidResults) {
                 await fcmCleanup.removeInvalidToken(receiverId, platform);
             }
@@ -134,7 +124,7 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
         };
 
     } catch (error) {
-        console.error('[NOTIFICATION] ❌ Error sending notification:', error);
+        logger.error('[NOTIFICATION] Error sending new message notification:', error);
         return { success: false, error: error.message };
     }
 };
@@ -147,9 +137,7 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
  * @returns {Promise<object>} Send result
  */
 export const notifyVideoCall = async (receiverId, caller, callId) => {
-    console.log('[NOTIFICATION] 📹 === SENDING VIDEO CALL NOTIFICATION ===');
-    console.log('[NOTIFICATION] 📬 Receiver ID:', receiverId);
-    console.log('[NOTIFICATION] 👤 Caller:', caller.profile?.name || 'Someone');
+    logger.debug('[NOTIFICATION] Sending video call notification', { receiverId, caller: caller.profile?.name });
 
     try {
         const receiver = await User.findById(receiverId).select('fcmTokensWeb fcmTokensApp');
@@ -201,7 +189,7 @@ export const notifyVideoCall = async (receiverId, caller, callId) => {
         };
 
     } catch (error) {
-        console.error('[NOTIFICATION] ❌ Error sending video call notification:', error);
+        logger.error('[NOTIFICATION] Error sending video call notification:', error);
         return { success: false, error: error.message };
     }
 };
@@ -213,9 +201,7 @@ export const notifyVideoCall = async (receiverId, caller, callId) => {
  * @returns {Promise<object>} Send result
  */
 export const notifyLowBalance = async (userId, currentBalance) => {
-    console.log('[NOTIFICATION] ⚠️ === SENDING LOW BALANCE WARNING ===');
-    console.log('[NOTIFICATION] 👤 User ID:', userId);
-    console.log('[NOTIFICATION] 💰 Balance:', currentBalance);
+    logger.debug('[NOTIFICATION] Sending low balance notification', { userId, currentBalance });
 
     try {
         const user = await User.findById(userId).select('fcmTokensWeb fcmTokensApp');
@@ -245,12 +231,11 @@ export const notifyLowBalance = async (userId, currentBalance) => {
         }
 
         const successCount = results.filter(r => r.success).length;
-        console.log('[NOTIFICATION] 📊 Low balance notification sent:', `${successCount}/${results.length}`);
 
         return { success: successCount > 0, successCount };
 
     } catch (error) {
-        console.error('[NOTIFICATION] ❌ Error sending low balance notification:', error);
+        logger.error('[NOTIFICATION] Error sending low balance notification:', error);
         return { success: false, error: error.message };
     }
 };
@@ -262,8 +247,7 @@ export const notifyLowBalance = async (userId, currentBalance) => {
  * @returns {Promise<object>} Send result
  */
 export const notifyDailyReward = async (userId, rewardAmount = 10) => {
-    console.log('[NOTIFICATION] 🎁 === SENDING DAILY REWARD REMINDER ===');
-    console.log('[NOTIFICATION] 👤 User ID:', userId);
+    logger.debug('[NOTIFICATION] Sending daily reward notification', { userId, rewardAmount });
 
     try {
         const user = await User.findById(userId).select('fcmTokensWeb fcmTokensApp');
@@ -296,7 +280,7 @@ export const notifyDailyReward = async (userId, rewardAmount = 10) => {
         return { success: successCount > 0, successCount };
 
     } catch (error) {
-        console.error('[NOTIFICATION] ❌ Error sending daily reward notification:', error);
+        logger.error('[NOTIFICATION] Error sending daily reward notification:', error);
         return { success: false, error: error.message };
     }
 };
@@ -309,9 +293,7 @@ export const notifyDailyReward = async (userId, rewardAmount = 10) => {
  * @returns {Promise<object>} Send result
  */
 export const notifyNewNearbyUser = async (maleUserId, femaleUser, distance = null) => {
-    console.log('[NOTIFICATION] 👯 === SENDING NEW NEARBY USER ALERT ===');
-    console.log('[NOTIFICATION] 👤 Male User ID:', maleUserId);
-    console.log('[NOTIFICATION] 💃 New Female:', femaleUser.profile?.name);
+    logger.debug('[NOTIFICATION] Sending new nearby user notification', { maleUserId, femaleName: femaleUser.profile?.name });
 
     try {
         const maleUser = await User.findById(maleUserId).select('fcmTokensWeb fcmTokensApp');
@@ -357,7 +339,7 @@ export const notifyNewNearbyUser = async (maleUserId, femaleUser, distance = nul
         return { success: successCount > 0, successCount };
 
     } catch (error) {
-        console.error('[NOTIFICATION] ❌ Error sending nearby user notification:', error);
+        logger.error('[NOTIFICATION] Error sending nearby user notification:', error);
         return { success: false, error: error.message };
     }
 };

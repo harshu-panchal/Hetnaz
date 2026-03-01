@@ -239,7 +239,7 @@ export const sendMessage = async (req, res, next) => {
 
         // 📲 SEND PUSH NOTIFICATION (Fire-and-Forget)
         setImmediate(() => {
-            console.log('[MESSAGE] 📲 Sending push notification to receiver...');
+            logger.debug('[MESSAGE] Sending push notification to receiver');
             chatNotificationService.notifyNewMessage(receiverId, sender, {
                 chatId,
                 messageId: message._id,
@@ -437,7 +437,7 @@ export const sendHiMessage = async (req, res, next) => {
 
         // 📲 SEND PUSH NOTIFICATION (Fire-and-Forget)
         setImmediate(() => {
-            console.log('[HI-MESSAGE] 📲 Sending push notification to receiver...');
+            logger.debug('[HI-MESSAGE] Sending push notification to receiver');
             chatNotificationService.notifyNewMessage(receiverId, sender, {
                 chatId: chat._id,
                 messageId: message._id,
@@ -646,7 +646,7 @@ export const sendGift = async (req, res, next) => {
 
         // 📲 SEND PUSH NOTIFICATION FOR GIFT (Fire-and-Forget)
         setImmediate(() => {
-            console.log('[GIFT] 📲 Sending push notification to receiver...');
+            logger.debug('[GIFT] Sending push notification to receiver');
             chatNotificationService.notifyNewMessage(receiverId, sender, {
                 chatId,
                 messageId: message._id,

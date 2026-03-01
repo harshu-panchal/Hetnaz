@@ -48,7 +48,7 @@ class SocketService {
             reconnection: true,
             reconnectionDelay: 2000,
             reconnectionDelayMax: 10000,
-            reconnectionAttempts: 3,
+            reconnectionAttempts: Infinity,
         });
 
         this.socket.on('connect', () => {
@@ -341,7 +341,6 @@ class SocketService {
      */
     private emit(event: string, data: any) {
         const callbacks = this.listeners.get(event);
-        console.log(`📞 Socket emit ${event}: ${callbacks?.size || 0} listeners registered`);
         if (callbacks) {
             callbacks.forEach(callback => callback(data));
         }

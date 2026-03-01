@@ -76,7 +76,7 @@ export const NearbyFemalesPage = () => {
       }
     };
     checkDailyReward();
-  }, [updateBalance]);
+  }, []);
 
   // Process offline queue when back online
   useEffect(() => {
@@ -155,21 +155,9 @@ export const NearbyFemalesPage = () => {
     }
   };
 
-  const handleProfileClick = async (profileId: string) => {
-    try {
-      // Get or create chat with this user
-      const chat = await chatService.getOrCreateChat(profileId);
-      // Navigate to the chat using _id
-      const chatId = chat._id || chat.chatId;
-      if (chatId) {
-        navigate(`/male/chat/${chatId}`);
-      } else {
-        throw new Error('Chat ID not found in response');
-      }
-    } catch (err: any) {
-      console.error('Failed to open chat:', err);
-      alert(err.response?.data?.message || 'Failed to open chat');
-    }
+  const handleProfileClick = (profileId: string) => {
+    // Navigate immediately — ChatWindowPage resolves the real chatId via getOrCreateChat internally
+    navigate(`/male/chat/new_${profileId}`);
   };
 
   return (

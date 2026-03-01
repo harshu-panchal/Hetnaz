@@ -112,24 +112,6 @@ export const setupChatHandlers = (io) => {
             socket.to(`chat:${data.chatId}`).emit('chat:typing', { chatId: data.chatId, userId, isTyping: data.isTyping });
         });
 
-        // MESSAGE BROADCAST
-        socket.on('message:broadcast', async (data) => {
-            try {
-                const { chatId, messageId } = data;
-                const message = await Message.findById(messageId).populate('senderId', 'profile').populate('receiverId', 'profile').lean();
-                if (!message) return;
-
-                io.to(`chat:${chatId}`).emit('message:new', { message, chatId });
-
-                const receiverSocketId = activeUsers.get(message.receiverId?._id?.toString());
-                if (receiverSocketId) {
-                    io.to(receiverSocketId).emit('message:notification', { chatId, message });
-                }
-            } catch (e) {
-                logger.error('Broadcast error:', e);
-            }
-        });
-
         // READ
         socket.on('message:read', async (data) => {
             try {

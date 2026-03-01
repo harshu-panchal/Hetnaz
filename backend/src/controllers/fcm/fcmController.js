@@ -5,6 +5,7 @@
  */
 
 import User from '../../models/User.js';
+import logger from '../../utils/logger.js';
 
 /**
  * Register/Update FCM token for a user (NON-BLOCKING)
@@ -43,9 +44,9 @@ export const registerFCMToken = async (req, res, next) => {
             // Simple string replacement (not array)
             await User.findByIdAndUpdate(userId, { [tokenField]: fcmToken });
 
-            console.log(`[FCM] ✅ Token registered for ${normalizedPlatform} platform, user: ${userId}`);
+            logger.debug(`[FCM] Token registered for ${normalizedPlatform} platform, user: ${userId}`);
         } catch (e) {
-            console.error('[FCM-BG] Token registration error:', e.message);
+            logger.error('[FCM-BG] Token registration error:', e.message);
         }
     });
 };
@@ -99,7 +100,7 @@ export const sendTestNotification = async (req, res, next) => {
                 if (!result.success && result.invalidToken) {
                     const field = result.platform === 'app' ? 'fcmTokensApp' : 'fcmTokensWeb';
                     await User.findByIdAndUpdate(userId, { [field]: null });
-                    console.log(`[FCM] 🧹 Cleared invalid ${result.platform} token for user: ${userId}`);
+                    logger.debug(`[FCM] Cleared invalid ${result.platform} token for user: ${userId}`);
                 }
             }
         });
@@ -144,9 +145,9 @@ export const removeFCMToken = async (req, res, next) => {
         try {
             const tokenField = normalizedPlatform === 'app' ? 'fcmTokensApp' : 'fcmTokensWeb';
             await User.findByIdAndUpdate(userId, { [tokenField]: null });
-            console.log(`[FCM] ✅ Token removed from ${normalizedPlatform} platform, user: ${userId}`);
+            logger.debug(`[FCM] Token removed from ${normalizedPlatform} platform, user: ${userId}`);
         } catch (e) {
-            console.error('[FCM-BG] Token removal error:', e.message);
+            logger.error('[FCM-BG] Token removal error:', e.message);
         }
     });
 };

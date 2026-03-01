@@ -312,11 +312,10 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
         const handleConnect = () => setIsConnected(true);
         const handleDisconnect = () => setIsConnected(false);
 
-        // PHASED BOOT: Listeners only. Connection is deferred in SocketProvider.
+        // PHASED BOOT: Register listeners at 100ms — well before socket connects at 500ms.
+        // This guarantees no event delivery gap on session start.
         timeoutId = setTimeout(() => {
             if (!isMounted) return;
-
-            console.log('[REAL-TIME] 🎧 Registering global listeners');
 
             socketService.on('connect', handleConnect);
             socketService.on('disconnect', handleDisconnect);
@@ -326,7 +325,7 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
             socketService.on('chat:message', handleNewMessage);
             socketService.on('message:new', handleNewMessage);
             socketService.on('message:notification', handleNewMessage);
-        }, 1500);
+        }, 100);
 
         return () => {
             isMounted = false;

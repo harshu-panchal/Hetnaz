@@ -38,14 +38,14 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
         let timeoutId: ReturnType<typeof setTimeout>;
         let isConnecting = false;
 
-        // PHASED BOOT: Wait 1.5s after Auth to connect Sockets
-        // This gives the main dashboard thread priority for its initial REST fetches
+        // PHASED BOOT: Connect at 500ms — after initial REST fetches are in-flight.
+        // GlobalStateContext registers listeners at 100ms, so they are always
+        // ready 400ms before this fires. No event delivery gap possible.
         timeoutId = setTimeout(() => {
-            console.log('[REAL-TIME] ⚡ Delayed socket connection sequence started');
             isConnecting = true;
             socketService.connect();
             setConnected(true);
-        }, 1500);
+        }, 500);
 
         return () => {
             clearTimeout(timeoutId);

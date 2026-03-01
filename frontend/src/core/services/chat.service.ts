@@ -10,7 +10,6 @@ export const getMyChatList = async (search?: string) => {
         const response = await apiClient.get('/chat/chats', {
             params: { language, search }
         });
-        console.log('🔍 [DEBUG] RAW My Chat List Data:', response.data);
         return response.data.data.chats;
     } catch (error) {
         console.error('❌ [DEBUG] Chat List Fetch Error:', error);
