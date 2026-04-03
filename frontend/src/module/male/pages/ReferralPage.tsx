@@ -3,13 +3,13 @@ import { useAuth } from '../../../core/context/AuthContext';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { useTranslation } from '../../../core/hooks/useTranslation';
-import { useNavigate } from 'react-router-dom';
+
 import { BottomNavigation } from '../components/BottomNavigation';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 
 export const ReferralPage = () => {
     const { t } = useTranslation();
-    const navigate = useNavigate();
+  
     const { user } = useAuth();
     const { appSettings } = useGlobalState();
     const { navigationItems, handleNavigationClick } = useMaleNavigation();

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { WalletHeader } from '../components/WalletHeader';
+
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
 import { TransactionItem } from '../components/TransactionItem';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -133,9 +133,7 @@ export const WalletPage = () => {
     navigate('/male/buy-coins');
   };
 
-  const handleHelpClick = () => {
-    setIsHelpOpen(true);
-  };
+
 
   // Get user avatar
   const userAvatar = user?.photos?.[0] || '';

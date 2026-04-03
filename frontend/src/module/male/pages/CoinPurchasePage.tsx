@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../../../core/context/AuthContext';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
-import { CoinPurchaseHeader } from '../components/CoinPurchaseHeader';
+
 import { BalanceDisplay } from '../components/BalanceDisplay';
 import { PromoBanner } from '../components/PromoBanner';
 import { CoinPlanCard } from '../components/CoinPlanCard';
@@ -18,7 +18,7 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 
 export const CoinPurchasePage = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+
   const { user, updateUser } = useAuth();
   const { updateBalance } = useGlobalState();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
@@ -61,9 +61,7 @@ export const CoinPurchasePage = () => {
     }
   };
 
-  const handleHistoryClick = () => {
-    navigate('/male/purchase-history');
-  };
+
 
   const handleBuyClick = async (planId: string) => {
     if (isPurchasing) return;

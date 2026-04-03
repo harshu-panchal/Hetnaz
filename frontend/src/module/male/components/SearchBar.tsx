@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
-import { useTranslation } from '../../../core/hooks/useTranslation';
+
 
 interface SearchBarProps {
   placeholder?: string;
@@ -21,7 +21,7 @@ export const SearchBar = ({
   variant = 'default',
   titleColor = 'gradient'
 }: SearchBarProps) => {
-  const { t } = useTranslation();
+
   const [query, setQuery] = useState('');
   const [isExpanded, setIsExpanded] = useState(variant === 'full');
   const inputRef = useRef<HTMLInputElement>(null);

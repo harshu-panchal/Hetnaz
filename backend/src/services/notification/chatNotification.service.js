@@ -58,7 +58,7 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
                 icon = '/Hetnaz.png';
                 break;
 
-            case 'gift':
+            case 'gift': {
                 const giftNames = messageData.gifts?.map(g => g.giftName).join(', ') || 'a gift';
                 const totalCoins = messageData.gifts?.reduce((sum, g) => sum + g.giftCost, 0) || 0;
                 title = `🎁 ${senderName}`;
@@ -66,6 +66,7 @@ export const notifyNewMessage = async (receiverId, sender, messageData) => {
                 // Use gift image if valid URL
                 icon = getValidIconUrl(messageData.gifts?.[0]?.giftImage);
                 break;
+            }
 
             case 'text':
             default:
