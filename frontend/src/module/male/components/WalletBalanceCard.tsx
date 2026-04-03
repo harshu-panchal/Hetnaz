@@ -12,7 +12,7 @@ const tierStyles = {
   basic: {
     labelKey: 'freeMember',
     icon: null,
-    textClass: 'text-[#cbb790]',
+    textClass: 'text-primary/90',
     iconClass: 'text-primary',
   },
   silver: {
@@ -30,8 +30,8 @@ const tierStyles = {
   platinum: {
     labelKey: 'PLATINUM',
     icon: '💎',
-    textClass: 'text-cyan-300',
-    iconClass: 'text-cyan-400',
+    textClass: 'text-purple-600',
+    iconClass: 'text-purple-500',
   },
 };
 
@@ -52,33 +52,34 @@ export const WalletBalanceCard = ({
     : `${style.icon || ''} ${t(style.labelKey)} ${t('member')}`;
 
   return (
-    <div className="w-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#3a301e] to-[#2a2315] border border-primary/20 shadow-lg p-6 flex flex-col items-center justify-center gap-4">
+    <div className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-50 via-rose-100/50 to-orange-50 border border-pink-200/50 shadow-xl p-8 flex flex-col items-center justify-center gap-5">
       {/* Background decoration */}
-      <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
-      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
+      <div className="absolute -top-12 -right-12 w-40 h-40 bg-orange-200/30 rounded-full blur-3xl" />
+      <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-rose-200/30 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(244,192,37,0.1),transparent_70%)]" />
 
       <div className="relative z-10 flex flex-col items-center">
-        <div className="mb-3 p-1 rounded-full border-2 border-primary shadow-[0_0_15px_rgba(242,166,13,0.3)]">
+        <div className="mb-4 p-1 rounded-full border-2 border-primary shadow-[0_0_20px_rgba(244,192,37,0.2)] bg-white/50 transition-transform hover:scale-105 duration-300">
           <div
-            className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-20 w-20"
+            className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24"
             style={{ backgroundImage: `url("${userAvatar || defaultAvatar}")` }}
             aria-label="User Avatar"
           />
         </div>
 
-        <div className="flex items-center gap-2 mb-1">
-          <MaterialSymbol name="verified" filled size={20} className={style.iconClass} />
-          <p className={`text-sm font-medium uppercase tracking-wide ${style.textClass}`}>
+        <div className="flex items-center gap-2 mb-2 bg-white/60 px-3 py-1 rounded-full border border-pink-200 backdrop-blur-sm shadow-sm">
+          <MaterialSymbol name="verified" filled size={18} className={style.iconClass} />
+          <p className={`text-[10px] font-black uppercase tracking-[0.1em] ${style.textClass}`}>
             {tierLabel}
           </p>
         </div>
 
-        <h1 className="text-white text-4xl font-bold leading-tight tracking-tight mt-1 flex items-center gap-2">
+        <h1 className="text-slate-900 text-5xl font-black leading-none tracking-tight mt-1 flex items-center gap-3">
           {formattedBalance}
-          <MaterialSymbol name="monetization_on" filled size={32} className="text-primary" />
+          <MaterialSymbol name="monetization_on" filled size={36} className="text-primary" />
         </h1>
 
-        <p className="text-white/60 text-xs mt-2">
+        <p className="text-slate-500 text-xs mt-2">
           {t('yourCoinBalance')}
         </p>
       </div>

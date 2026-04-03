@@ -6,6 +6,8 @@ import { normalizePhoneNumber } from '../../../core/utils/phoneNumber';
 import { loginWithOtp } from '../services/auth.service';
 import { useAuth } from '../../../core/context/AuthContext';
 
+import { ArtisticBackground, ActivityCounter } from '../../../shared/components/auth/AuthLayoutComponents';
+
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -15,12 +17,11 @@ export const LoginPage = () => {
     phone: '',
   });
 
-  // If already authenticated, redirect to source or dashboard
   useEffect(() => {
     if (isAuthenticated && user) {
       const from = (location.state as any)?.from?.pathname ||
         (user.role === 'female' ? '/female/dashboard' :
-          user.role === 'admin' ? '/admin/dashboard' : '/male/discover');
+          user.role === 'admin' ? '/admin/dashboard' : '/male/dashboard');
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, user, navigate, location]);
@@ -36,7 +37,6 @@ export const LoginPage = () => {
       newErrors.phone = t('Phone number is required');
     } else {
       try {
-        // Attempt to normalize - will throw if invalid
         normalizePhoneNumber(formData.phone);
       } catch (error: any) {
         newErrors.phone = t('Please enter a valid phone number');
@@ -53,18 +53,16 @@ export const LoginPage = () => {
       setIsLoading(true);
       setApiError(null);
       try {
-        // Normalize phone number (handles +91, 91, or 10-digit input)
         const normalizedPhone = normalizePhoneNumber(formData.phone);
         await loginWithOtp(normalizedPhone);
         navigate('/otp-verification', {
           state: {
             mode: 'login',
             phoneNumber: normalizedPhone,
-            from: (location.state as any)?.from // Pass along the 'from' location
+            from: (location.state as any)?.from
           }
         });
       } catch (err: any) {
-        // Convert technical errors to user-friendly messages
         const rawError = err.message || '';
         const userFriendlyError = getUserFriendlyLoginError(rawError, t);
         setApiError(userFriendlyError);
@@ -75,78 +73,60 @@ export const LoginPage = () => {
   };
 
   const handleChange = (value: string) => {
-    // Allow user to type freely, we'll validate on submit
-    // Remove non-digit characters except +
     const cleaned = value.replace(/[^\d+]/g, '');
     setFormData({ phone: cleaned });
-    if (errors.phone) {
-      setErrors({});
-    }
-    // Clear API error when user starts typing
-    if (apiError) {
-      setApiError(null);
-    }
+    if (errors.phone) setErrors({});
+    if (apiError) setApiError(null);
   };
 
-  // Helper function to convert technical errors to user-friendly messages
   const getUserFriendlyLoginError = (errorMessage: string, t: (key: string) => string): string => {
     const lowerError = errorMessage.toLowerCase();
-
-    // Network/Connection errors
-    if (lowerError.includes('network') || lowerError.includes('timeout') || lowerError.includes('econnrefused') || lowerError.includes('fetch')) {
-      return t('loginErrorNetwork');
-    }
-
-    // User not found
-    if (lowerError.includes('not found') || lowerError.includes('not exist') || lowerError.includes('no user') || lowerError.includes('not registered')) {
-      return t('loginErrorNotFound');
-    }
-
-    // Server errors
-    if (lowerError.includes('500') || lowerError.includes('server') || lowerError.includes('internal')) {
-      return t('loginErrorServer');
-    }
-
-    // Rate limiting
-    if (lowerError.includes('too many') || lowerError.includes('rate') || lowerError.includes('limit')) {
-      return t('loginErrorTooManyAttempts');
-    }
-
-    // Default fallback
+    if (lowerError.includes('network') || lowerError.includes('timeout') || lowerError.includes('fetch')) return t('loginErrorNetwork');
+    if (lowerError.includes('not found') || lowerError.includes('not registered')) return t('loginErrorNotFound');
+    if (lowerError.includes('too many') || lowerError.includes('rate')) return t('loginErrorTooManyAttempts');
     return t('loginErrorGeneric');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 relative overflow-x-hidden">
+      <ArtisticBackground />
+
+      <div className="max-w-md w-full z-20 flex flex-col items-center">
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-4">
-            <img src="/HETNAZlogo.jpg" alt="HETNAZ Logo" className="w-20 h-20 shadow-xl object-cover" />
+        <div className="text-center mb-8 flex flex-col items-center w-full">
+          <div className="relative mb-2">
+            <div className="absolute inset-0 bg-gold/20 blur-2xl rounded-full scale-150 animate-pulse-soft" />
+            <img 
+              src="/Hetnaz.png" 
+              alt="HETNAZ Logo" 
+              className="w-32 h-32 object-contain relative z-10" 
+            />
           </div>
-          <h1 className="text-5xl font-black mb-3 bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent tracking-tight">
-            HETNAZ
-          </h1>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('Welcome Back')}</h2>
-          <p className="text-gray-500 font-medium">{t('Login to continue your journey')}</p>
+          
+          <ActivityCounter />
         </div>
 
-        {/* Form */}
-        <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 border border-pink-100/50">
-          <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Form Card */}
+        <div className="glass-card rounded-[3rem] p-8 w-full border-t border-white/60">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">{t('Welcome Back')}</h2>
+            <p className="text-gray-500 font-medium text-sm">{t('Login to continue your journey')}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Phone Input */}
-            <div className="space-y-3">
-              <label htmlFor="phone" className="block text-sm font-bold text-gray-700 ml-1">
+            <div className="space-y-2">
+              <label htmlFor="phone" className="block text-xs font-black text-pink-600 uppercase tracking-widest ml-1">
                 {t('Phone Number')}
               </label>
-              <div className="relative group transition-all duration-300">
-                <div className={`flex items-center bg-white border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.phone ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500 focus-within:ring-4 focus-within:ring-pink-500/10'}`}>
-                  <div className="flex items-center shrink-0 gap-1.5 pl-3 pr-2 py-4 bg-gray-50/50 border-r border-gray-100">
+              <div className="relative group">
+                <div className={`flex items-center glass-input rounded-2xl overflow-hidden transition-all duration-300 ${errors.phone ? 'ring-2 ring-red-400 border-transparent' : 'focus-within:ring-2 focus-within:ring-pink-500'}`}>
+                  <div className="flex items-center shrink-0 gap-1.5 pl-4 pr-3 py-4 bg-white/20 border-r border-white/40">
                     <img
                       src="https://flagcdn.com/w40/in.png"
                       srcSet="https://flagcdn.com/w80/in.png 2x"
                       width="20"
-                      className="rounded-sm shadow-sm opacity-90"
+                      className="rounded-sm shadow-sm"
                       alt="India Flag"
                     />
                     <span className="text-gray-900 font-black text-base tracking-tight">+91</span>
@@ -156,7 +136,7 @@ export const LoginPage = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => handleChange(e.target.value)}
-                    className="w-full px-4 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-300 placeholder:font-medium focus:outline-none"
+                    className="w-full px-4 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-400 focus:outline-none"
                     placeholder="Mobile"
                     maxLength={10}
                   />
@@ -164,7 +144,7 @@ export const LoginPage = () => {
                     <button
                       type="button"
                       onClick={() => setFormData({ phone: '' })}
-                      className="pr-4 text-gray-300 hover:text-gray-500 transition-colors"
+                      className="pr-4 text-gray-400 hover:text-pink-500 transition-colors"
                     >
                       <MaterialSymbol name="cancel" size={24} filled />
                     </button>
@@ -180,15 +160,15 @@ export const LoginPage = () => {
             </div>
 
             {/* Info Text */}
-            <p className="text-sm text-gray-600 text-center">
-              {t('We will send you a verification code to continue')} {/* TRANSLATE */}
+            <p className="text-xs text-gray-400 text-center font-medium">
+              {t('We will send you a verification code to continue')}
             </p>
 
-            {/* API Error - Displayed just above the button */}
+            {/* API Error */}
             {apiError && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-1">
+              <div className="flex items-center gap-2 p-3 bg-red-50/50 backdrop-blur-sm border border-red-200/50 rounded-xl animate-in fade-in zoom-in">
                 <MaterialSymbol name="error" size={20} className="text-red-500 flex-shrink-0" filled />
-                <p className="text-sm text-red-600 font-medium">{apiError}</p>
+                <p className="text-xs text-red-600 font-bold">{apiError}</p>
               </div>
             )}
 
@@ -196,19 +176,29 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold rounded-lg hover:from-pink-600 hover:to-pink-700 transform hover:scale-105 transition-all duration-200 shadow-lg ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full py-4 bg-premium-pink text-white font-black text-lg rounded-2xl hover:shadow-[0_10px_20px_-5px_rgba(244,63,94,0.4)] transition-all duration-300 transform active:scale-95 group relative overflow-hidden ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {isLoading ? t('Sending Code...') : t('Continue')} {/* TRANSLATE BUTTON TEXT */}
+              <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    {t('Continue')}
+                    <MaterialSymbol name="arrow_forward" size={20} />
+                  </>
+                )}
+              </span>
             </button>
           </form>
 
           {/* Signup Link */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
+          <div className="mt-8 text-center">
+            <p className="text-gray-500 text-sm font-medium">
               {t('Do not have an account?')}{' '}
               <button
                 onClick={() => navigate('/signup')}
-                className="text-pink-600 font-semibold hover:text-pink-700"
+                className="text-pink-600 font-black hover:text-pink-700 underline underline-offset-4 decoration-pink-300 hover:decoration-pink-500 transition-all"
               >
                 {t('Sign Up')}
               </button>

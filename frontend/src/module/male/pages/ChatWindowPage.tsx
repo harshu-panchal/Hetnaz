@@ -9,6 +9,7 @@ import { LevelUpModal } from '../components/LevelUpModal';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
 import { ImageModal } from '../../../shared/components/ImageModal';
 import { ReportModal } from '../../../shared/components/ReportModal';
+import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
 import apiClient from '../../../core/api/client';
 import { compressImage } from '../../../core/utils/image';
 
@@ -66,6 +67,7 @@ export const ChatWindowPage = () => {
 
   // Typing indicator
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   // Block status
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
@@ -234,13 +236,19 @@ export const ChatWindowPage = () => {
           const isSender = String(senderIdVal) === String(currentUserId);
 
           if (isSender) {
-            // Find if there is a temp message with matching content
-            // For images, content might be empty so we also check messageType
-            const optimisticMsg = prev.find(m =>
-              String(m._id).startsWith('temp_') &&
-              m.content === data.message.content &&
-              m.messageType === data.message.messageType
-            );
+            // Find if there is a temp message with matching content or type (for gifts/images)
+            const optimisticMsg = prev.find(m => {
+              const isTemp = String(m._id).startsWith('temp_');
+              if (!isTemp) return false;
+              
+              // For gifts, match by type since content might be translated/different on server
+              if (data.message.messageType === 'gift' && m.messageType === 'gift') {
+                return true;
+              }
+              
+              // For others, match by content and type
+              return m.content === data.message.content && m.messageType === data.message.messageType;
+            });
 
             if (optimisticMsg) {
               // Replace the temp message with the real one from socket
@@ -349,6 +357,7 @@ export const ChatWindowPage = () => {
 
   // Send text message
   const handleSendMessage = async (content: string) => {
+    setHasInteracted(true);
     if (!chatId || isSending) return;
 
     if (coinBalance < currentMessageCost) {
@@ -360,6 +369,7 @@ export const ChatWindowPage = () => {
 
     const newBalance = coinBalance - currentMessageCost;
     updateBalance(newBalance);
+    setHasInteracted(true);
 
     const optimisticMessage: ApiMessage = {
       _id: `temp_${Date.now()}`,
@@ -423,7 +433,9 @@ export const ChatWindowPage = () => {
 
   // Send gift
   const handleSendGift = async (giftIds: string[], totalCost: number) => {
+    setHasInteracted(true);
     if (!chatId || isSending) return;
+    setHasInteracted(true);
 
     const newBalance = coinBalance - totalCost;
     updateBalance(newBalance);
@@ -498,6 +510,7 @@ export const ChatWindowPage = () => {
 
   // Send image
   const handleSendImage = async (base64Image: string) => {
+    setHasInteracted(true);
     if (!chatId || isSending || isUploadingImage) return;
 
     if (coinBalance < currentImageCost) {
@@ -539,6 +552,7 @@ export const ChatWindowPage = () => {
       } as any;
 
       setMessages(prev => [...prev, optimisticMessage]);
+      setHasInteracted(true);
 
       // Send via chat service
       setIsSending(true);
@@ -647,7 +661,13 @@ export const ChatWindowPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden font-display">
+    <div className="flex flex-col h-screen bg-transparent overflow-hidden font-display relative">
+      <div className="max-w-md mx-auto w-full h-full flex flex-col relative">
+      {/* Background with low opacity */}
+      <div className="fixed inset-0 pointer-events-none opacity-40 dark:opacity-20 z-0">
+        <MeshBackground />
+      </div>
+
       <ChatWindowHeader
         userName={chatInfo.otherUser.name}
         userAvatar={chatInfo.otherUser.avatar || ''}
@@ -711,7 +731,44 @@ export const ChatWindowPage = () => {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2 relative z-10">
+        {/* Profile Centerpiece (Instagram style) */}
+        {!isLoadingMore && (
+          <div className="flex flex-col items-center pt-8 pb-10 px-6 text-center">
+            <div className="relative mb-4 group cursor-pointer" onClick={() => navigate(`/male/profile/${chatInfo.otherUser._id}`)}>
+              <div className="absolute -inset-1.5 bg-gradient-to-tr from-pink-500 via-rose-400 to-amber-300 rounded-full opacity-70 blur-[2px] group-hover:opacity-100 transition-opacity" />
+              <img
+                src={chatInfo.otherUser.avatar || 'https://via.placeholder.com/120'}
+                alt={chatInfo.otherUser.name}
+                className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-[#1a0f14] relative z-10"
+              />
+            </div>
+            <h1 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-1.5 mb-1">
+              {chatInfo.otherUser.name}
+              {chatInfo.otherUser.isVerified && (
+                <MaterialSymbol name="verified" filled size={20} className="text-blue-500" />
+              )}
+            </h1>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-4 tracking-tight">
+              Hetnaz User • {chatInfo.otherUser.isOnline ? 'Active Now' : 'Recently Active'}
+            </p>
+            
+            {/* Stats row like Instagram */}
+            <div className="flex items-center gap-6 mb-6">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-gray-900 dark:text-white">Lv.{intimacy?.level || 1}</span>
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Level</span>
+              </div>
+              <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-800" />
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{messages.length}</span>
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Chats</span>
+              </div>
+            </div>
+
+          </div>
+        )}
+
         {/* Load More Button */}
         {hasMore && (
           <div className="flex justify-center py-2">
@@ -765,6 +822,7 @@ export const ChatWindowPage = () => {
             <MessageBubble
               key={message._id}
               onImageClick={(url) => setSelectedImageModal(url)}
+              onProfileClick={() => navigate(`/male/profile/${chatInfo.otherUser._id}`)}
               message={{
                 id: message._id,
                 chatId: message.chatId,
@@ -777,6 +835,9 @@ export const ChatWindowPage = () => {
                 readStatus: message.status === 'failed' ? 'sent' : message.status as any,
                 gifts: message.gifts as any,
                 attachments: message.attachments as any,
+                senderAvatar: isSent 
+                  ? (user?.avatarUrl || user?.photos?.[0] || 'https://via.placeholder.com/40') 
+                  : (chatInfo.otherUser.avatar || 'https://via.placeholder.com/40')
               }}
             />
           );
@@ -809,6 +870,7 @@ export const ChatWindowPage = () => {
           coinCost={MESSAGE_COST}
           disabled={coinBalance < MESSAGE_COST || isSending || isUploadingImage || isBlockedByMe || isBlockedByOther}
           isSending={isSending || isUploadingImage}
+          showQuickReplies={messages.length === 0 && !hasInteracted}
           onLowCoins={() => {
             setRequiredCoinsModal(currentMessageCost);
             setModalAction(t('actionSendMessage'));
@@ -873,6 +935,7 @@ export const ChatWindowPage = () => {
           setError(t('reportSubmittedSuccess') || 'Report submitted successfully');
         }}
       />
+      </div>
     </div>
   );
 };

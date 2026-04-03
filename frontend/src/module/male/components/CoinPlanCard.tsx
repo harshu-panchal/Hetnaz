@@ -30,103 +30,89 @@ export const CoinPlanCard = ({
 }: CoinPlanCardProps) => {
   const { t } = useTranslation();
 
-  const getTierStyles = () => {
-    if (isBestValue) {
-      return 'border-indigo-200 dark:border-indigo-900 bg-gradient-to-br from-indigo-50 to-white dark:from-[#2a1b3d] dark:to-[#341822]';
-    }
-    if (isPopular) {
-      return 'border-2 border-primary/50 ring-4 ring-primary/5';
-    }
-    return 'border-gray-200 dark:border-[#683143] bg-white dark:bg-[#341822]';
+  const getTierGradient = () => {
+    if (isBestValue) return 'bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.15)]';
+    if (isPopular) return 'bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-transparent border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]';
+    return 'bg-white/40 dark:bg-white/5 border-white/40 dark:border-white/10';
   };
 
-  const getTierColor = () => {
-    if (isBestValue) return 'text-indigo-600 dark:text-indigo-400';
-    if (isPopular) return 'text-primary';
-    return 'text-slate-500 dark:text-gray-300';
-  };
-
-  const getButtonStyles = () => {
-    if (isBestValue) {
-      return 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20';
-    }
-    if (isPopular) {
-      return 'bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20';
-    }
-    return 'bg-gray-100 dark:bg-[#49222f] hover:bg-gray-200 dark:hover:bg-[#683143] text-slate-900 dark:text-white';
-  };
-
-  const getButtonHeight = () => {
-    if (isPopular || isBestValue) return 'h-10';
-    return 'h-9';
+  const getButtonClass = () => {
+    if (isBestValue) return 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30';
+    if (isPopular) return 'bg-gradient-to-r from-amber-500 to-yellow-600 text-white shadow-lg shadow-amber-500/30';
+    return 'bg-white/80 dark:bg-white/10 text-slate-900 dark:text-white shadow-sm';
   };
 
   return (
     <div
-      className={`flex flex-col gap-3 rounded-2xl border p-4 shadow-sm relative overflow-hidden ${getTierStyles()}`}
+      className={`relative flex flex-col items-center gap-4 rounded-3xl border p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 group overflow-hidden ${getTierGradient()}`}
     >
-      {/* Badge */}
+      {/* Floating Badge (Glass style) */}
       {badge && (
-        <div
-          className={`absolute top-0 right-0 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl ${isBestValue ? 'bg-indigo-600' : 'bg-primary'
-            }`}
-        >
+        <div className={`absolute top-2 right-2 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter backdrop-blur-md border border-white/20 shadow-sm z-20 ${
+          isBestValue ? 'bg-indigo-500 text-white' : 'bg-amber-500 text-white'
+        }`}>
           {badge}
         </div>
       )}
-      {tier === 'silver' && (
-        <div className="absolute -right-3 top-3 bg-blue-500 text-white text-[10px] font-bold px-3 py-0.5 -rotate-45 transform origin-bottom-left shadow-sm">
+
+      {/* Bonus Ribbon (Diagonal Left) */}
+      {tier.toLowerCase() === 'silver' && (
+        <div className="absolute -left-8 top-3 px-8 py-1 bg-blue-600 text-white text-[9px] font-black -rotate-45 shadow-lg z-10 uppercase tracking-tighter">
           BONUS
         </div>
       )}
 
-      <div className="flex flex-col gap-1">
-        <h1 className={`${getTierColor()} text-sm font-bold uppercase tracking-wider`}>
+      {/* Content Section */}
+      <div className="flex flex-col items-center gap-1 w-full mt-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-white/50">
           {t(tier.toUpperCase())}
-        </h1>
-        <div className="flex flex-col gap-0">
-          <div className="flex items-baseline gap-2">
-            <span className={`${isPopular || isBestValue ? 'text-3xl' : 'text-2xl'} font-black tracking-tight`}>
-              ₹{price.toLocaleString()}
+        </span>
+        
+        <div className="flex flex-col items-center gap-0 my-2">
+          <div className="flex items-center justify-center gap-1.5">
+            <span className={`text-3xl font-black tracking-tighter text-slate-900 dark:text-white transition-all ${
+              isPopular || isBestValue ? 'text-glow-gold' : ''
+            }`}>
+              {coins.toLocaleString()}
             </span>
-            {originalPrice && (
-              <span className="text-slate-400 text-xs line-through">₹{originalPrice}</span>
-            )}
+            <MaterialSymbol name="monetization_on" filled size={24} className="text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.4)]" />
           </div>
-          <span
-            className={`text-yellow-600 dark:text-yellow-400 font-bold flex items-center gap-1 mt-1 ${isPopular || isBestValue ? 'text-lg' : 'text-sm'
-              }`}
-          >
-            <MaterialSymbol
-              name="monetization_on"
-              filled
-              size={isPopular || isBestValue ? 20 : 16}
-            />
-            {coins.toLocaleString()}
-          </span>
+          
           {bonus && (
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded font-bold mt-1 ${isBestValue
-                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
-                : 'text-blue-600 dark:text-blue-400'
-                }`}
-            >
-              {bonus}
+             <div className="mt-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+               <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase">
+                 {bonus}
+               </span>
+             </div>
+          )}
+        </div>
+
+        <div className="flex flex-col items-center mt-2">
+          <div className="flex items-baseline gap-1">
+            <span className="text-xs font-bold text-slate-400">₹</span>
+            <span className="text-xl font-black text-slate-900 dark:text-white">
+              {price.toLocaleString()}
+            </span>
+          </div>
+          {originalPrice && (
+            <span className="text-[10px] text-slate-400 line-through opacity-60">
+              ₹{originalPrice.toLocaleString()}
             </span>
           )}
         </div>
       </div>
 
-      <div className={isPopular || isBestValue ? 'mt-4' : 'mt-auto pt-2'}>
-        <button
-          onClick={onBuyClick}
-          disabled={disabled}
-          className={`w-full ${getButtonHeight()} rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 ${getButtonStyles()} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {disabled ? t('loading') : t('buyCoins')}
-          {isPopular && !disabled && <MaterialSymbol name="bolt" size={18} />}
-        </button>
-      </div>
+      {/* Action Button */}
+      <button
+        onClick={onBuyClick}
+        disabled={disabled}
+        className={`w-full h-11 rounded-2xl text-[13px] font-black uppercase tracking-wider transition-all active:scale-[0.96] flex items-center justify-center gap-2 ${getButtonClass()} ${disabled ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+      >
+        {disabled ? t('loading') : t('buyCoins')}
+        {(isPopular || isBestValue) && !disabled && (
+          <MaterialSymbol name={isBestValue ? "diamond" : "bolt"} size={18} className="animate-pulse" />
+        )}
+      </button>
     </div>
   );
 };

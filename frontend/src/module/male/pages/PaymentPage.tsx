@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { CoinPlan } from '../types/male.types';
@@ -128,12 +127,9 @@ export const PaymentPage = () => {
 
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white min-h-screen pb-24">
-      {/* Top Navbar */}
-      <MaleTopNavbar />
-
       {/* Header */}
-      <header className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
-        <div className="flex items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
+        <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
           <button
             onClick={handleCancel}
             className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-[#342d18] text-slate-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
@@ -146,6 +142,8 @@ export const PaymentPage = () => {
           <div className="size-10" /> {/* Spacer */}
         </div>
       </header>
+
+      <div className="max-w-md mx-auto w-full flex flex-col">
 
       <div className="max-w-md mx-auto w-full flex flex-col gap-6 p-4">
         {/* Plan Summary */}
@@ -241,6 +239,7 @@ export const PaymentPage = () => {
         <p className="text-xs text-center text-gray-500 dark:text-gray-400">
           Your payment is secured by Razorpay. We never store your card details.
         </p>
+      </div>
       </div>
 
       {/* Bottom Navigation */}

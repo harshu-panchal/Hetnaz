@@ -19,54 +19,70 @@ export const DiscoverNearbyCard = ({ nearbyUsers, onExploreClick }: DiscoverNear
 
   return (
     <div className="p-4 mt-2">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-600 via-rose-600 to-pink-600 shadow-xl">
-        <div
-          className="absolute inset-0 bg-center bg-cover opacity-30"
-          style={{
-            backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuAHuQ9thR_Q8bw5KyAKuHdBgTxbMQzbTaF9wxH_jdhvxRsseop7AcwAnK-nQYZsye0tERXB0Y0xnV3Hng--TGDar-5kWubelbU-uA6UT36YC2BZuytzzu8YJumnkKpvGxNJfykWfKsESfiA0gHWOYwWy5BmDnVxuUdi65_3Ue4DcdE4xCS6zpEQUJGpOQJl8w-3KNNf7wtaraImiLSW3sD3P7HWIjkKRrwtG6cKn-DFYG50e31fzGKD0ra-Ol3b0Zx6nqPtjHM-HlU")`
-          }}
-          aria-label="Blurred background image of a city map"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-pink-600/90 via-rose-600/85 to-pink-600/90" />
-        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-3xl"></div>
+      {/* Premium Container with Mesh & Glow */}
+      <div className="relative group overflow-hidden rounded-[2.5rem] bg-premium-pink shadow-2xl transition-all duration-700 hover:shadow-pink-500/20">
+        <div className="absolute inset-0 bg-mesh-glass opacity-40 pointer-events-none" />
+        
+        {/* Animated Accent Blobs */}
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/20 blur-3xl rounded-full animate-pulse-slow" />
+        <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-rose-400/30 blur-3xl rounded-full animate-pulse-slow" style={{ animationDelay: '-2s' }} />
 
-        <div className="relative flex items-center justify-between gap-4 p-5">
-          <div className="flex flex-[2_2_0px] flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <p className="text-xl font-bold text-white leading-tight flex items-center gap-2">
-                <span>💕</span> {t('discoverNearbyTitle')}
-              </p>
-              <p className="text-pink-100 text-sm font-medium leading-normal">
-                {t('findPeopleNearby')}
+        <div className="relative flex items-center justify-between gap-4 p-7">
+          <div className="flex flex-[2_2_0px] flex-col gap-6">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <div className="skeuo-inset size-8 rounded-xl flex items-center justify-center bg-white/20 backdrop-blur-md">
+                   <MaterialSymbol name="location_on" size={18} className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]" filled />
+                </div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white opacity-80">
+                  {t('discoverNearbyTitle')}
+                </h3>
+              </div>
+              <p className="text-2xl font-black text-white leading-tight tracking-tighter drop-shadow-sm">
+                {t('Find people in your circle')}
               </p>
             </div>
+            
             <button
               onClick={onExploreClick}
-              className="flex w-fit items-center justify-center gap-2 rounded-full bg-white/95 backdrop-blur-sm py-2.5 pl-5 pr-4 text-sm font-bold text-pink-700 transition-all hover:bg-white hover:shadow-xl hover:scale-105 active:scale-95 duration-200 shadow-lg border border-white/50"
+              className="skeuo-button w-fit h-11 px-6 rounded-2xl flex items-center gap-2 bg-white/95 backdrop-blur-md border-white/50 active:scale-95 transition-all group"
             >
-              {t('exploreButton')}
-              <MaterialSymbol name="arrow_forward" size={18} />
+              <span className="text-xs font-bold text-slate-900 capitalize tracking-wide">{t('exploreButton')}</span>
+              <MaterialSymbol name="arrow_forward" size={16} className="text-slate-900 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
 
-          <div className="flex flex-1 items-center justify-end -space-x-3 mr-2">
-            {displayedUsers.map((user) => (
+          {/* Optimized Avatar Stack */}
+          <div className="flex flex-1 items-center justify-end -space-x-4">
+            {displayedUsers.map((user, i) => (
               <div
                 key={user.id}
-                className="h-12 w-12 rounded-full border-4 border-white/80 bg-cover bg-center shadow-lg ring-2 ring-pink-200/50"
-                style={{ backgroundImage: `url("${user.avatar}")` }}
-                aria-label={`Portrait of ${user.name}`}
-              />
+                className="group/avatar relative"
+                style={{ zIndex: 10 - i }}
+              >
+                  <div 
+                    className="h-16 w-16 rounded-full skeuo-card p-1 bg-white/40 dark:bg-black/10 backdrop-blur-md hover:scale-110 active:scale-95 transition-all duration-300 shadow-xl"
+                  >
+                    <div 
+                      className="w-full h-full rounded-full bg-cover bg-center border-2 border-white/60"
+                      style={{ backgroundImage: `url("${user.avatar}")` }}
+                    />
+                  </div>
+              </div>
             ))}
             {remainingCount > 0 && (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-white/80 bg-white/20 backdrop-blur-sm text-xs font-bold text-white shadow-lg ring-2 ring-pink-200/50">
+              <div 
+                className="flex h-12 w-12 items-center justify-center rounded-full skeuo-card bg-white/20 backdrop-blur-md text-[10px] font-black text-white shadow-lg border-white/40 relative z-0"
+              >
                 +{remainingCount}
               </div>
             )}
           </div>
         </div>
+        
+        {/* Subtle Bottom Border Reflection */}
+        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
       </div>
     </div>
   );
 };
-

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MaterialSymbol } from '../types/material-symbol';
-import { AttachmentMenu } from './AttachmentMenu';
 import { ImagePicker, ImagePickerRef } from '../../../shared/components/ImagePicker';
 import { CameraCapture } from '../../../shared/components/CameraCapture';
 
@@ -15,6 +14,7 @@ interface MessageInputProps {
   disabled?: boolean;
   isSending?: boolean;
   onLowCoins?: () => void; // Callback when user tries to send without enough coins
+  showQuickReplies?: boolean;
 }
 
 export const MessageInput = ({
@@ -23,18 +23,30 @@ export const MessageInput = ({
   onSendGift,
   onTypingStart,
   onTypingStop,
-  placeholder = 'Type a message...',
+  placeholder = 'Message...',
   disabled = false,
   isSending = false,
   onLowCoins,
+  showQuickReplies = false,
 }: MessageInputProps) => {
   const [message, setMessage] = useState('');
-  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  
+  const quickReplies = [
+    'Hi! 👋',
+    'You look stunning ✨',
+    'Want to chat?',
+    'Sending a gift! 🎁',
+    'How is your day?',
+    'Let\'s connect! 💖'
+  ];
   const inputRef = useRef<HTMLInputElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const imagePickerRef = useRef<ImagePickerRef>(null);
+
+  const handleQuickReplyClick = (reply: string) => {
+    onSendMessage(reply);
+  };
 
   const handleSend = () => {
     if (message.trim() && !isSending) {
@@ -92,97 +104,52 @@ export const MessageInput = ({
     };
   }, []);
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsAttachmentMenuOpen(false);
-      }
-    };
-
-    if (isAttachmentMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isAttachmentMenuOpen]);
-
-  // Build attachment menu items
-  const attachmentItems = [];
-  if (onSendGift) {
-    attachmentItems.push({
-      id: 'gift',
-      icon: 'redeem',
-      label: 'Send Gift',
-      onClick: onSendGift,
-      color: 'bg-pink-500',
-    });
-  }
-  if (onSendPhoto) {
-    attachmentItems.push({
-      id: 'photo',
-      icon: 'image',
-      label: 'Send Photo',
-      onClick: () => {
-        setIsAttachmentMenuOpen(false);
-        imagePickerRef.current?.pickImage();
-      },
-      color: 'bg-blue-500',
-    });
-    attachmentItems.push({
-      id: 'camera',
-      icon: 'photo_camera',
-      label: 'Take Photo',
-      onClick: () => {
-        setIsAttachmentMenuOpen(false);
-        setIsCameraOpen(true);
-      },
-      color: 'bg-green-500',
-    });
-  }
-
   return (
-    <div className="px-4 py-3 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 relative">
-      {onSendPhoto && (
-        <>
-          <ImagePicker
-            ref={imagePickerRef}
-            onImageSelect={onSendPhoto}
-            disabled={disabled || isSending}
-            hidden
-          />
-          <CameraCapture
-            isOpen={isCameraOpen}
-            onClose={() => setIsCameraOpen(false)}
-            onCapture={onSendPhoto}
-          />
-        </>
+    <div className="flex flex-col bg-transparent pb-5 pt-2">
+      {/* Quick Replies Sidebar/Bar (Instagram-like suggestions) */}
+      {showQuickReplies && (
+        <div className="flex items-center gap-2 overflow-x-auto px-4 mb-3 no-scrollbar scroll-smooth">
+          {quickReplies.map((reply, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleQuickReplyClick(reply)}
+              disabled={disabled || isSending}
+              className="whitespace-nowrap px-4 py-1.5 bg-white/60 dark:bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-gray-800 dark:text-gray-200 active:scale-95 transition-all shadow-sm border border-white/40 dark:border-white/5"
+            >
+              {reply}
+            </button>
+          ))}
+        </div>
       )}
 
-      <div className="flex items-end gap-2">
-        {/* Attachment Menu Button (+ Button) */}
-        {(onSendGift || onSendPhoto) && (
-          <div className="relative shrink-0" ref={menuRef}>
+      <div className="px-3 flex items-end gap-2.5">
+        {/* Left: Camera Icon */}
+        {onSendPhoto && (
+          <div className="pb-1.5 shrink-0">
             <button
-              onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
+              onClick={() => setIsCameraOpen(true)}
               disabled={disabled || isSending}
-              className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95 disabled:opacity-50"
-              aria-label="Attachments"
+              className="flex items-center justify-center p-2 bg-primary rounded-full text-white active:scale-90 transition-all shadow-sm"
+              aria-label="Camera"
             >
-              <MaterialSymbol name="add" />
+              <MaterialSymbol name="photo_camera" size={20} filled />
             </button>
-            <AttachmentMenu
-              isOpen={isAttachmentMenuOpen}
-              onClose={() => setIsAttachmentMenuOpen(false)}
-              items={attachmentItems}
+            <CameraCapture
+              isOpen={isCameraOpen}
+              onClose={() => setIsCameraOpen(false)}
+              onCapture={onSendPhoto}
+            />
+            <ImagePicker
+              ref={imagePickerRef}
+              onImageSelect={onSendPhoto}
+              disabled={disabled || isSending}
+              hidden
             />
           </div>
         )}
 
-        {/* Input Field */}
-        <div className="flex-1 relative">
+        {/* Center: Input Pill */}
+        <div className="flex-1 relative flex items-end bg-white/80 dark:bg-white/10 backdrop-blur-md rounded-[24px] px-3.5 py-1.5 border border-white/50 dark:border-white/5 shadow-sm min-h-[44px]">
           <input
             ref={inputRef}
             type="text"
@@ -191,24 +158,46 @@ export const MessageInput = ({
             onKeyPress={handleKeyPress}
             placeholder={disabled ? 'Insufficient coins...' : placeholder}
             disabled={disabled || isSending}
-            className="w-full h-10 px-4 bg-white dark:bg-[#2f151e] rounded-full border border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#cc8ea3]/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+            className="flex-1 bg-transparent text-[15px] pb-[7px] pt-[7px] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-[#cc8ea3]/70 focus:outline-none"
           />
-
+          
+          {/* Action Icons inside input */}
+          <div className="flex items-center gap-2 ml-1 pb-[3px] shrink-0">
+            {!message.trim() && (
+              <>
+                {onSendGift && (
+                  <button 
+                    className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-400 text-white shadow-sm shadow-pink-500/30 hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
+                    onClick={onSendGift}
+                    title="Send Gift"
+                  >
+                    <MaterialSymbol name="featured_seasonal_and_gifts" size={22} filled />
+                    <div className="absolute inset-0 rounded-full w-full h-full animate-ping opacity-0 group-hover:opacity-20 bg-white ease-out duration-1000"></div>
+                  </button>
+                )}
+                {onSendPhoto && (
+                  <button 
+                    className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-400 text-white shadow-sm shadow-blue-500/30 hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
+                    onClick={() => imagePickerRef.current?.pickImage()}
+                    title="Send Photo"
+                  >
+                    <MaterialSymbol name="image" size={22} filled />
+                    <div className="absolute inset-0 rounded-full w-full h-full animate-ping opacity-0 group-hover:opacity-20 bg-white ease-out duration-1000"></div>
+                  </button>
+                )}
+              </>
+            )}
+            
+            {message.trim() && (
+              <button
+                onClick={handleSend}
+                className="text-primary font-bold text-sm px-2 py-0.5 active:opacity-50 transition-opacity"
+              >
+                Send
+              </button>
+            )}
+          </div>
         </div>
-
-        {/* Send Button */}
-        <button
-          onClick={handleSend}
-          disabled={!message.trim() || disabled || isSending}
-          className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white hover:bg-yellow-400 transition-colors active:scale-95 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Send message"
-        >
-          {isSending ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <MaterialSymbol name="send" size={20} />
-          )}
-        </button>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { useTranslation } from '../../../core/hooks/useTranslation';
 import { normalizePhoneNumber } from '../../../core/utils/phoneNumber';
 import { useAuth } from '../../../core/context/AuthContext';
 import axios from 'axios';
+import { ArtisticBackground, ActivityCounter } from '../../../shared/components/auth/AuthLayoutComponents';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -32,7 +33,7 @@ export const SignupPage = () => {
     if (isAuthenticated && user) {
       const from = (location.state as any)?.from?.pathname ||
         (user.role === 'female' ? '/female/dashboard' :
-          user.role === 'admin' ? '/admin/dashboard' : '/male/discover');
+          user.role === 'admin' ? '/admin/dashboard' : '/male/dashboard');
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, user, navigate, location]);
@@ -245,49 +246,62 @@ export const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
+    <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <ArtisticBackground />
+      
+      <div className="relative z-10 max-w-md w-full">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <img src="/HETNAZlogo.jpg" alt="HETNAZ Logo" className="w-20 h-20 shadow-xl object-cover" />
+        <div className="flex flex-col items-center mb-8">
+          <div className="relative mb-2">
+            <div className="absolute inset-0 bg-gold/20 blur-2xl rounded-full animate-gold-pulse" />
+            <img 
+              src="/Hetnaz.png" 
+              alt="HETNAZ Logo" 
+              className="relative w-36 h-36 object-contain" 
+            />
           </div>
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
-            HETNAZ
-          </h1>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t('Create Your Account')}</h2>
-          <p className="text-gray-600">{t('Start your journey to find meaningful connections')}</p>
+          
+
+          <ActivityCounter />
         </div>
 
-        {/* Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        {/* glass-card wrapper */}
+        <div className="glass-card rounded-[2.5rem] p-8 shadow-2xl border border-white/40">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('Create Your Account')}</h2>
+            <p className="text-gray-500 text-sm font-medium">{t('Start your journey to find meaningful connections')}</p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Full Name */}
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="fullName" className="block text-sm font-bold text-gray-700 mb-2 ml-1">
                 {t('Full Name')}
               </label>
-              <input
-                id="fullName"
-                type="text"
-                value={formData.fullName}
-                onChange={(e) => handleChange('fullName', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${errors.fullName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                placeholder={t('Enter your full name')}
-                disabled={isSubmitting}
-              />
-              {errors.fullName && <p className="mt-1 text-sm text-red-500">{errors.fullName}</p>}
+              <div className="relative group">
+                <div className={`flex items-center bg-white/50 border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.fullName ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500'}`}>
+                  <div className="pl-4 text-gray-400">
+                    <MaterialSymbol name="person" size={22} />
+                  </div>
+                  <input
+                    id="fullName"
+                    type="text"
+                    value={formData.fullName}
+                    onChange={(e) => handleChange('fullName', e.target.value)}
+                    className="w-full px-4 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-300 focus:outline-none"
+                    placeholder={t('Enter full name')}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                {errors.fullName && <p className="mt-2 ml-1 text-xs font-bold text-red-500">{errors.fullName}</p>}
+              </div>
             </div>
 
-            {/* Phone */}
             <div className="space-y-2">
               <label htmlFor="phone" className="block text-sm font-bold text-gray-700 ml-1">
                 {t('Contact Number')}
               </label>
               <div className="relative group transition-all duration-300">
-                <div className={`flex items-center bg-white border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.phone ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500 focus-within:ring-4 focus-within:ring-pink-500/10'}`}>
-                  <div className="flex items-center shrink-0 gap-1.5 pl-3 pr-2 py-4 bg-gray-50/50 border-r border-gray-100">
+                <div className={`flex items-center bg-white/50 border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.phone ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500'}`}>
+                  <div className="flex items-center shrink-0 gap-1.5 pl-3 pr-2 py-4 bg-gray-50/30 border-r border-gray-100">
                     <img
                       src="https://flagcdn.com/w40/in.png"
                       srcSet="https://flagcdn.com/w80/in.png 2x"
@@ -307,7 +321,7 @@ export const SignupPage = () => {
                       const final = val.length > 10 ? val.slice(-10) : val;
                       handleChange('phone', final);
                     }}
-                    className="w-full px-4 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-300 placeholder:font-medium focus:outline-none"
+                    className="w-full px-4 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-300 focus:outline-none"
                     placeholder="Mobile"
                     maxLength={10}
                     disabled={isSubmitting}
@@ -331,13 +345,12 @@ export const SignupPage = () => {
               </div>
             </div>
 
-            {/* Referral Code (Optional) */}
             <div className="space-y-2">
-              <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700 ml-1">
-                {t('Have a referral ID?')} <span className="text-gray-400 font-normal">({t('Optional')})</span>
+              <label htmlFor="referralCode" className="block text-sm font-bold text-gray-700 ml-1">
+                {t('Referral ID')} <span className="text-gray-400 font-normal">({t('Optional')})</span>
               </label>
-              <div className="relative group transition-all duration-300">
-                <div className="flex items-center bg-white border-2 border-gray-100 rounded-2xl overflow-hidden group-hover:border-pink-200 focus-within:border-pink-500 transition-all">
+              <div className="relative group">
+                <div className="flex items-center bg-white/50 border-2 border-gray-100 rounded-2xl overflow-hidden group-hover:border-pink-200 focus-within:border-pink-500">
                   <div className="flex items-center pl-4 pr-2 text-gray-400">
                     <MaterialSymbol name="redeem" size={24} />
                   </div>
@@ -346,43 +359,46 @@ export const SignupPage = () => {
                     type="text"
                     value={formData.referralCode}
                     onChange={(e) => handleChange('referralCode', e.target.value.toUpperCase().replace(/\s/g, ''))}
-                    className="w-full px-2 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-300 placeholder:font-normal focus:outline-none"
-                    placeholder={t('Enter Referral ID')}
+                    className="w-full px-2 py-4 bg-transparent text-gray-900 text-lg font-bold placeholder:text-gray-300 focus:outline-none"
+                    placeholder={t('Enter code')}
                     disabled={isSubmitting}
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1 ml-1">{t('Case and spaces are ignored automatically.')}</p>
               </div>
             </div>
 
-            {/* Date of Birth */}
             <div>
-              <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="dateOfBirth" className="block text-sm font-bold text-gray-700 mb-2 ml-1">
                 {t('Date of Birth')}
               </label>
-              <input
-                id="dateOfBirth"
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => handleChange('dateOfBirth', e.target.value)}
-                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                disabled={isSubmitting}
-              />
-              {errors.dateOfBirth && <p className="mt-1 text-sm text-red-500">{errors.dateOfBirth}</p>}
+              <div className="relative group text-gray-900">
+                <div className={`flex items-center bg-white/50 border-2 rounded-2xl overflow-hidden transition-all duration-300 ${errors.dateOfBirth ? 'border-red-400' : 'border-gray-100 group-hover:border-pink-200 focus-within:border-pink-500'}`}>
+                  <div className="pl-4 text-gray-400">
+                    <MaterialSymbol name="calendar_today" size={22} />
+                  </div>
+                  <input
+                    id="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => handleChange('dateOfBirth', e.target.value)}
+                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                    className="w-full px-4 py-4 bg-transparent text-gray-900 text-lg font-bold focus:outline-none invert-calendar-icon"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                {errors.dateOfBirth && <p className="mt-2 ml-1 text-xs font-bold text-red-500">{errors.dateOfBirth}</p>}
+              </div>
             </div>
 
-            {/* Gender */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">{t('Gender')}</label>
-              <div className="space-y-2">
+              <label className="block text-sm font-bold text-gray-700 mb-3 ml-1">{t('Gender')}</label>
+              <div className="grid grid-cols-2 gap-3">
                 {(['male', 'female'] as const).map((gender) => (
                   <label
                     key={gender}
-                    className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all ${formData.gender === gender
-                      ? 'border-pink-500 bg-pink-50'
-                      : 'border-gray-300 hover:border-pink-300'
+                    className={`relative flex flex-col items-center justify-center p-4 border-2 rounded-2xl cursor-pointer transition-all duration-300 ${formData.gender === gender
+                      ? 'border-pink-500 bg-pink-50/50 shadow-md'
+                      : 'border-gray-100 bg-white/30 hover:border-pink-200'
                       } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <input
@@ -391,52 +407,78 @@ export const SignupPage = () => {
                       value={gender}
                       checked={formData.gender === gender}
                       onChange={(e) => handleChange('gender', e.target.value)}
-                      className="mr-3 w-4 h-4 text-pink-500 focus:ring-pink-500"
+                      className="hidden"
                       disabled={isSubmitting}
                     />
-                    <span className="text-gray-700 capitalize">{t(gender === 'male' ? 'Male' : 'Female')}</span>
+                    <MaterialSymbol 
+                      name={gender === 'male' ? 'male' : 'female'} 
+                      size={32} 
+                      className={formData.gender === gender ? 'text-pink-600' : 'text-gray-400'}
+                      filled={formData.gender === gender}
+                    />
+                    <span className={`mt-2 text-xs font-bold uppercase tracking-wider ${formData.gender === gender ? 'text-pink-600' : 'text-gray-500'}`}>
+                      {t(gender === 'male' ? 'Male' : 'Female')}
+                    </span>
+                    {formData.gender === gender && (
+                      <div className="absolute top-2 right-2">
+                        <MaterialSymbol name="check_circle" size={16} className="text-pink-500" filled />
+                      </div>
+                    )}
                   </label>
                 ))}
               </div>
-              {errors.gender && <p className="mt-1 text-sm text-red-500">{errors.gender}</p>}
+              {errors.gender && <p className="mt-2 ml-1 text-xs font-bold text-red-500">{errors.gender}</p>}
             </div>
 
-            {/* Profile Photo */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t('Profile Photo')}</label>
-              {formData.profilePhoto ? (
-                <div className="relative">
-                  <img
-                    src={formData.profilePhoto}
-                    alt="Profile"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
+              <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">{t('Profile Photo')}</label>
+              <div className="relative group">
+                {formData.profilePhoto ? (
+                  <div className="relative aspect-video rounded-2xl overflow-hidden border-2 border-gray-100 shadow-inner bg-gray-50/50">
+                    <img
+                      src={formData.profilePhoto}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={() => profilePhotoInputRef.current?.click()}
+                        className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-white hover:bg-white/40 transition-all"
+                      >
+                        <MaterialSymbol name="edit" size={24} />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, profilePhoto: null }));
+                        if (profilePhotoInputRef.current) {
+                          profilePhotoInputRef.current.value = '';
+                        }
+                      }}
+                      className="absolute top-3 right-3 p-1.5 bg-red-500/80 backdrop-blur-sm text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                      disabled={isSubmitting}
+                    >
+                      <MaterialSymbol name="close" size={18} />
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => {
-                      setFormData((prev) => ({ ...prev, profilePhoto: null }));
-                      if (profilePhotoInputRef.current) {
-                        profilePhotoInputRef.current.value = '';
-                      }
-                    }}
-                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    onClick={() => profilePhotoInputRef.current?.click()}
+                    className={`w-full aspect-video border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all bg-white/30 ${errors.profilePhoto ? 'border-red-400 bg-red-50/10' : 'border-gray-100 hover:border-pink-200 hover:bg-pink-50/20'
+                      }`}
                     disabled={isSubmitting}
                   >
-                    <MaterialSymbol name="close" size={20} />
+                    <div className="w-16 h-16 bg-pink-100/50 rounded-full flex items-center justify-center mb-3">
+                      <MaterialSymbol name="add_a_photo" size={32} className="text-pink-500" />
+                    </div>
+                    <span className="text-sm font-bold text-gray-500">{t('Click to upload photo')}</span>
+                    <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{t('JPG, PNG up to 5MB')}</p>
                   </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => profilePhotoInputRef.current?.click()}
-                  className={`w-full h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center hover:border-pink-500 transition-colors ${errors.profilePhoto ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  disabled={isSubmitting}
-                >
-                  <MaterialSymbol name="add_photo_alternate" size={48} className="text-gray-400 mb-2" />
-                  <span className="text-gray-600">{t('Click to upload photo')}</span>
-                </button>
-              )}
+                )}
+              </div>
               <input
                 ref={profilePhotoInputRef}
                 type="file"
@@ -444,48 +486,62 @@ export const SignupPage = () => {
                 onChange={handleProfilePhotoChange}
                 className="hidden"
               />
-              {errors.profilePhoto && <p className="mt-1 text-sm text-red-500">{errors.profilePhoto}</p>}
+              {errors.profilePhoto && <p className="mt-2 ml-1 text-xs font-bold text-red-500">{errors.profilePhoto}</p>}
             </div>
 
             {/* Aadhaar Upload (Female Only) */}
             {formData.gender === 'female' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('Aadhaar Verification')} <span className="text-red-500">*</span>
+                <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
+                  {t('Aadhaar Verification')} <span className="text-red-500 font-black">*</span>
                 </label>
-                {formData.aadhaarDocument ? (
-                  <div className="relative">
-                    <img
-                      src={formData.aadhaarDocument}
-                      alt="Aadhaar"
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
+                <div className="relative group">
+                  {formData.aadhaarDocument ? (
+                    <div className="relative aspect-video rounded-2xl overflow-hidden border-2 border-gray-100 shadow-inner bg-gray-50/50">
+                      <img
+                        src={formData.aadhaarDocument}
+                        alt="Aadhaar"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => aadhaarInputRef.current?.click()}
+                          className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-white hover:bg-white/40 transition-all"
+                        >
+                          <MaterialSymbol name="edit" size={24} />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, aadhaarDocument: null }));
+                          if (aadhaarInputRef.current) {
+                            aadhaarInputRef.current.value = '';
+                          }
+                        }}
+                        className="absolute top-3 right-3 p-1.5 bg-red-500/80 backdrop-blur-sm text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                        disabled={isSubmitting}
+                      >
+                        <MaterialSymbol name="close" size={18} />
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, aadhaarDocument: null }));
-                        if (aadhaarInputRef.current) {
-                          aadhaarInputRef.current.value = '';
-                        }
-                      }}
-                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      onClick={() => aadhaarInputRef.current?.click()}
+                      className={`w-full aspect-video border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all bg-white/30 ${errors.aadhaarDocument ? 'border-red-400 bg-red-50/10' : 'border-gray-100 hover:border-pink-200 hover:bg-pink-50/20'
+                        }`}
                       disabled={isSubmitting}
                     >
-                      <MaterialSymbol name="close" size={20} />
+                      <div className="w-16 h-16 bg-blue-100/50 rounded-full flex items-center justify-center mb-3">
+                        <MaterialSymbol name="badge" size={32} className="text-blue-500" />
+                      </div>
+                      <span className="text-sm font-bold text-gray-500">{t('Upload Aadhaar for verification')}</span>
+                      <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{t('Required for verification')}</p>
                     </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => aadhaarInputRef.current?.click()}
-                    className={`w-full h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center hover:border-pink-500 transition-colors ${errors.aadhaarDocument ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    disabled={isSubmitting}
-                  >
-                    <MaterialSymbol name="badge" size={48} className="text-gray-400 mb-2" />
-                    <span className="text-gray-600">{t('Upload Aadhaar for verification')}</span>
-                  </button>
-                )}
+                  )}
+                </div>
                 <input
                   ref={aadhaarInputRef}
                   type="file"
@@ -493,16 +549,15 @@ export const SignupPage = () => {
                   onChange={handleAadhaarChange}
                   className="hidden"
                 />
-                {errors.aadhaarDocument && <p className="mt-1 text-sm text-red-500">{errors.aadhaarDocument}</p>}
-                <p className="mt-2 text-xs text-gray-500">{t('Required for female account verification')}</p>
+                {errors.aadhaarDocument && <p className="mt-2 ml-1 text-xs font-bold text-red-500">{errors.aadhaarDocument}</p>}
               </div>
             )}
 
-            {/* Submit Error - Displayed just above the button */}
+            {/* Error Message */}
             {submitError && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-1">
-                <MaterialSymbol name="error" size={20} className="text-red-500 flex-shrink-0" filled />
-                <p className="text-sm text-red-600 font-medium">{submitError}</p>
+              <div className="flex items-center gap-3 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-2xl animate-in fade-in slide-in-from-top-1">
+                <MaterialSymbol name="warning" size={20} className="text-red-500 flex-shrink-0" filled />
+                <p className="text-sm text-red-700 font-bold leading-tight">{submitError}</p>
               </div>
             )}
 
@@ -510,29 +565,33 @@ export const SignupPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold rounded-lg hover:from-pink-600 hover:to-pink-700 transform hover:scale-105 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="relative w-full py-4 bg-premium-pink text-white font-black text-lg rounded-2xl shadow-[0_10px_25px_-5px_rgba(255,77,109,0.4)] hover:shadow-[0_15px_30px_-5px_rgba(255,77,109,0.5)] transform hover:scale-[1.02] active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:grayscale overflow-hidden group"
             >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shine transition-transform" />
               {isSubmitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <MaterialSymbol name="sync" size={20} className="animate-spin" />
-                  {t('Creating Account...')}
+                <span className="flex items-center justify-center gap-3">
+                  <MaterialSymbol name="sync" size={24} className="animate-spin" />
+                  {t('Processing...')}
                 </span>
               ) : (
-                t('Create Account')
+                <span className="flex items-center justify-center gap-2">
+                  {t('Create Account')}
+                  <MaterialSymbol name="arrow_forward" size={20} />
+                </span>
               )}
             </button>
           </form>
 
           {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
+          <div className="mt-8 pt-6 border-t border-gray-100/50 text-center">
+            <p className="text-gray-500 font-medium text-sm">
               {t('Already have an account?')}{' '}
               <button
                 onClick={() => navigate('/login')}
-                className="text-pink-600 font-semibold hover:text-pink-700"
+                className="text-pink-600 font-black hover:text-pink-700 transition-colors underline decoration-2 underline-offset-4"
                 disabled={isSubmitting}
               >
-                {t('Login')}
+                {t('Login Now')}
               </button>
             </p>
           </div>

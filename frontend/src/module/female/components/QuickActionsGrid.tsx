@@ -16,12 +16,12 @@ const QuickActionCard = ({ action }: { action: QuickAction }) => {
   return (
     <button
       onClick={action.onClick}
-      className="flex flex-col items-center justify-center gap-2 rounded-xl bg-white dark:bg-[#342d18] p-4 shadow-sm hover:scale-105 active:scale-95 transition-transform duration-200"
+      className="group flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/70 dark:bg-black/40 backdrop-blur-md p-5 transition-all duration-300 border border-white/60 dark:border-white/5 shadow-sm"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <MaterialSymbol name={action.icon} filled />
+      <div className="flex size-14 items-center justify-center text-pink-500 group-hover:scale-110 transition-transform duration-500">
+        <MaterialSymbol name={action.icon} size={36} className="drop-shadow-sm" filled />
       </div>
-      <span className="text-xs font-medium text-slate-700 dark:text-[#cbbc90] text-center">
+      <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-900 dark:text-white text-center leading-tight">
         {action.label}
       </span>
     </button>
@@ -30,10 +30,15 @@ const QuickActionCard = ({ action }: { action: QuickAction }) => {
 
 export const QuickActionsGrid = ({ actions }: QuickActionsGridProps) => {
   const { t } = useTranslation();
+  
   return (
-    <div className="flex w-full flex-col px-4">
-      <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-white">{t('quickActions')}</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="flex w-full flex-col px-4 mb-2">
+      <div className="flex items-center gap-3 mb-2 px-1">
+        <MaterialSymbol name="bolt" size={22} className="text-pink-500" />
+        <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-900 dark:text-white">{t('quickActions')}</h2>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
         {actions.map((action) => (
           <QuickActionCard key={action.id} action={action} />
         ))}
@@ -41,5 +46,6 @@ export const QuickActionsGrid = ({ actions }: QuickActionsGridProps) => {
     </div>
   );
 };
+
 
 

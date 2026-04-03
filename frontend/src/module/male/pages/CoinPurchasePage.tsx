@@ -7,7 +7,6 @@ import { BalanceDisplay } from '../components/BalanceDisplay';
 import { PromoBanner } from '../components/PromoBanner';
 import { CoinPlanCard } from '../components/CoinPlanCard';
 import { TrustFooter } from '../components/TrustFooter';
-import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MembershipUpgradeModal } from '../components/MembershipUpgradeModal';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
@@ -143,11 +142,9 @@ export const CoinPurchasePage = () => {
 
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      {/* Top Navbar */}
-      <MaleTopNavbar />
-
       {/* Top App Bar */}
-      <CoinPurchaseHeader onHistoryClick={handleHistoryClick} />
+      {/* CoinPurchaseHeader Removed */}
+
 
       <div className="max-w-md mx-auto w-full flex flex-col gap-6 p-4">
         {/* Current Balance */}
@@ -184,13 +181,13 @@ export const CoinPurchasePage = () => {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-40 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+                <div key={i} className="h-48 bg-gray-200 dark:bg-gray-700/50 rounded-3xl animate-pulse" />
               ))}
             </div>
           ) : coinPlans.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {coinPlans.map((plan) => {
                 const cardProps = mapPlanToCardProps(plan);
                 return (

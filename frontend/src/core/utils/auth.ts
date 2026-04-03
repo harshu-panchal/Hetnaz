@@ -129,30 +129,36 @@ export const fetchUserProfile = async (): Promise<any> => {
 export const mapUserToProfile = (user: any): UserProfile => {
   if (!user) return null as any;
 
+  // Extremely defensive photo extraction
+  const profilePhotos = user.profile?.photos || [];
+  const primaryPhoto = profilePhotos.find((p: any) => p?.isPrimary)?.url;
+  const firstPhoto = profilePhotos[0]?.url;
+  const avatarUrl = user.avatarUrl || user.primaryPhoto || primaryPhoto || firstPhoto || '';
+
   return {
-    id: user._id || user.id,
-    phoneNumber: user.phoneNumber,
-    role: user.role,
+    id: user._id || user.id || 'unknown',
+    phoneNumber: user.phoneNumber || '',
+    role: user.role || 'user',
     name: user.name || user.fullName || user.profile?.name || 'User',
-    avatarUrl: user.avatarUrl || user.primaryPhoto || user.profile?.photos?.find((p: any) => p.isPrimary)?.url || user.profile?.photos?.[0]?.url || '',
-    photos: user.profile?.photos?.map((p: any) => p.url) || [],
-    age: user.profile?.age,
-    bio: user.profile?.bio,
-    city: user.profile?.location?.city || user.city,
-    location: user.profile?.location?.city || user.location || user.city,
-    interests: user.profile?.interests || [],
-    occupation: user.profile?.occupation,
-    isVerified: user.isVerified,
-    approvalStatus: user.approvalStatus,
-    rejectionReason: user.rejectionReason,
-    coinBalance: user.coinBalance,
-    memberTier: user.memberTier,
-    // Extract coordinates from GeoJSON structure [lng, lat]
+    avatarUrl: avatarUrl,
+    photos: profilePhotos.map((p: any) => typeof p === 'string' ? p : p?.url).filter(Boolean),
+    age: parseInt(user.profile?.age, 10) || 18,
+    bio: user.profile?.bio || '',
+    city: user.profile?.location?.city || user.location || user.city || 'Unknown',
+    location: user.profile?.location?.city || user.location || user.city || 'Location not set',
+    interests: Array.isArray(user.profile?.interests) ? user.profile.interests : [],
+    occupation: user.profile?.occupation || '',
+    isVerified: !!user.isVerified,
+    approvalStatus: user.approvalStatus || 'pending',
+    rejectionReason: user.rejectionReason || '',
+    coinBalance: parseInt(user.coinBalance, 10) || 0,
+    memberTier: user.memberTier || 'BASIC',
+    // Defensive extraction of GeoJSON coordinates [lng, lat]
     latitude: user.profile?.location?.coordinates?.coordinates?.[1] || 0,
     longitude: user.profile?.location?.coordinates?.coordinates?.[0] || 0,
-    badges: user.badges || user.profile?.badges || [],
-    referralId: user.referralId,
-    referralCount: user.referralCount || 0,
+    badges: Array.isArray(user.badges) ? user.badges : (Array.isArray(user.profile?.badges) ? user.profile.badges : []),
+    referralId: user.referralId || '',
+    referralCount: parseInt(user.referralCount, 10) || 0,
   };
 };
 

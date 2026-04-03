@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
-import { AttachmentMenu } from './AttachmentMenu';
 import { ImagePicker, ImagePickerRef } from '../../../shared/components/ImagePicker';
-import { CameraCapture } from '../../../shared/components/CameraCapture';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -12,6 +11,7 @@ interface MessageInputProps {
   placeholder?: string;
   disabled?: boolean;
   isSending?: boolean;
+  onCameraRequest?: () => void;
 }
 
 export const MessageInput = ({
@@ -22,12 +22,11 @@ export const MessageInput = ({
   placeholder = 'Type a message...',
   disabled = false,
   isSending = false,
+  onCameraRequest,
 }: MessageInputProps) => {
+  const { t } = useTranslation();
   const [message, setMessage] = useState('');
-  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const imagePickerRef = useRef<ImagePickerRef>(null);
 
@@ -49,80 +48,26 @@ export const MessageInput = ({
     }
   };
 
-  // Handle typing indicator
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setMessage(value);
 
-    // Start typing indicator
-    if (value && onTypingStart) {
-      onTypingStart();
-    }
+    if (value && onTypingStart) onTypingStart();
 
-    // Stop typing after 2 seconds of inactivity
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
-      if (onTypingStop) {
-        onTypingStop();
-      }
+      if (onTypingStop) onTypingStop();
     }, 2000);
   };
 
-  // Cleanup
   useEffect(() => {
     return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, []);
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsAttachmentMenuOpen(false);
-      }
-    };
-
-    if (isAttachmentMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isAttachmentMenuOpen]);
-
-  // Build attachment menu items
-  const attachmentItems = [];
-  if (onSendPhoto) {
-    attachmentItems.push({
-      id: 'photo',
-      icon: 'image',
-      label: 'Send Photo',
-      onClick: () => {
-        setIsAttachmentMenuOpen(false);
-        imagePickerRef.current?.pickImage();
-      },
-      color: 'bg-blue-500',
-    });
-    attachmentItems.push({
-      id: 'camera',
-      icon: 'photo_camera',
-      label: 'Take Photo',
-      onClick: () => {
-        setIsAttachmentMenuOpen(false);
-        setIsCameraOpen(true);
-      },
-      color: 'bg-green-500',
-    });
-  }
-
   return (
-    <div className="px-4 pt-3 pb-1 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 relative">
+    <div className="relative px-4 pt-3 pb-6 bg-white/80 backdrop-blur-3xl border-t border-slate-100 z-20">
       {onSendPhoto && (
         <>
           <ImagePicker
@@ -131,67 +76,67 @@ export const MessageInput = ({
             disabled={disabled || isSending}
             hidden
           />
-          <CameraCapture
-            isOpen={isCameraOpen}
-            onClose={() => setIsCameraOpen(false)}
-            onCapture={onSendPhoto}
-          />
         </>
       )}
 
-      <div className="flex items-end gap-2">
-        {/* Attachment Menu Button (+ Button) */}
+      {/* Main Input Row - Light Theme */}
+      <div className="flex items-center gap-2">
         {onSendPhoto && (
-          <div className="relative shrink-0" ref={menuRef}>
-            <button
-              onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-              disabled={disabled || isSending}
-              className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95 disabled:opacity-50"
-              aria-label="Attachments"
-            >
-              <MaterialSymbol name="add" />
-            </button>
-            <AttachmentMenu
-              isOpen={isAttachmentMenuOpen}
-              onClose={() => setIsAttachmentMenuOpen(false)}
-              items={attachmentItems}
-            />
+          <div className="flex items-center gap-1 shrink-0">
+             <button
+                onClick={() => imagePickerRef.current?.pickImage()}
+                disabled={disabled || isSending}
+                className="size-11 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-400 hover:text-pink-500 hover:bg-pink-50 transition-all active:scale-90 disabled:opacity-50"
+                aria-label="Send Photo"
+              >
+                <MaterialSymbol name="image" size={24} />
+              </button>
+
+              <button
+                onClick={onCameraRequest}
+                disabled={disabled || isSending}
+                className="size-11 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-400 hover:text-pink-500 hover:bg-pink-50 transition-all active:scale-90 disabled:opacity-50"
+                aria-label="Take Photo"
+              >
+                <MaterialSymbol name="photo_camera" size={24} />
+              </button>
           </div>
         )}
 
-        {/* Input Field */}
-        <div className="flex-1 relative">
-          <input
-            ref={inputRef}
-            type="text"
-            value={message}
-            onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            disabled={disabled || isSending}
-            className="w-full h-10 px-4 bg-white dark:bg-[#2f151e] rounded-full border border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#cc8ea3]/70 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-          />
+        {/* Light Glass Input */}
+        <div className="flex-1 relative group">
+           <div className="bg-slate-100 rounded-full p-1 px-4 border border-transparent focus-within:border-pink-200 focus-within:bg-white transition-all flex items-center h-12">
+              <input
+                ref={inputRef}
+                type="text"
+                value={message}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder={placeholder}
+                disabled={disabled || isSending}
+                className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none placeholder:text-slate-400"
+              />
+           </div>
         </div>
 
-        {/* Send Button */}
+        {/* Clean Send Button */}
         <button
           onClick={handleSend}
           disabled={!message.trim() || disabled || isSending}
-          className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white hover:bg-yellow-400 transition-colors active:scale-95 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Send message"
+          className="size-12 rounded-full flex items-center justify-center bg-pink-500 text-white shadow-lg active:scale-90 transition-all shrink-0 disabled:opacity-20 disabled:grayscale disabled:scale-95 disabled:shadow-none"
+          aria-label={t('sendMessage')}
         >
           {isSending ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="size-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
           ) : (
-            <MaterialSymbol name="send" size={20} />
+            <MaterialSymbol name="send" size={22} className="relative z-10 translate-x-0.5" filled />
           )}
         </button>
       </div>
-      <p className="text-xs text-gray-400 dark:text-[#cbbc90] mt-2 px-2 text-center">
-        Messages are free for you
+
+      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mt-4 text-center">
+        {t('messagesAreFreeForYou')}
       </p>
     </div>
   );
 };
-
-

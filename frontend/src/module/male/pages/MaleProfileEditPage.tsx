@@ -2,14 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { GoogleMapsAutocomplete } from '../../../shared/components/GoogleMapsAutocomplete';
 import axios from 'axios';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { ImageModal } from '../../../shared/components/ImageModal';
 
-import { getAuthToken } from '../../../core/utils/auth';
+import { getAuthToken, mapUserToProfile } from '../../../core/utils/auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -38,6 +38,8 @@ export const MaleProfileEditPage = () => {
   const { user, updateUser } = useAuth();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -51,7 +53,7 @@ export const MaleProfileEditPage = () => {
         ...mockProfile,
         id: user.id || mockProfile.id,
         name: user.name || 'Anonymous',
-        age: user.age || 0,
+        age: user.age || 18,
         occupation: user.occupation || '',
         city: user.city || (user.location ? user.location.split(',')[0] : '') || '',
         bio: user.bio || '',
@@ -64,15 +66,30 @@ export const MaleProfileEditPage = () => {
   }, [user]);
 
   const handleSave = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
     try {
+      // Ensure avatar is part of the photos array and is at the first position
+      let allPhotos = [...(editedProfile.photos || [])];
+      if (editedProfile.avatar && !allPhotos.includes(editedProfile.avatar)) {
+        // If avatar is new but not in gallery, put it at front
+        allPhotos = [editedProfile.avatar, ...allPhotos.filter(p => p !== editedProfile.avatar)];
+      }
+
+      // Sanitize photos: extract URL if they are objects
+      const sanitizedPhotos = allPhotos.map((p: any) => 
+        typeof p === 'object' ? p.url || p.imageUrl : p
+      ).filter(Boolean); // Remove any nulls/undefined
+
       const payload: any = {
         name: editedProfile.name,
-        age: editedProfile.age,
+        age: Math.max(18, parseInt(editedProfile.age) || 18),
         city: editedProfile.city,
         occupation: editedProfile.occupation,
         bio: editedProfile.bio,
         interests: editedProfile.interests,
-        photos: editedProfile.photos,
+        photos: sanitizedPhotos,
       };
 
       if (editedProfile.latitude && editedProfile.longitude) {
@@ -80,26 +97,26 @@ export const MaleProfileEditPage = () => {
         payload.longitude = editedProfile.longitude;
       }
 
-      await axios.patch(`${API_URL}/users/me`, payload, {
+      const response = await axios.patch(`${API_URL}/users/me`, payload, {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       });
 
-      updateUser({
-        name: editedProfile.name,
-        age: editedProfile.age,
-        city: editedProfile.city,
-        location: editedProfile.city,
-        occupation: editedProfile.occupation,
-        bio: editedProfile.bio,
-        interests: editedProfile.interests,
-        photos: editedProfile.photos,
-        avatarUrl: (editedProfile.photos && editedProfile.photos.length > 0) ? editedProfile.photos[0] : ''
-      });
+      const responseData = response.data.data || response.data;
+      const userToMap = responseData.user || responseData;
+      
+      // Correctly map backend user object to frontend UserProfile
+      const mappedProfile = mapUserToProfile(userToMap);
+      
+      // Update local context with the properly mapped profile
+      updateUser(mappedProfile);
 
       navigate('/male/my-profile');
-    } catch (error) {
-      console.error('Failed to update profile', error);
-      alert(t('failedToUpdateProfile'));
+    } catch (error: any) {
+      console.error('Failed to update profile:', error);
+      const errorMessage = error.response?.data?.message || t('failedToUpdateProfile');
+      alert(errorMessage);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -112,9 +129,19 @@ export const MaleProfileEditPage = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setEditedProfile({
-          ...editedProfile,
-          avatar: reader.result as string,
+        const result = reader.result as string;
+        setEditedProfile((prev: any) => {
+          const currentPhotos = [...(prev.photos || [])];
+          if (currentPhotos.length === 0) {
+            currentPhotos.push(result);
+          } else {
+            currentPhotos[0] = result;
+          }
+          return {
+            ...prev,
+            avatar: result,
+            photos: currentPhotos
+          };
         });
       };
       reader.readAsDataURL(file);
@@ -170,17 +197,17 @@ export const MaleProfileEditPage = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      <MaleTopNavbar />
 
-      <main className="p-4 space-y-6">
+      <main className="p-4 space-y-6 max-w-md mx-auto w-full">
         <div className="flex flex-col items-center">
           <div className="relative">
             <img
               src={editedProfile.avatar}
               alt={editedProfile.name}
-              className="w-32 h-32 rounded-full object-cover border-4 border-primary"
+              onClick={() => setIsImageModalOpen(true)}
+              className="w-32 h-32 rounded-full object-cover border-4 border-primary cursor-pointer active:scale-95 transition-transform"
             />
-            <label className="absolute bottom-0 right-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white cursor-pointer hover:bg-primary/90 transition-colors active:scale-95">
+            <label className="absolute bottom-0 right-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white cursor-pointer hover:bg-primary/90 transition-colors active:scale-95 shadow-lg border-2 border-white dark:border-black/20">
               <MaterialSymbol name="camera_alt" size={20} />
               <input
                 type="file"
@@ -381,14 +408,27 @@ export const MaleProfileEditPage = () => {
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 h-12 bg-primary text-[#231d10] font-semibold rounded-xl hover:bg-primary/90 transition-colors active:scale-95"
+            disabled={isSaving}
+            className="flex-1 h-12 bg-primary text-[#231d10] font-semibold rounded-xl hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {t('saveChanges')}
+            {isSaving ? (
+              <>
+                <div className="spinner-small"></div>
+                <span>{t('saving') || 'Saving...'}</span>
+              </>
+            ) : t('saveChanges')}
           </button>
         </div>
       </main>
 
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+      
+      {/* Full Screen Image Modal */}
+      <ImageModal
+        isOpen={isImageModalOpen}
+        imageUrl={editedProfile.avatar}
+        onClose={() => setIsImageModalOpen(false)}
+      />
     </div>
   );
 };

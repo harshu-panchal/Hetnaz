@@ -6,9 +6,10 @@ import { GiftMessageBubble } from './GiftMessageBubble';
 interface MessageBubbleProps {
   message: Message;
   onImageClick?: (imageUrl: string) => void;
+  onProfileClick?: (userId: string) => void;
 }
 
-export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => {
+export const MessageBubble = ({ message, onImageClick, onProfileClick }: MessageBubbleProps) => {
   const isSent = message.isSent;
   const time = format(message.timestamp, 'h:mm a');
 
@@ -67,12 +68,29 @@ export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => 
     const imageUrl = (message as any).attachments?.[0]?.url || message.content;
 
     return (
-      <div className={`flex ${isSent ? 'justify-end' : 'justify-start'} mb-3 px-4`}>
+      <div className={`flex items-end gap-2 ${isSent ? 'flex-row-reverse' : 'flex-row'} mb-3 px-4`}>
+        {/* Avatar */}
+        <div 
+          className={`shrink-0 mb-5 ${!isSent ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+          onClick={() => {
+            if (!isSent && onProfileClick) {
+              const uId = typeof message.senderId === 'object' ? (message.senderId as any)._id || (message.senderId as any).id : message.senderId;
+              onProfileClick(uId);
+            }
+          }}
+        >
+          <img
+            src={message.senderAvatar || 'https://via.placeholder.com/40'}
+            alt=""
+            className="w-7 h-7 rounded-full object-cover border border-white/20 dark:border-white/5 shadow-sm"
+          />
+        </div>
+
         <div className={`flex flex-col max-w-[75%] ${isSent ? 'items-end' : 'items-start'}`}>
           <div
             className={`rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${isSent
               ? 'bg-primary rounded-tr-sm'
-              : 'bg-white dark:bg-[#342d18] rounded-tl-sm'
+              : 'bg-white/80 dark:bg-white/10 backdrop-blur-md rounded-tl-sm border border-white/40 dark:border-white/5'
               }`}
             onClick={() => onImageClick?.(imageUrl)}
           >
@@ -97,26 +115,42 @@ export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => 
   }
 
   return (
-    <div className={`flex ${isSent ? 'justify-end' : 'justify-start'} mb-3 px-4`}>
-      <div className={`flex flex-col max-w-[75%] ${isSent ? 'items-end' : 'items-start'}`}>
+    <div className={`flex items-end gap-2 ${isSent ? 'flex-row-reverse' : 'flex-row'} mb-1.5 px-3 group`}>
+      {/* Avatar */}
+      {!isSent && (
+        <div 
+          className="shrink-0 mb-0.5 cursor-pointer hover:opacity-80 transition-opacity self-end pb-1"
+          onClick={() => {
+            if (onProfileClick) {
+              const uId = typeof message.senderId === 'object' ? (message.senderId as any)._id || (message.senderId as any).id : message.senderId;
+              onProfileClick(uId);
+            }
+          }}
+        >
+          <img
+            src={message.senderAvatar || 'https://via.placeholder.com/40'}
+            alt=""
+            className="w-8 h-8 rounded-full object-cover border border-gray-100 dark:border-white/10 shadow-sm"
+          />
+        </div>
+      )}
+
+      <div className={`flex flex-col max-w-[82%] ${isSent ? 'items-end' : 'items-start'}`}>
         <div
-          className={`rounded-2xl px-4 py-2.5 ${isSent
-            ? 'bg-primary text-white rounded-tr-sm'
-            : 'bg-white dark:bg-[#342d18] text-gray-900 dark:text-white rounded-tl-sm'
+          className={`rounded-2xl px-3.5 py-2 shadow-sm transition-all hover:brightness-95 ${isSent
+            ? 'bg-primary/90 text-white rounded-tr-none'
+            : 'bg-white dark:bg-[#2d1b24]/50 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/10 shadow-sm'
             }`}
         >
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+          <p className="text-[14.5px] leading-snug whitespace-pre-wrap break-words font-medium">
             {message.content}
           </p>
         </div>
-        <div className="flex items-center gap-1 mt-1">
-          <span className="text-[10px] text-gray-500 dark:text-[#cc8ea3]">{time}</span>
+        
+        {/* Subtle timestamp on hover or always if sent */}
+        <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isSent ? 'mr-1' : 'ml-1'}`}>
+          <span className="text-[9px] font-medium text-gray-400 dark:text-gray-500">{time}</span>
           {getReadStatusIcon()}
-          {message.cost && (
-            <span className="text-[10px] text-gray-500 dark:text-[#cc8ea3] ml-1">
-              • {message.cost} coins
-            </span>
-          )}
         </div>
       </div>
     </div>

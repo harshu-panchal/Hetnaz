@@ -29,7 +29,7 @@ export const LanguageSelectionPage = () => {
                 } else if (user.role === 'admin') {
                     navigate('/admin/dashboard');
                 } else {
-                    navigate('/male/discover');
+                    navigate('/male/dashboard', { replace: true });
                 }
             } else {
                 navigate('/login');

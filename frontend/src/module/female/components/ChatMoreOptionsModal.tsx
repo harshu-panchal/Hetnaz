@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { MaterialSymbol } from '../types/material-symbol';
+import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface ChatMoreOptionsModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const ChatMoreOptionsModal = ({
   userName,
   isBlocked = false,
 }: ChatMoreOptionsModalProps) => {
+  const { t } = useTranslation();
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showConfirmBlock, setShowConfirmBlock] = useState(false);
 
@@ -51,118 +53,126 @@ export const ChatMoreOptionsModal = ({
     onClose();
   };
 
+  const OptionButton = ({ onClick, icon, label, variant = 'default' }: { onClick: () => void; icon: string; label: string; variant?: 'default' | 'danger' }) => (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100/50 hover:bg-slate-100 active:scale-95 transition-all group shadow-sm`}
+    >
+      <div className="flex items-center gap-3">
+        <div className={`size-10 rounded-xl flex items-center justify-center ${variant === 'danger' ? 'bg-red-50 text-red-500' : 'bg-slate-200/50 text-slate-500'}`}>
+          <MaterialSymbol name={icon as any} size={22} />
+        </div>
+        <span className={`text-sm font-bold tracking-tight ${variant === 'danger' ? 'text-red-500' : 'text-slate-700'}`}>
+          {label}
+        </span>
+      </div>
+      <MaterialSymbol name="chevron_right" size={20} className="text-slate-300" />
+    </button>
+  );
+
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 z-40 animate-[fadeIn_0.2s_ease-out]"
-        onClick={handleClose}
+      <div 
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] animate-in fade-in duration-300" 
+        onClick={handleClose} 
       />
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-end justify-center p-4 pointer-events-none">
-        <div
-          className="bg-white dark:bg-[#342d18] rounded-t-2xl shadow-xl w-full max-w-md p-6 pointer-events-auto animate-[slideUp_0.3s_ease-out]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {showConfirmDelete ? (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Delete Chat?</h3>
-              <p className="text-sm text-gray-500 dark:text-[#cbbc90]">
-                This will permanently delete this conversation. This action cannot be undone.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleClose}
-                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-[#4a212f] text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-[#5e2a3c] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  Delete
-                </button>
+      
+      {/* Pop-up Modal Container */}
+      <div className="fixed inset-0 z-[101] flex items-center justify-center p-6 pointer-events-none">
+        <div className="w-full max-w-sm bg-white rounded-[2.5rem] shadow-2xl overflow-hidden pointer-events-auto animate-in zoom-in-95 slide-in-from-bottom-8 duration-300">
+          
+          {/* Header */}
+          <div className="p-6 pb-2 text-center">
+             <div className="size-16 rounded-[1.5rem] bg-pink-50 border border-pink-100 flex items-center justify-center text-pink-500 mx-auto mb-4">
+                <MaterialSymbol name="security" size={32} filled />
+             </div>
+             <h3 className="text-xl font-black tracking-tight text-slate-900 leading-tight">{t('vaultOptions')}</h3>
+             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">{userName}</p>
+          </div>
+
+          {/* Action Area */}
+          <div className="p-6 pt-2 space-y-2">
+            {showConfirmDelete ? (
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <p className="text-sm font-bold text-center text-slate-600 leading-relaxed px-4">{t('confirmDeleteChatDesc') || 'Delete this conversation?'}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowConfirmDelete(false)}
+                    className="flex-1 h-12 bg-slate-100 rounded-xl text-slate-500 text-xs font-black uppercase tracking-widest"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="flex-1 h-12 bg-red-500 rounded-xl text-white text-xs font-black uppercase tracking-widest"
+                  >
+                    {t('delete')}
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : showConfirmBlock ? (
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Block User?</h3>
-              <p className="text-sm text-gray-500 dark:text-[#cbbc90]">
-                You will no longer receive messages from {userName || 'this user'}. You can unblock them later.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleClose}
-                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-[#4a212f] text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-[#5e2a3c] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleBlock}
-                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  Block
-                </button>
+            ) : showConfirmBlock ? (
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <p className="text-sm font-bold text-center text-slate-600 leading-relaxed px-4">{t('confirmBlockUserDesc', { name: userName })}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowConfirmBlock(false)}
+                    className="flex-1 h-12 bg-slate-100 rounded-xl text-slate-500 text-xs font-black uppercase tracking-widest"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    onClick={handleBlock}
+                    className="flex-1 h-12 bg-red-500 rounded-xl text-white text-xs font-black uppercase tracking-widest"
+                  >
+                    {isBlocked ? t('unblock') : t('block')}
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Options</h3>
-              {onViewProfile && (
-                <button
-                  onClick={() => {
-                    onViewProfile();
-                    handleClose();
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-left"
-                >
-                  <MaterialSymbol name="person" />
-                  <span className="text-gray-900 dark:text-white">View Profile</span>
-                </button>
-              )}
-              {onBlock && (
-                <button
-                  onClick={handleBlock}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-left"
-                >
-                  <MaterialSymbol name={isBlocked ? 'check_circle' : 'block'} />
-                  <span className="text-gray-900 dark:text-white">{isBlocked ? 'Unblock User' : 'Block User'}</span>
-                </button>
-              )}
-              {onReport && (
-                <button
-                  onClick={() => {
-                    onReport();
-                    handleClose();
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-left"
-                >
-                  <MaterialSymbol name="flag" />
-                  <span className="text-gray-900 dark:text-white">Report User</span>
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={handleDelete}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-left text-red-500"
-                >
-                  <MaterialSymbol name="delete" />
-                  <span>Delete Chat</span>
-                </button>
-              )}
-              <button
-                onClick={handleClose}
-                className="w-full mt-4 px-4 py-2 bg-gray-200 dark:bg-[#4a212f] text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-[#5e2a3c] transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-2">
+                {onViewProfile && (
+                  <OptionButton 
+                     onClick={() => { onViewProfile(); handleClose(); }} 
+                     icon="person" 
+                     label={t('viewProfile')} 
+                  />
+                )}
+                {onBlock && (
+                  <OptionButton 
+                     onClick={() => setShowConfirmBlock(true)} 
+                     icon={isBlocked ? 'check_circle' : 'block'} 
+                     label={isBlocked ? (t('unblockUser') || 'Unblock User') : (t('blockUser') || 'Block User')} 
+                  />
+                )}
+                {onReport && (
+                  <OptionButton 
+                     onClick={() => { onReport(); handleClose(); }} 
+                     icon="flag" 
+                     label={t('reportUser')} 
+                  />
+                )}
+                {onDelete && (
+                  <OptionButton 
+                     onClick={() => setShowConfirmDelete(true)} 
+                     icon="delete" 
+                     label={t('deleteChat')} 
+                     variant="danger"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Close Handle */}
+          <button
+            onClick={handleClose}
+            className="w-full h-14 bg-slate-50 border-t border-slate-100 text-slate-400 text-xs font-black uppercase tracking-[0.2em] hover:bg-slate-100 transition-colors"
+          >
+            {t('closeOptions') || 'Close'}
+          </button>
         </div>
       </div>
     </>
   );
 };
-
-

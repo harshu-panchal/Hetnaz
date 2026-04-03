@@ -1,6 +1,8 @@
 import User from '../../models/User.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
 import { invalidateUserCache } from '../../middleware/auth.js';
+import * as imageUploadService from '../upload/imageUploadService.js';
+import config from '../../config/env.js';
 
 /**
  * Resubmit verification document
@@ -61,9 +63,18 @@ export const updateUserProfile = async (userId, data) => {
     // Initialize profile if it doesn't exist
     if (!user.profile) user.profile = {};
 
-    if (data.name) user.profile.name = data.name;
-    if (data.bio) user.profile.bio = data.bio;
-    if (data.age) user.profile.age = data.age;
+    if (data.name) {
+        user.profile.name = data.name;
+        // Sync English and Hindi fields for discovery/search
+        user.profile.name_en = data.name;
+        user.profile.name_hi = data.name;
+    }
+    if (data.bio) {
+        user.profile.bio = data.bio;
+        user.profile.bio_en = data.bio;
+        user.profile.bio_hi = data.bio;
+    }
+    if (data.age) user.profile.age = Math.max(18, parseInt(data.age) || 18);
     if (data.occupation) user.profile.occupation = data.occupation;
 
     // Handle location updates - consolidated into profile.location
@@ -114,14 +125,39 @@ export const updateUserProfile = async (userId, data) => {
         user.profile.interests = data.interests;
     }
 
-    if (data.photos) {
-        // Map string URLs to photo objects
-        // Assuming frontend sends array of strings
-        user.profile.photos = data.photos.map((url, index) => ({
-            url,
-            isPrimary: index === 0,
-            uploadedAt: new Date()
+    if (data.photos && Array.isArray(data.photos)) {
+        // Map string URLs or photo objects to standard photo structure
+        // If a photo is a base64 string, upload it to Cloudinary
+        const processedPhotos = await Promise.all(data.photos.map(async (p, index) => {
+            let url = typeof p === 'object' ? (p.url || p.imageUrl) : p;
+
+            // Detect base64 strings and upload them
+            if (url && url.startsWith('data:image/')) {
+                // Production Safeguard: Check if Cloudinary is configured
+                if (!config.cloudinaryCloudName || !config.cloudinaryApiKey) {
+                    console.error('[PROD_ERROR] Cloudinary not configured. Cannot upload base64 image.');
+                    throw new BadRequestError('Image upload service is currently unavailable. Please contact support.');
+                }
+
+                try {
+                    const uploadResult = await imageUploadService.uploadImageToCloudinary(url, 'profile-photos');
+                    url = uploadResult.url;
+                } catch (uploadError) {
+                    console.error('[PROD_ERROR] [Profile] Failed to upload image to Cloudinary:', uploadError.message);
+                    // If upload fails, we don't save this photo to avoid storing base64 in DB
+                    return null;
+                }
+            }
+
+            return url ? {
+                url,
+                isPrimary: index === 0,
+                uploadedAt: new Date()
+            } : null;
         }));
+
+        // Filter out failed uploads
+        user.profile.photos = processedPhotos.filter(p => p !== null);
     }
 
     await user.save();

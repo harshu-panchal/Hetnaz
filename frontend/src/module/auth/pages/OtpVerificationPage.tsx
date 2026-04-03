@@ -5,6 +5,7 @@ import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { requestSignupOtp } from '../services/auth.service';
 import { useAuth } from '../../../core/context/AuthContext';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { ArtisticBackground, ActivityCounter } from '../../../shared/components/auth/AuthLayoutComponents';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -141,7 +142,7 @@ export const OtpVerificationPage = () => {
                 } else if (user.role === 'admin') {
                     navigate('/admin/dashboard');
                 } else {
-                    navigate('/male/discover');
+                    navigate('/male/dashboard');
                 }
             }
         } catch (err: any) {
@@ -165,30 +166,41 @@ export const OtpVerificationPage = () => {
     }, [state?.phoneNumber, isLoading, error]);
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="text-center">
-                    <div className="mx-auto h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center">
-                        <MaterialSymbol name="lock" className="text-pink-600" size={24} />
+        <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
+            <ArtisticBackground />
+
+            <div className="relative z-10 max-w-md w-full">
+                {/* Header */}
+                <div className="flex flex-col items-center mb-8">
+                    <div className="relative mb-2">
+                        <div className="absolute inset-0 bg-gold/20 blur-2xl rounded-full animate-gold-pulse" />
+                        <img 
+                            src="/Hetnaz.png" 
+                            alt="HETNAZ Logo" 
+                            className="relative w-36 h-36 object-contain" 
+                        />
                     </div>
-                    <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                        {t('verifyYourPhone')}
-                    </h2>
-                    <p className="mt-2 text-sm text-gray-600 font-medium">
-                        {t('enterOTPSentTo')} <span className="text-gray-900 font-bold">
-                            +91 {state?.phoneNumber?.startsWith('91') ? state.phoneNumber.slice(2) : state?.phoneNumber}
-                        </span>
-                    </p>
+                    
+
+                    <ActivityCounter />
                 </div>
 
-                <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                    <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                        <form className="space-y-6" onSubmit={handleVerify}>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 text-center mb-4">
-                                    Enter 6-digit code
+                {/* glass-card wrapper */}
+                <div className="glass-card rounded-[2.5rem] p-8 shadow-2xl border border-white/40">
+                    <div className="text-center mb-8">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('verifyYourPhone')}</h2>
+                        <p className="text-gray-500 text-sm font-medium">
+                            {t('enterOTPSentTo')} <span className="text-pink-600 font-black">
+                                +91 {state?.phoneNumber?.startsWith('91') ? state.phoneNumber.slice(2) : state?.phoneNumber}
+                            </span>
+                        </p>
+                    </div>
+                        <form className="space-y-10" onSubmit={handleVerify}>
+                            <div className="flex flex-col items-center">
+                                <label className="block text-sm font-bold text-gray-500 uppercase tracking-widest mb-6">
+                                    {t('Enter 6-digit code')}
                                 </label>
-                                <div className="flex justify-between gap-2">
+                                <div className="flex justify-center gap-3">
                                     {otp.map((digit, index) => (
                                         <input
                                             key={index}
@@ -200,37 +212,58 @@ export const OtpVerificationPage = () => {
                                             value={digit}
                                             onChange={(e) => handleChange(e.target, index)}
                                             onKeyDown={(e) => handleKeyDown(e, index)}
-                                            className="w-12 h-12 text-center text-xl border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500 border-2"
+                                            className={`w-12 h-14 text-center text-2xl font-black rounded-2xl border-2 transition-all duration-300 bg-white/50 focus:outline-none ${digit 
+                                                ? 'border-pink-500 text-pink-600 shadow-[0_0_15px_rgba(236,72,153,0.2)]' 
+                                                : 'border-gray-100 text-gray-900 focus:border-pink-300'
+                                            }`}
+                                            autoFocus={index === 0}
                                         />
                                     ))}
                                 </div>
                             </div>
 
                             {error && (
-                                <div className="text-red-500 text-sm text-center">{error}</div>
+                                <div className="flex items-center justify-center gap-2 p-3 bg-red-50/80 backdrop-blur-sm border border-red-100 rounded-2xl animate-in fade-in slide-in-from-top-1">
+                                    <MaterialSymbol name="warning" size={18} className="text-red-500" filled />
+                                    <p className="text-xs font-bold text-red-600 leading-tight">{error}</p>
+                                </div>
                             )}
 
-                            <div>
+                            <div className="space-y-6">
                                 <button
                                     type="submit"
                                     disabled={isLoading || otp.join('').length !== 6}
-                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:bg-gray-400"
+                                    className="relative w-full py-4 bg-premium-pink text-white font-black text-lg rounded-2xl shadow-[0_10px_25px_-5px_rgba(255,77,109,0.4)] hover:shadow-[0_15px_30px_-5px_rgba(255,77,109,0.5)] transform hover:scale-[1.02] active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:grayscale overflow-hidden group"
                                 >
-                                    {isLoading ? t('loading') : t('verify')}
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shine transition-transform" />
+                                    {isLoading ? (
+                                        <span className="flex items-center justify-center gap-3">
+                                            <MaterialSymbol name="sync" size={24} className="animate-spin" />
+                                            {t('loading')}
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center justify-center gap-2">
+                                            {t('verify')}
+                                            <MaterialSymbol name="verified" size={20} />
+                                        </span>
+                                    )}
                                 </button>
+
+                                <div className="text-center">
+                                    <button
+                                        type="button"
+                                        onClick={handleResend}
+                                        disabled={timer > 0 || isLoading}
+                                        className={`group relative inline-flex flex-col items-center gap-1 transition-all duration-300 ${timer > 0 ? 'opacity-60 grayscale' : 'hover:scale-105'}`}
+                                    >
+                                        <span className={`text-sm font-black ${timer > 0 ? 'text-gray-400' : 'text-pink-600'}`}>
+                                            {timer > 0 ? `${t('resendIn')} ${timer}s` : t('resendOTP')}
+                                        </span>
+                                        <div className={`h-1 rounded-full bg-pink-500 transition-all duration-500 ${timer > 0 ? 'w-0' : 'w-full scale-x-0 group-hover:scale-x-100'}`} />
+                                    </button>
+                                </div>
                             </div>
                         </form>
-
-                        <div className="mt-6 text-center">
-                            <button
-                                onClick={handleResend}
-                                disabled={timer > 0 || isLoading}
-                                className="text-sm font-medium text-pink-600 hover:text-pink-500 disabled:text-gray-400"
-                            >
-                                {timer > 0 ? `${t('resendIn')} ${timer}s` : t('resendOTP')}
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

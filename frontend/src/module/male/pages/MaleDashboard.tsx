@@ -4,7 +4,7 @@ import { useAuth } from '../../../core/context/AuthContext';
 import { DiscoverNearbyCard } from '../components/DiscoverNearbyCard';
 import { ActiveChatsList } from '../components/ActiveChatsList';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { ProfileHeader } from '../components/ProfileHeader';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
@@ -14,6 +14,7 @@ import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import apiClient from '../../../core/api/client';
+import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
 
 
 export const MaleDashboard = () => {
@@ -105,7 +106,7 @@ export const MaleDashboard = () => {
   };
 
   const activeChatsForDisplay = useMemo(() => {
-    return rawChats.map((chat: any) => {
+    return rawChats.slice(0, 5).map((chat: any) => {
       const otherUser = chat.otherUser || {};
 
       return {
@@ -139,8 +140,9 @@ export const MaleDashboard = () => {
   // This allows cached chats to show up even if nearby users are loading
   if (isChatsLoading && isNearbyLoading && rawChats.length === 0 && nearbyUsers.length === 0) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark">
-        <div className="flex flex-col items-center gap-4">
+      <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark overflow-hidden relative">
+        <MeshBackground />
+        <div className="relative z-10 flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">
             {t('loading')}
@@ -151,79 +153,112 @@ export const MaleDashboard = () => {
   }
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col bg-gradient-to-br from-pink-50 via-rose-50/30 to-white dark:from-[#1a0f14] dark:via-[#2d1a24] dark:to-[#0a0a0a] overflow-x-hidden pb-24">
+    <div className="font-display text-slate-900 dark:text-white antialiased selection:bg-pink-500 selection:text-white min-h-screen relative overflow-x-hidden">
+      <MeshBackground />
+      
+      {/* Scrollable Content Layer */}
+      <div className="relative z-10 flex flex-col min-h-screen pb-24 max-w-md mx-auto w-full">
+        {/* Header Removed */}
+        
+        <ProfileHeader 
+          user={user ? { 
+            name: user.name || '',
+            avatar: user.avatarUrl || '',
+            isPremium: user.memberTier ? user.memberTier !== 'basic' : false,
+            isOnline: true,
+            memberTier: user.memberTier || 'basic'
+          } : { name: t('loading'), avatar: '', isPremium: false, isOnline: false }}
+          onEditClick={() => navigate('/male/profile/edit')}
+          showEdit={false}
+        />
 
 
-      <MaleTopNavbar />
 
-      <DiscoverNearbyCard
-        nearbyUsers={nearbyUsers}
-        onExploreClick={handleExploreClick}
-      />
+        <DiscoverNearbyCard
+          nearbyUsers={nearbyUsers}
+          onExploreClick={handleExploreClick}
+        />
 
-      {/* Achievements Section */}
-      <div className="px-4 mb-2">
-        <div className="bg-gradient-to-br from-white via-pink-50/50 to-rose-50/30 dark:from-[#2d1a24] dark:via-[#3d2530] dark:to-[#2d1a24] rounded-2xl p-5 shadow-lg border border-pink-200/50 dark:border-pink-900/30 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-200/20 dark:bg-pink-900/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-md">
-                  <MaterialSymbol name="workspace_premium" className="text-white" size={24} />
+        {/* Achievements Section "The Vault" Teaser */}
+        <div className="px-4 mb-8">
+          <div className="skeuo-card bg-mesh-glass rounded-[2.5rem] p-6 relative overflow-hidden group shadow-2xl border-white/60 dark:border-white/5">
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 via-transparent to-rose-500/5 pointer-events-none" />
+            
+            <div className="relative">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="skeuo-inset size-10 rounded-2xl flex items-center justify-center bg-primary/10">
+                    <MaterialSymbol name="workspace_premium" className="text-primary drop-shadow-[0_2px_8_rgba(255,217,61,0.3)]" size={24} filled />
+                  </div>
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">{t('badges')}</h3>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('badges')}</h3>
-              </div>
-              <button
-                onClick={() => navigate('/male/badges')}
-                className="text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors"
-              >
-                {t('viewAll')}
-              </button>
-            </div>
-            {user?.badges && user.badges.length > 0 ? (
-              <BadgeDisplay
-                badges={user.badges}
-                maxDisplay={5}
-                showUnlockedOnly={true}
-                compact={true}
-                onBadgeClick={() => navigate('/male/badges')}
-              />
-            ) : (
-              <div className="text-center py-4 px-2 bg-pink-100/30 dark:bg-pink-900/10 rounded-xl border border-dashed border-pink-200 dark:border-pink-800">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('noBadgesYet')}
-                </p>
                 <button
                   onClick={() => navigate('/male/badges')}
-                  className="mt-2 text-xs font-bold text-primary"
+                  className="text-[10px] font-black uppercase tracking-widest text-primary hover:scale-105 transition-transform"
                 >
-                  {t('exploreAchievements')}
+                  {t('viewAll')}
                 </button>
               </div>
-            )}
+
+              {user?.badges && user.badges.length > 0 ? (
+                <div className="bg-white/10 backdrop-blur-md rounded-[1.5rem] p-4 border border-white/20">
+                  <BadgeDisplay
+                    badges={user.badges}
+                    maxDisplay={5}
+                    showUnlockedOnly={true}
+                    compact={true}
+                    onBadgeClick={() => navigate('/male/badges')}
+                  />
+                </div>
+              ) : (
+                <div className="relative overflow-hidden skeuo-inset rounded-[2rem] p-8 flex flex-col items-center justify-center text-center">
+                   <div className="absolute inset-0 bg-mesh-glass opacity-20" />
+                   
+                   <div className="relative size-16 skeuo-card rounded-full flex items-center justify-center mb-4 group-hover:animate-pulse-slow">
+                      <MaterialSymbol name="award_star" size={32} className="text-slate-300 dark:text-slate-600" />
+                      <div className="absolute inset-3 bg-pink-500/5 blur-[10px] rounded-full" />
+                   </div>
+                   
+                   <h4 className="relative z-10 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-1">
+                      {t('unlockedCount')} 0
+                   </h4>
+                   <p className="relative z-10 text-[11px] font-bold text-slate-400/80 dark:text-slate-600 mb-4 tracking-wide max-w-[200px]">
+                      {t('noBadgesYet')}
+                   </p>
+                   
+                   <button
+                      onClick={() => navigate('/male/badges')}
+                      className="relative z-10 skeuo-button px-6 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 group/btn"
+                   >
+                      <span className="text-[10px] font-black uppercase tracking-widest text-primary group-hover/btn:scale-105 transition-transform">{t('Explore achievements')}</span>
+                   </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        <ActiveChatsList
+          chats={activeChatsForDisplay}
+          onChatClick={handleChatClick}
+          onSeeAllClick={handleSeeAllChatsClick}
+        />
+
+        <BottomNavigation
+          items={navigationItems}
+          onItemClick={handleNavigationClick}
+        />
+
+        {/* Daily Reward Modal */}
+        <DailyRewardModal
+          isOpen={isDailyRewardModalOpen}
+          onClose={() => setIsDailyRewardModalOpen(false)}
+          coinsAwarded={dailyRewardData.amount}
+          newBalance={dailyRewardData.newBalance}
+        />
       </div>
-
-      <ActiveChatsList
-        chats={activeChatsForDisplay}
-        onChatClick={handleChatClick}
-        onSeeAllClick={handleSeeAllChatsClick}
-      />
-
-      <BottomNavigation
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
-
-      {/* Daily Reward Modal */}
-      <DailyRewardModal
-        isOpen={isDailyRewardModalOpen}
-        onClose={() => setIsDailyRewardModalOpen(false)}
-        coinsAwarded={dailyRewardData.amount}
-        newBalance={dailyRewardData.newBalance}
-      />
     </div>
   );
 };
+
 

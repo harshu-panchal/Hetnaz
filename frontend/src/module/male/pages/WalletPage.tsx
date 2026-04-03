@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WalletHeader } from '../components/WalletHeader';
-import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
 import { TransactionItem } from '../components/TransactionItem';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -142,10 +141,12 @@ export const WalletPage = () => {
   const userAvatar = user?.photos?.[0] || '';
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto shadow-xl bg-background-light dark:bg-background-dark pb-20 font-display">
+    <div className="relative flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark pb-24 font-display">
       {/* Top App Bar */}
-      <MaleTopNavbar />
-      <WalletHeader onHelpClick={handleHelpClick} />
+      {/* WalletHeader Removed */}
+
+
+      <div className="max-w-md mx-auto w-full flex flex-col">
 
       {/* Profile / Balance Header */}
       <div className="flex p-4 flex-col gap-6 items-center">
@@ -160,9 +161,9 @@ export const WalletPage = () => {
         <div className="w-full">
           <button
             onClick={handleBuyCoins}
-            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 bg-primary hover:bg-primary/90 transition-colors text-[#231d10] gap-2 text-lg font-bold shadow-lg shadow-primary/20 active:scale-95"
+            className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl h-14 bg-gradient-to-r from-primary via-orange-400 to-primary bg-[length:200%_auto] animate-gradient-x hover:scale-[1.02] transition-all text-slate-900 gap-2 text-lg font-black shadow-lg shadow-primary/30 active:scale-95"
           >
-            <MaterialSymbol name="add_circle" size={24} />
+            <MaterialSymbol name="add_circle" size={24} filled />
             <span>{t('buyCoins')}</span>
           </button>
         </div>
@@ -171,8 +172,8 @@ export const WalletPage = () => {
       <div className="h-2 bg-transparent" />
 
       {/* Transaction History Header */}
-      <div className="px-4">
-        <h3 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-3">
+      <div className="px-5 mt-4">
+        <h3 className="text-slate-900 dark:text-white text-xl font-black leading-tight tracking-tight pb-4 border-b border-black/5 dark:border-white/5">
           {t('transactionHistory')}
         </h3>
       </div>
@@ -228,6 +229,7 @@ export const WalletPage = () => {
           </div>
         )}
         <div className="h-4" />
+      </div>
       </div>
 
       {/* Bottom Navigation Bar */}

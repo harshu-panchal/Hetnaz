@@ -4,6 +4,14 @@
  * @purpose: Initialize server with Express, Socket.IO, and MongoDB
  */
 
+import dns from 'dns';
+// Force use of Google DNS as it often handles MongoDB Atlas SRV records more reliably
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+} catch (e) {
+  console.warn('⚠️ DNS server configuration failed:', e.message);
+}
+
 import http from 'http';
 import { Server } from 'socket.io';
 import app from './app.js';
@@ -87,7 +95,7 @@ const startServer = async () => {
     }
 
     // Start HTTP server
-    server.listen(port, () => {
+    server.listen(port, '0.0.0.0', () => {
       logger.info(`🚀 Server running in ${nodeEnv} mode on port ${port}`);
       logger.info(`📡 Socket.IO server initialized`);
       logger.info(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);

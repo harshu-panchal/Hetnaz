@@ -86,8 +86,9 @@ const chatSchema = new mongoose.Schema(
 // chatSchema.index({ 'participants.userId': 1 });
 chatSchema.index({ lastMessageAt: -1 });
 chatSchema.index({ isActive: 1, lastMessageAt: -1 });
-// Precision index for dashbaord & chat listing performance
-chatSchema.index({ 'participants.userId': 1, isActive: 1, 'deletedBy.userId': 1, lastMessageAt: -1 });
+// Production-optimized index for chat list performance (filtered by user/active, sorted by date)
+chatSchema.index({ 'participants.userId': 1, isActive: 1, lastMessageAt: -1 });
+chatSchema.index({ 'deletedBy.userId': 1 });
 // Compound index for finding chat between two users
 chatSchema.index({ 'participants.userId': 1, isActive: 1 });
 // chatSchema.index({ 'participants.userId': 1, 'participants.userId': 1 }, { unique: true });

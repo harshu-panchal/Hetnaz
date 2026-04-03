@@ -15,7 +15,7 @@ interface QuickActionsGridProps {
 
 export const QuickActionsGrid = ({ actions, onActionClick }: QuickActionsGridProps) => {
   return (
-    <div className="grid grid-cols-2 gap-3 w-full">
+    <div className={`grid gap-3 w-full ${actions.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
       {actions.map((action) => (
         <button
           key={action.id}

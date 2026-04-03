@@ -6,6 +6,7 @@
 
 import mongoose from 'mongoose';
 import logger from '../utils/logger.js';
+import dns from 'dns';
 
 class Database {
   constructor() {
@@ -27,10 +28,10 @@ class Database {
       const options = {
         maxPoolSize: 50, // Increase connection pool
         minPoolSize: 5,  // Keep minimum connections ready
-        serverSelectionTimeoutMS: 10000, // Increased timeout for initial connection
-        socketTimeoutMS: 30000,
-        connectTimeoutMS: 10000,
-        heartbeatFrequencyMS: 10000, // More frequent heartbeats
+        serverSelectionTimeoutMS: 30000,
+        socketTimeoutMS: 60000,
+        connectTimeoutMS: 30000,
+        heartbeatFrequencyMS: 10000,
         retryWrites: true,
         retryReads: true,
       };

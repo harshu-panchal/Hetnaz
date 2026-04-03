@@ -11,7 +11,7 @@ export const CoinPurchaseHeader = ({ onHistoryClick }: CoinPurchaseHeaderProps) 
   const { t } = useTranslation();
 
   return (
-    <div className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-200 dark:border-white/5">
+    <div className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-200 dark:border-white/5 pt-10">
       <div className="flex items-center p-4 justify-between max-w-md mx-auto w-full">
         <button
           onClick={() => navigate(-1)}

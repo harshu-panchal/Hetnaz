@@ -74,32 +74,35 @@ export const GiftCarouselViewer = ({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 z-50 animate-[fadeIn_0.2s_ease-out]"
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 animate-in fade-in duration-300"
         onClick={onClose}
       />
 
       {/* Carousel Container */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-md bg-white dark:bg-[#2f151e] rounded-3xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-sm bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 flex items-center justify-center size-10 rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-colors active:scale-95"
+            className="absolute top-6 right-6 z-20 flex items-center justify-center size-12 rounded-2xl bg-white/90 backdrop-blur-md text-slate-400 hover:text-pink-500 shadow-xl transition-all active:scale-95"
             aria-label="Close"
           >
             <MaterialSymbol name="close" size={24} />
           </button>
 
           {/* Gift Display Area */}
-          <div className={`relative aspect-square bg-gradient-to-br ${theme.primary} flex items-center justify-center p-8`}>
+          <div className={`relative aspect-square bg-gradient-to-br ${theme.primary} flex items-center justify-center p-8 overflow-hidden`}>
+            {/* Glossy Reflection Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-white/5 pointer-events-none" />
+
             {/* Previous Button */}
             {gifts.length > 1 && (
               <button
                 onClick={handlePrevious}
-                className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center size-12 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-sm text-gray-900 dark:text-white hover:bg-white dark:hover:bg-black/70 transition-colors shadow-lg active:scale-95 z-10"
+                className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center justify-center size-12 rounded-2xl bg-white/95 text-slate-800 hover:bg-white shadow-xl transition-all active:scale-90 z-10"
                 aria-label="Previous gift"
               >
                 <MaterialSymbol name="chevron_left" size={28} />
@@ -107,71 +110,36 @@ export const GiftCarouselViewer = ({
             )}
 
             {/* Gift Card */}
-            <div className="flex flex-col items-center gap-6 w-full">
+            <div className="flex flex-col items-center gap-6 w-full relative z-10">
               {/* Gift Icon */}
               <div className="relative">
-                <div className="p-8 bg-white/90 dark:bg-black/50 rounded-full shadow-2xl backdrop-blur-sm">
-                  {currentGift.imageUrl ? (
-                    <img
-                      src={currentGift.imageUrl}
-                      alt={currentGift.name}
-                      className="w-32 h-32 object-contain drop-shadow-xl"
-                    />
-                  ) : (
-                    <MaterialSymbol
-                      name={currentGift.icon as any}
-                      size={80}
-                      className={theme.iconColor}
-                    />
-                  )}
-                </div>
-                {/* Category Badge */}
-                {currentGift.category && (
-                  <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r ${theme.primary} text-white text-xs font-semibold rounded-full capitalize shadow-md`}>
-                    {currentGift.category}
-                  </div>
-                )}
+                 <div className="absolute inset-0 bg-white/20 blur-3xl rounded-full scale-125 opacity-50" />
+                 <div className="size-48 bg-white/95 rounded-[3rem] shadow-2xl flex items-center justify-center relative border border-white/50">
+                    {currentGift.imageUrl ? (
+                      <img
+                        src={currentGift.imageUrl}
+                        alt={currentGift.name}
+                        className="w-32 h-32 object-contain drop-shadow-xl"
+                      />
+                    ) : (
+                      <MaterialSymbol
+                        name={currentGift.icon as any}
+                        size={80}
+                        className={theme.iconColor}
+                      />
+                    )}
+                 </div>
               </div>
 
               {/* Gift Name */}
-              <div className="text-center relative z-10">
-                <h2 className="text-3xl font-bold text-white drop-shadow-lg mb-2">
+              <div className="text-center">
+                <h2 className="text-3xl font-black text-white drop-shadow-md mb-2 tracking-tight">
                   {currentGift.name}
                 </h2>
                 {currentGift.description && (
-                  <p className="text-base text-white/90 drop-shadow-md">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80 drop-shadow-sm px-8 leading-relaxed">
                     {currentGift.description}
                   </p>
-                )}
-                {currentGift.senderName && (
-                  <p className="text-sm text-white/80 drop-shadow-md mt-2">
-                    From {currentGift.senderName}
-                  </p>
-                )}
-              </div>
-
-              {/* Quantity Badge */}
-              {currentGift.quantity && currentGift.quantity > 1 && (
-                <div className="px-4 py-2 bg-white/90 dark:bg-black/50 rounded-full backdrop-blur-sm mb-2">
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
-                    Quantity: {currentGift.quantity}
-                  </span>
-                </div>
-              )}
-
-              {/* Trade Value Display */}
-              <div className="flex flex-col items-center gap-2 px-4 py-2 bg-white/90 dark:bg-black/50 rounded-full backdrop-blur-sm">
-                <div className="flex items-center gap-2">
-                  <MaterialSymbol name="monetization_on" size={20} className="text-green-600 dark:text-green-400" />
-                  <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                    Trade Value: ₹{currentGift.tradeValue}
-                    {currentGift.quantity && currentGift.quantity > 1 && ` × ${currentGift.quantity}`}
-                  </span>
-                </div>
-                {currentGift.quantity && currentGift.quantity > 1 && (
-                  <span className="text-base font-bold text-green-600 dark:text-green-400">
-                    Total: ₹{currentGift.tradeValue * currentGift.quantity}
-                  </span>
                 )}
               </div>
             </div>
@@ -180,7 +148,7 @@ export const GiftCarouselViewer = ({
             {gifts.length > 1 && (
               <button
                 onClick={handleNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center size-12 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-sm text-gray-900 dark:text-white hover:bg-white dark:hover:bg-black/70 transition-colors shadow-lg active:scale-95 z-10"
+                className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center justify-center size-12 rounded-2xl bg-white/95 text-slate-800 hover:bg-white shadow-xl transition-all active:scale-90 z-10"
                 aria-label="Next gift"
               >
                 <MaterialSymbol name="chevron_right" size={28} />
@@ -188,67 +156,55 @@ export const GiftCarouselViewer = ({
             )}
           </div>
 
-          {/* Note Section */}
-          {note && (
-            <div className="px-6 py-5 bg-gradient-to-br from-pink-50 via-purple-50 to-pink-50 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-pink-900/20 border-t-2 border-pink-200 dark:border-pink-800/50 relative overflow-hidden">
-              {/* Decorative background elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-pink-200/30 dark:bg-pink-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-200/30 dark:bg-purple-500/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-
-              <div className="relative flex items-start gap-3">
-                {/* Quote icon */}
-                <div className="flex-shrink-0 mt-1">
-                  <div className="p-2 bg-white/80 dark:bg-black/40 rounded-full shadow-md backdrop-blur-sm">
-                    <MaterialSymbol
-                      name="format_quote"
-                      size={24}
-                      className="text-pink-500 dark:text-pink-400"
-                    />
+          {/* Details Section */}
+          <div className="p-8 bg-white relative">
+            <div className="space-y-6">
+               {/* Trade Value & Quantity */}
+               <div className="flex items-center justify-between bg-slate-50 px-5 py-4 rounded-3xl border border-slate-100">
+                  <div className="space-y-0.5">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Trade Value</p>
+                     <div className="flex items-center gap-1.5">
+                       <MaterialSymbol name="monetization_on" size={18} className="text-amber-500" />
+                       <span className="text-lg font-black text-slate-800 tracking-tight">
+                         ₹{currentGift.tradeValue * (currentGift.quantity || 1)}
+                       </span>
+                     </div>
                   </div>
-                </div>
+                  {currentGift.quantity && currentGift.quantity > 1 && (
+                    <div className="bg-pink-500 text-white px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-500/20">
+                      ×{currentGift.quantity}
+                    </div>
+                  )}
+               </div>
 
-                {/* Note content */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-base text-gray-800 dark:text-gray-100 leading-relaxed font-medium italic relative z-10">
+               {/* Note */}
+               {note && (
+                <div className="relative group">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-pink-500/20 rounded-full" />
+                  <p className="pl-5 text-sm font-medium italic text-slate-600 leading-relaxed">
                     "{note}"
                   </p>
-
-                  {/* Decorative line */}
-                  <div className="mt-3 flex items-center gap-2">
-                    <div className="flex-1 h-px bg-gradient-to-r from-pink-300 via-purple-300 to-pink-300 dark:from-pink-500/50 dark:via-purple-500/50 dark:to-pink-500/50" />
-                    <MaterialSymbol
-                      name="favorite"
-                      size={12}
-                      className="text-pink-400 dark:text-pink-500"
-                    />
-                    <div className="flex-1 h-px bg-gradient-to-l from-pink-300 via-purple-300 to-pink-300 dark:from-pink-500/50 dark:via-purple-500/50 dark:to-pink-500/50" />
-                  </div>
                 </div>
-              </div>
+               )}
             </div>
-          )}
-
-          {/* Dots Indicator */}
-          {gifts.length > 1 && (
-            <div className="px-6 py-4 bg-white dark:bg-[#2f151e] border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-center gap-2">
+            
+            {/* Capsule Indicator */}
+            {gifts.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10">
                 {gifts.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => handleDotClick(index)}
-                    className={`size-2 rounded-full transition-all ${index === currentIndex
-                        ? 'bg-pink-500 size-3'
-                        : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                    className={`h-1.5 transition-all duration-500 rounded-full ${index === currentIndex
+                        ? 'w-8 bg-pink-500'
+                        : 'w-1.5 bg-slate-200 hover:bg-slate-300'
                       }`}
                     aria-label={`Go to gift ${index + 1}`}
                   />
                 ))}
               </div>
-              <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">
-                {currentIndex + 1} of {gifts.length}
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </>

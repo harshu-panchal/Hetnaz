@@ -26,10 +26,16 @@ export const useMaleNavigation = () => {
 
   const navigationItems = [
     {
+      id: 'home',
+      icon: 'home',
+      label: t('home'),
+      isActive: location.pathname === '/male/dashboard'
+    },
+    {
       id: 'discover',
       icon: 'explore',
       label: t('discover'),
-      isActive: location.pathname === '/male/dashboard' || location.pathname === '/male/discover'
+      isActive: location.pathname === '/male/discover'
     },
     {
       id: 'chats',
@@ -56,6 +62,9 @@ export const useMaleNavigation = () => {
 
   const handleNavigationClick = (itemId: string) => {
     switch (itemId) {
+      case 'home':
+        navigate('/male/dashboard');
+        break;
       case 'discover':
         navigate('/male/discover');
         break;

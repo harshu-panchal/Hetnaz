@@ -12,7 +12,6 @@ interface ChatWindowHeaderProps {
   userName: string;
   userAvatar: string;
   isOnline: boolean;
-  isVIP?: boolean;
   isVerified?: boolean;
   coinBalance?: number;
   intimacy?: IntimacyInfo | null;
@@ -27,7 +26,6 @@ export const ChatWindowHeader = ({
   userName,
   userAvatar,
   isOnline,
-  isVIP,
   isVerified,
 
   intimacy,
@@ -60,103 +58,85 @@ export const ChatWindowHeader = ({
   };
 
   return (
-    <header className="flex flex-col bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-white/5 z-10">
+    <header className="flex flex-col bg-white/70 dark:bg-black/40 backdrop-blur-md z-20 sticky top-0 border-b border-white/20 dark:border-white/5 shadow-sm pt-10">
       {/* Main Header Row */}
-      <div className="flex items-center justify-between px-3 py-2">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          {/* Back Button */}
+      <div className="flex items-center justify-between px-3 py-2 h-16">
+        {/* Left Side: Back + User Info (Reverted to left-aligned) */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <button
             onClick={handleBack}
-            className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95 shrink-0"
+            className="flex items-center justify-center p-2 text-gray-800 dark:text-white active:opacity-50 transition-all hover:scale-110"
             aria-label="Back"
           >
-            <MaterialSymbol name="arrow_back" size={20} />
+            <MaterialSymbol name="arrow_back" size={24} />
           </button>
 
-          {/* User Info */}
           <button
             onClick={onUserInfoClick}
-            className="flex items-center gap-2 flex-1 min-w-0 text-left active:opacity-70 transition-opacity"
+            className="flex items-center gap-3 min-w-0 active:opacity-70 transition-opacity"
           >
             <div className="relative shrink-0">
-              {isVIP && (
-                <div className="absolute -inset-[2px] rounded-full bg-gradient-to-tr from-gold to-yellow-600 opacity-80" />
-              )}
               <img
                 alt={`${userName} avatar`}
-                className={`h-8 w-8 rounded-full object-cover border-2 border-white dark:border-[#230f16] ${isVIP ? 'relative' : ''
-                  }`}
+                className="h-10 w-10 rounded-full object-cover border-[1.5px] border-white dark:border-white/10 shadow-sm"
                 src={userAvatar || 'https://via.placeholder.com/40'}
               />
               {isOnline && (
-                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background-light dark:border-background-dark" />
+                <div className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white dark:border-[#1a0f14]" />
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-base font-bold text-gray-900 dark:text-white truncate leading-tight">
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white truncate">
                   {userName}
                 </h2>
-                {isVerified && (
-                  <MaterialSymbol name="verified" filled size={14} className="text-blue-500 shrink-0" />
-                )}
-                {isVIP && (
-                  <MaterialSymbol name="star" filled size={14} className="text-gold shrink-0" />
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] text-gray-500 dark:text-[#cc8ea3] leading-tight">
-                  {isOnline ? 'Online' : 'Offline'}
-                </p>
-                {/* Intimacy Badge */}
                 {intimacy && (
-                  <span className={`px-1.5 py-0.5 text-[8px] font-bold text-white rounded-full bg-gradient-to-r ${getIntimacyColor(intimacy.level)}`}>
-                    {intimacy.badge.split(' ')[0]} Lv.{intimacy.level}
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-white bg-gradient-to-r ${getIntimacyColor(intimacy.level)}`}>
+                    Lv.{intimacy.level}
                   </span>
                 )}
+                {isVerified && (
+                  <MaterialSymbol name="verified" filled size={16} className="text-blue-500" />
+                )}
               </div>
+              <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                {isOnline ? 'Active now' : 'Active some time ago'}
+              </p>
             </div>
           </button>
         </div>
 
+        {/* Right Side: Action Icons */}
+        <div className="flex items-center gap-1">
+          {/* Video Call */}
+          {showVideoCall && onVideoCall && (
+            <button
+              onClick={onVideoCall}
+              className="p-2.5 text-gray-700 dark:text-white active:opacity-50 hover:scale-110 transition-transform"
+              aria-label="Video Call"
+            >
+              <MaterialSymbol name="videocam" size={24} />
+            </button>
+          )}
 
-
-        {/* Video Call Button */}
-        {showVideoCall && onVideoCall && (
+          {/* Info */}
           <button
-            onClick={onVideoCall}
-            className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 transition-all active:scale-95 shrink-0 mr-2 shadow-md"
-            aria-label="Video Call"
-            title="Start Video Call (500 coins)"
+            onClick={onMoreClick}
+            className="p-2.5 text-gray-700 dark:text-white active:opacity-50 hover:scale-110 transition-transform"
+            aria-label="Info"
           >
-            <MaterialSymbol name="videocam" size={18} />
+            <MaterialSymbol name="info" size={22} />
           </button>
-        )}
-
-        {/* More Options Button */}
-        <button
-          onClick={onMoreClick}
-          className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95 shrink-0"
-          aria-label="More options"
-        >
-          <MaterialSymbol name="more_vert" size={20} />
-        </button>
+        </div>
       </div>
 
-      {/* Intimacy Progress Bar */}
+      {/* Intimacy Progress Bar (Very thin, Instagram-like subtle loader) */}
       {intimacy && intimacy.level < 10 && (
-        <div className="px-3 pb-1">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full bg-gradient-to-r ${getIntimacyColor(intimacy.level)} transition-all duration-500`}
-                style={{ width: `${intimacy.progress}%` }}
-              />
-            </div>
-            <span className="text-[9px] text-gray-400 shrink-0 min-w-[50px] text-right">
-              {intimacy.messagesToNextLevel} to Lv.{intimacy.level + 1}
-            </span>
-          </div>
+        <div className="w-full absolute bottom-0 left-0 right-0 h-[2px] bg-gray-100 dark:bg-gray-800/30 overflow-hidden">
+          <div
+            className={`h-full bg-gradient-to-r ${getIntimacyColor(intimacy.level)} transition-all duration-700 ease-out`}
+            style={{ width: `${intimacy.progress}%` }}
+          />
         </div>
       )}
     </header>

@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
-import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
-import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { useAuth } from '../../../core/context/AuthContext';
 import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import userService from '../../../core/services/user.service';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
 
 interface UserProfile {
   _id: string;
@@ -23,36 +22,15 @@ interface UserProfile {
   latitude?: number;
   longitude?: number;
   memberTier?: 'basic' | 'silver' | 'gold' | 'platinum';
+  role?: string;
 }
 
-// Tier badge styling
-const tierBadgeConfig = {
-  basic: null, // Don't show badge for basic
-  silver: {
-    label: 'SILVER',
-    icon: '⭐',
-    bgClass: 'bg-gradient-to-r from-gray-300 to-gray-400',
-    textClass: 'text-gray-800',
-  },
-  gold: {
-    label: 'GOLD',
-    icon: '👑',
-    bgClass: 'bg-gradient-to-r from-yellow-400 to-orange-400',
-    textClass: 'text-yellow-900',
-  },
-  platinum: {
-    label: 'PLATINUM',
-    icon: '💎',
-    bgClass: 'bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400',
-    textClass: 'text-white',
-  },
-};
+
 
 export const UserProfilePage = () => {
   const { t } = useTranslation();
   const { profileId } = useParams<{ profileId: string }>();
   const navigate = useNavigate();
-  const { navigationItems, handleNavigationClick } = useFemaleNavigation();
 
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -151,186 +129,189 @@ export const UserProfilePage = () => {
   const photos = profile.photos || [];
   const primaryPhoto = photos.find(p => p.isPrimary) || photos[0];
 
-  return (
-    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-20">
-      {/* Header with Back Button */}
-      <header className="sticky top-0 z-30 bg-white dark:bg-[#2d1a24] border-b border-gray-200 dark:border-white/5 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
-          >
-            <MaterialSymbol name="arrow_back" />
-          </button>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('profile')}</h1>
-        </div>
-      </header>
+  // Decide gender colors
+  const isFemale = profile.role === 'female';
+  const badgeBg = isFemale ? 'bg-primary' : 'bg-blue-500';
+  const badgeIcon = isFemale ? '♀' : '♂';
 
-      {/* Profile Content */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Profile Picture */}
-        {primaryPhoto && (
-          <div className="relative w-full aspect-square max-h-[500px] bg-gray-200 dark:bg-[#342d18]">
+  return (
+    <div className="flex flex-col min-h-screen bg-[#fffcfd] dark:bg-[#0a0a0a] relative overflow-hidden font-display antialiased">
+      <MeshBackground />
+
+      {/* Profile Decor Blobs */}
+      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
+        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-primary/5 blur-[120px] rounded-full animate-blob-shift" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-500/5 blur-[120px] rounded-full animate-blob-shift" style={{ animationDelay: '-6s' }} />
+      </div>
+
+      <main className="flex-1 overflow-y-auto relative z-10 max-w-md mx-auto w-full">
+        {/* Top Banner (Hero Photo) */}
+        <div className="relative w-full h-[52vh] bg-gray-100 dark:bg-black/20">
+          {primaryPhoto ? (
             <img
               src={primaryPhoto.url}
               alt={profile.name}
-              className="w-full h-full object-cover cursor-pointer"
+              className="w-full h-full object-cover"
               onClick={() => setSelectedPhotoIndex(photos.findIndex(p => p.isPrimary) || 0)}
             />
-            {profile.isOnline && (
-              <div className="absolute top-4 right-4 flex items-center gap-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                {t('online')}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Profile Info */}
-        <div className="px-6 py-6 space-y-6">
-          {/* Name and Verification */}
-          <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{profile.name}</h2>
-              {profile.isVerified && (
-                <MaterialSymbol name="verified" filled size={24} className="text-blue-500" />
-              )}
-              {/* Membership Tier Badge */}
-              {profile.memberTier && profile.memberTier !== 'basic' && tierBadgeConfig[profile.memberTier] && (
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold shadow-sm ${tierBadgeConfig[profile.memberTier]!.bgClass} ${tierBadgeConfig[profile.memberTier]!.textClass}`}>
-                  {tierBadgeConfig[profile.memberTier]!.icon} {t(tierBadgeConfig[profile.memberTier]!.label)} {t('member')}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-              {profile.age && <span>{t('yearsOld', { count: profile.age })}</span>}
-              {profile.age && profile.distance && <span>•</span>}
-              {profile.distance && (
-                <span className="flex items-center gap-1 font-medium text-primary">
-                  <MaterialSymbol name="location_on" size={14} /> {profile.distance}
-                </span>
-              )}
-            </div>
-            {profile.occupation && (
-              <div className="mt-2">
-                <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-                  {profile.occupation}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Interests */}
-          {(profile.interests && profile.interests.length > 0) && (
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{t('interests')}</h3>
-              <div className="flex flex-wrap gap-2">
-                {profile.interests.map((interest, index) => (
-                  <span
-                    key={index}
-                    className="px-4 py-1.5 bg-gray-100 dark:bg-[#342d18] text-gray-700 dark:text-gray-300 rounded-full text-sm border border-gray-200 dark:border-white/5"
-                  >
-                    {interest}
-                  </span>
-                ))}
-              </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <MaterialSymbol name="person" size={64} />
             </div>
           )}
 
-          {/* Bio */}
-          {profile.bio && (
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('about')}</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{profile.bio}</p>
-            </div>
-          )}
-
-          {/* Photo Gallery */}
-          {photos.length > 1 && (
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{t('photos')}</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {photos.map((photo, index) => (
-                  <div
-                    key={index}
-                    onClick={() => setSelectedPhotoIndex(index)}
-                    className="relative aspect-square bg-gray-200 dark:bg-[#342d18] rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                  >
-                    <img
-                      src={photo.url}
-                      alt={`Photo ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {photo.isPrimary && (
-                      <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-0.5 shadow-sm flex items-center justify-center">
-                        <MaterialSymbol name="star" size={12} filled />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </main >
-
-      {/* Photo Lightbox */}
-      {
-        selectedPhotoIndex !== null && (
-          <div
-            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-            onClick={() => setSelectedPhotoIndex(null)}
-          >
+          {/* Floated Header Controls */}
+          <div className="absolute top-0 left-0 w-full pt-12 px-5 pb-5 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent">
             <button
-              onClick={() => setSelectedPhotoIndex(null)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+              onClick={() => navigate(-1)}
+              className="skeuo-button w-10 h-10 rounded-2xl flex items-center justify-center text-white bg-black/20 backdrop-blur-md border-white/20"
             >
-              <MaterialSymbol name="close" size={32} />
+              <MaterialSymbol name="arrow_back_ios_new" size={18} />
             </button>
 
-            {/* Navigation Arrows */}
-            {selectedPhotoIndex > 0 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedPhotoIndex(selectedPhotoIndex - 1);
-                }}
-                className="absolute left-4 text-white hover:text-gray-300 transition-colors"
-              >
-                <MaterialSymbol name="chevron_left" size={48} />
-              </button>
-            )}
+          </div>
+        </div>
 
-            {selectedPhotoIndex < photos.length - 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedPhotoIndex(selectedPhotoIndex + 1);
-                }}
-                className="absolute right-4 text-white hover:text-gray-300 transition-colors"
-              >
-                <MaterialSymbol name="chevron_right" size={48} />
-              </button>
-            )}
-
-            {/* Image */}
-            <img
-              src={photos[selectedPhotoIndex].url}
-              alt={`Photo ${selectedPhotoIndex + 1}`}
-              className="max-w-full max-h-full object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-
-            {/* Photo Counter */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
-              {selectedPhotoIndex + 1} / {photos.length}
+        {/* Cinematic Card Overlay */}
+        <div className="relative -mt-10 rounded-t-[3rem] bg-white/60 dark:bg-black/60 backdrop-blur-2xl border-t border-white/30 dark:border-white/5 px-7 py-5 pb-8 min-h-[50vh] shadow-[0_-20px_40px_rgba(0,0,0,0.1)]">
+          
+          {/* Main Info Section */}
+          <div className="flex flex-col gap-5 mb-6">
+            <div className="flex items-center justify-between">
+               <div className="space-y-1">
+                 <div className="flex items-center gap-2">
+                    <h1 className="text-[28px] font-black tracking-tighter text-slate-900 dark:text-white leading-none">{profile.name}</h1>
+                    {profile.isVerified && <MaterialSymbol name="verified" filled size={20} className="text-blue-500 drop-shadow-sm" />}
+                 </div>
+                 <div className="flex items-center gap-3">
+                    {profile.isOnline && (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+                         <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Online</span>
+                      </div>
+                    )}
+                    {profile.distance && (
+                       <div className="flex items-center gap-1 opacity-60">
+                          <MaterialSymbol name="location_on" size={14} className="text-primary" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{profile.distance} AWAY</span>
+                       </div>
+                    )}
+                 </div>
+               </div>
+               
+               {/* Fixed Balanced Social Badge */}
+               {profile.age && (
+                  <div className={`skeuo-card flex items-center justify-center gap-1.5 px-4 h-10 rounded-2xl text-white ${badgeBg} shadow-lg shadow-pink-500/20`}>
+                     <span className="text-sm font-black tracking-tight">{profile.age}</span>
+                     <span className="text-[15px] font-bold leading-none">{badgeIcon}</span>
+                  </div>
+               )}
             </div>
           </div>
-        )
-      }
 
-      {/* Bottom Navigation */}
-      <FemaleBottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
-    </div >
+          <div className="space-y-6">
+            {/* Bio Section */}
+            {profile.bio && (
+              <div className="space-y-2">
+                <h3 className="text-[11px] font-black uppercase tracking-[.25em] text-primary opacity-60">THE JOURNEY</h3>
+                <div className="glass-card rounded-[1.75rem] px-5 py-3 border-white/60 dark:border-white/10 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-3 opacity-10">
+                      <MaterialSymbol name="format_quote" size={48} filled />
+                   </div>
+                   <p className="text-[14px] leading-relaxed text-slate-900 dark:text-slate-200 font-medium">
+                    {profile.bio}
+                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Photos Grid */}
+            {photos.length > 0 && (
+              <div className="space-y-3">
+                 <div className="flex justify-between items-center px-1">
+                    <h3 className="text-[11px] font-black uppercase tracking-[.25em] text-primary opacity-60">MOMENTS</h3>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{photos.length} PHOTOS</span>
+                 </div>
+                 <div className="grid grid-cols-3 gap-3">
+                  {photos.map((photo, index) => (
+                    <div
+                      key={index}
+                      onClick={() => setSelectedPhotoIndex(index)}
+                      className="relative aspect-square rounded-[1.5rem] overflow-hidden skeuo-card p-1 bg-white/40 dark:bg-black/10 transition-none"
+                    >
+                      <img
+                        src={photo.url}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-full object-cover rounded-[1.25rem] border border-white/40 border-none transition-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Details Vault */}
+            <div className="space-y-3 pb-10">
+               <h3 className="text-[11px] font-black uppercase tracking-[.25em] text-primary opacity-60 px-1">THE DETAILS</h3>
+               <div className="grid grid-cols-2 gap-3">
+                  <div className="skeuo-inset bg-gray-50/50 dark:bg-black/20 rounded-[1.75rem] p-4 flex items-center gap-3">
+                     <div className="skeuo-card size-10 rounded-xl flex items-center justify-center bg-white dark:bg-black p-2">
+                        <MaterialSymbol name="work" size={18} className="text-primary" filled />
+                     </div>
+                     <div className="min-w-0">
+                        <p className="text-[12px] font-black text-slate-900 dark:text-white truncate tracking-tight">{profile.occupation || 'Explorer'}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('occupation')}</p>
+                     </div>
+                  </div>
+                  <div className="skeuo-inset bg-gray-50/50 dark:bg-black/20 rounded-[1.75rem] p-4 flex items-center gap-3">
+                     <div className="skeuo-card size-10 rounded-xl flex items-center justify-center bg-white dark:bg-black p-2">
+                        <MaterialSymbol name="push_pin" size={18} className="text-primary" filled />
+                     </div>
+                     <div className="min-w-0">
+                        <p className="text-[12px] font-black text-slate-900 dark:text-white truncate tracking-tight">{profile.location || 'Roaming'}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t('location')}</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+
+
+      {/* Fullscreen Photo Lightbox (No hovers) */}
+      {selectedPhotoIndex !== null && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex items-center justify-center" onClick={() => setSelectedPhotoIndex(null)}>
+          <button onClick={() => setSelectedPhotoIndex(null)} className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md border border-white/20">
+            <MaterialSymbol name="close" size={28} />
+          </button>
+          
+          {/* Photos Navigation */}
+          {selectedPhotoIndex > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setSelectedPhotoIndex(selectedPhotoIndex - 1); }}
+              className="absolute left-6 w-14 h-14 rounded-full bg-black/40 flex items-center justify-center text-white"
+            >
+              <MaterialSymbol name="chevron_left" size={40} />
+            </button>
+          )}
+
+          {selectedPhotoIndex < photos.length - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setSelectedPhotoIndex(selectedPhotoIndex + 1); }}
+              className="absolute right-6 w-14 h-14 rounded-full bg-black/40 flex items-center justify-center text-white"
+            >
+              <MaterialSymbol name="chevron_right" size={40} />
+            </button>
+          )}
+
+          <img src={photos[selectedPhotoIndex].url} alt={`Photo ${selectedPhotoIndex + 1}`} className="max-w-[90vw] max-h-[80vh] object-contain rounded-3xl" onClick={(e) => e.stopPropagation()} />
+          <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-xl border border-white/20 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
+            EXPLORING {selectedPhotoIndex + 1} / {photos.length}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };

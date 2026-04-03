@@ -5,25 +5,26 @@ interface FemaleStatsGridProps {
   stats: {
     messagesReceived: number;
     activeConversations: number;
+    profileViews?: number;
   };
 }
 
-const StatCard = ({ icon, value, label, color }: {
+const StatCard = ({ icon, value, label, iconColor }: {
   icon: string;
   value: number;
   label: string;
-  color: string;
+  iconColor: string;
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-white p-4 shadow-sm dark:bg-[#342d18] hover:scale-105 active:scale-95 transition-transform duration-200 cursor-pointer">
-      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${color} transition-transform group-hover:scale-110`}>
-        <MaterialSymbol name={icon} filled />
+    <div className="group flex flex-col items-center justify-center gap-3 rounded-3xl bg-white/70 dark:bg-black/40 backdrop-blur-md p-5 transition-all duration-300">
+      <div className={`flex size-14 items-center justify-center transition-transform group-hover:scale-110 duration-500`}>
+        <MaterialSymbol name={icon} className={`${iconColor}`} size={32} filled />
       </div>
-      <div className="text-center">
-        <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-          {value}
+      <div className="text-center space-y-0.5">
+        <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">
+          {value.toLocaleString()}
         </p>
-        <p className="text-xs font-medium text-slate-500 dark:text-[#cbbc90]">{label}</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">{label}</p>
       </div>
     </div>
   );
@@ -32,24 +33,29 @@ const StatCard = ({ icon, value, label, color }: {
 export const FemaleStatsGrid = ({ stats }: FemaleStatsGridProps) => {
   const { t } = useTranslation();
   return (
-    <div className="flex w-full flex-col px-4">
-      <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-white">{t('yourStats')}</h2>
-      <div className="grid grid-cols-2 gap-3">
+    <div className="flex w-full flex-col px-4 mb-2">
+      <div className="flex items-center gap-3 mb-2 px-1">
+        <MaterialSymbol name="insights" size={22} className="text-pink-500" />
+        <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-900 dark:text-white">{t('yourStats')}</h2>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
         <StatCard
           icon="mail"
           value={stats.messagesReceived}
           label={t('messages')}
-          color="bg-blue-100 dark:bg-blue-900/30 text-blue-500"
+          iconColor="text-blue-500"
         />
         <StatCard
           icon="chat_bubble"
           value={stats.activeConversations}
           label={t('chats')}
-          color="bg-purple-100 dark:bg-purple-900/30 text-purple-500"
+          iconColor="text-purple-500"
         />
       </div>
     </div>
   );
 };
+
 
 

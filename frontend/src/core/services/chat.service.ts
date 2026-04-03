@@ -1,5 +1,47 @@
 import apiClient from '../api/client';
 
+// Helper to map backend chat response to frontend expected structure
+const mapChatResponse = (chatData: any): any => {
+    if (!chatData) return chatData;
+    
+    // Safely extract last message content
+    let lastMessageContent = '';
+    if (typeof chatData.lastMessage === 'string') {
+        lastMessageContent = chatData.lastMessage;
+    } else if (chatData.lastMessage && chatData.lastMessage.content) {
+        lastMessageContent = chatData.lastMessage.content;
+    } else if (chatData.lastMessage && chatData.lastMessage.messageType === 'gift') {
+        lastMessageContent = 'Sent a gift';
+    } else if (chatData.lastMessage && chatData.lastMessage.messageType === 'image') {
+        lastMessageContent = 'Sent an image';
+    }
+    
+    // Format timestamp
+    let formattedTime = '';
+    if (chatData.lastMessageAt) {
+        const date = new Date(chatData.lastMessageAt);
+        // Only format if valid
+        if (!isNaN(date.getTime())) {
+            formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+    }
+
+    return {
+        id: chatData._id,
+        userId: chatData.otherUser?._id || '',
+        userName: chatData.otherUser?.name || 'Unknown User',
+        userAvatar: chatData.otherUser?.avatar || '',
+        lastMessage: lastMessageContent,
+        timestamp: formattedTime,
+        isOnline: chatData.otherUser?.isOnline || false,
+        hasUnread: (chatData.unreadCount || 0) > 0,
+        unreadCount: chatData.unreadCount || 0,
+        distance: chatData.otherUser?.distance || '',
+        // Preserve original properties for components that might need them
+        ...chatData
+    };
+};
+
 // ========================
 // CHAT LIST & MANAGEMENT
 // ========================
@@ -10,7 +52,8 @@ export const getMyChatList = async (search?: string) => {
         const response = await apiClient.get('/chat/chats', {
             params: { language, search }
         });
-        return response.data.data.chats;
+        const chats = response.data.data.chats || [];
+        return chats.map(mapChatResponse);
     } catch (error) {
         console.error('❌ [DEBUG] Chat List Fetch Error:', error);
         throw error;
@@ -23,7 +66,7 @@ export const getOrCreateChat = async (otherUserId: string) => {
         const response = await apiClient.post('/chat/chats', { otherUserId }, {
             params: { language }
         });
-        return response.data.data.chat;
+        return mapChatResponse(response.data.data.chat);
     } catch (error: any) {
         // Handle blocking errors with user-friendly messages
         if (error.response?.status === 403 && error.response?.data?.blocked) {
@@ -36,7 +79,7 @@ export const getOrCreateChat = async (otherUserId: string) => {
 
 export const getChatById = async (chatId: string) => {
     const response = await apiClient.get(`/chat/chats/${chatId}`);
-    return response.data.data.chat;
+    return mapChatResponse(response.data.data.chat);
 };
 
 export const getChatMessages = async (chatId: string, params?: any) => {

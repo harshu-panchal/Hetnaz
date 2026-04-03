@@ -1,17 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import chatService from '../../../core/services/chat.service';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
-import { HiSentModal } from '../components/HiSentModal';
 import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
 import offlineQueueService from '../../../core/services/offlineQueue.service';
 import apiClient from '../../../core/api/client';
 import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
+import { NearbyFemaleItem } from '../components/NearbyFemaleItem';
+import { SearchBar } from '../components/SearchBar';
+import { FilterPanel, FilterOptions } from '../components/FilterPanel';
 
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
 
 type FilterType = 'all' | 'online' | 'new' | 'popular';
 
@@ -22,25 +25,62 @@ export const NearbyFemalesPage = () => {
   const { coinBalance, updateBalance } = useGlobalState();
 
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    ageRange: { min: 18, max: 45 },
+    maxDistance: 100
+  });
 
   // React Query Hook
   const {
     data: profiles = [],
     isLoading: isQueryLoading,
-    error: queryError,
-    refetch
+    error: queryError
   } = useDiscoveryProfiles(activeFilter);
+
+  // Apply Filters
+  const displayProfiles = useMemo(() => {
+    const rawData = profiles;
+    
+    return rawData
+      .filter((profile: any) => {
+        // 1. Tab Filter
+        if (activeFilter === 'online' && !profile.isOnline) return false;
+        
+        // 2. Search Query (Name or Age)
+        if (searchQuery) {
+          const s = searchQuery.toLowerCase();
+          const matchesName = profile.name.toLowerCase().includes(s);
+          const matchesAge = profile.age?.toString() === s;
+          if (!matchesName && !matchesAge) return false;
+        }
+
+        // 3. Modal Filters (Age & Distance)
+        if (profile.age && profile.age > filterOptions.ageRange.max) return false;
+        if (profile.age && profile.age < filterOptions.ageRange.min) return false;
+
+        if (profile.distance && typeof profile.distance === 'string') {
+          const distValue = parseFloat(profile.distance.replace(/[^\d.]/g, ''));
+          if (!isNaN(distValue) && distValue > filterOptions.maxDistance) return false;
+        }
+
+        return true;
+      })
+      .sort((a: any, b: any) => {
+        // 4. Tab Sorting
+        if (activeFilter === 'popular') return (b.matchesCount || 0) - (a.matchesCount || 0);
+        if (activeFilter === 'new') return b.id.localeCompare(a.id); // Simulating newest first
+        if (activeFilter === 'all') return (a.isOnline === b.isOnline) ? 0 : (a.isOnline ? -1 : 1); // Online first in recommend
+        return 0;
+      });
+  }, [profiles, activeFilter, searchQuery, filterOptions]);
 
   const error = queryError ? (queryError as any).message || 'Failed to load profiles' : null;
   const isLoading = isQueryLoading;
 
-  const [sendingHiTo, setSendingHiTo] = useState<string | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
-  const [requiredCoins, setRequiredCoins] = useState(5);
-
-  // Hi Sent Modal
-  const [isHiSentModalOpen, setIsHiSentModalOpen] = useState(false);
-  const [sentHiRecipient, setSentHiRecipient] = useState({ name: '', chatId: '' });
+  const requiredCoins = 5;
 
   // Daily Reward Modal
   const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState(false);
@@ -101,101 +141,54 @@ export const NearbyFemalesPage = () => {
     }
   }, []);
 
-  const handleSendHi = async (profileId: string, profileName: string) => {
-    if (coinBalance < 5) {
-      setRequiredCoins(5);
-      setIsBalanceModalOpen(true);
-      return;
-    }
-
-    // STEP 1: Deduct coins IMMEDIATELY (optimistic)
-    updateBalance(coinBalance - 5);
-
-    try {
-      setSendingHiTo(profileId);
-      const result = await chatService.sendHiMessage(profileId);
-
-      // Show success modal
-      setSentHiRecipient({ name: profileName, chatId: result.chatId });
-      setIsHiSentModalOpen(true);
-    } catch (err: any) {
-      console.error('Failed to send Hi:', err);
-
-      // STEP 2: If offline or network error, queue it
-      if (!offlineQueueService.isOnline() || err.code === 'ERR_NETWORK') {
-        console.log('[NearbyFemales] Offline detected, queuing Hi');
-
-        offlineQueueService.queueMessage('hi', {
-          profileId,
-          profileName
-        }, 5);
-
-        // Still show success modal but maybe we can't navigate to chat yet
-        setSentHiRecipient({ name: profileName, chatId: '' }); // No chatId yet
-        setIsHiSentModalOpen(true);
-        // We might want to alert that it's queued
-      } else {
-        const errorMessage = err.response?.data?.message || '';
-        if (errorMessage.toLowerCase().includes('insufficient') || errorMessage.toLowerCase().includes('balance')) {
-          setRequiredCoins(5);
-          setIsBalanceModalOpen(true);
-        } else {
-          alert(errorMessage || 'Failed to send Hi message');
-        }
-        // Refund optimistic deduction on non-network errors? 
-        // User rules say "Coins are NEVER refunded", but usually that's for successful queueing.
-        // If it's a 400 error, we probably should restore balance IF we want to be nice, 
-        // but the prompt says "coins get deducted for every Hi... in the queue."
-        // If it fails immediately with a non-network error, it's NOT in the queue.
-        // So I'll restore balance for non-network errors.
-        updateBalance(coinBalance);
-      }
-    } finally {
-      setSendingHiTo(null);
-    }
-  };
-
   const handleProfileClick = (profileId: string) => {
-    // Navigate immediately — ChatWindowPage resolves the real chatId via getOrCreateChat internally
-    navigate(`/male/chat/new_${profileId}`);
+    navigate(`/male/profile/${profileId}`);
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white flex flex-col min-h-screen">
-      {/* Tabs / Filters */}
-      <div className="sticky top-0 z-30 bg-gradient-to-r from-pink-50/95 via-rose-50/95 to-pink-50/95 dark:from-[#1a0f14]/95 dark:via-[#2d1a24]/95 dark:to-[#1a0f14]/95 backdrop-blur-md border-b border-pink-200/40 dark:border-pink-900/30 px-3 py-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-[13px] font-semibold">
-            <button
-              className={`pb-1 ${activeFilter === 'all' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
-              onClick={() => setActiveFilter('all')}
-            >
-              {t('recommend')}
-            </button>
-            <button
-              className={`pb-1 ${activeFilter === 'online' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
-              onClick={() => setActiveFilter('online')}
-            >
-              {t('onlineTab')}
-            </button>
-            <button
-              className={`pb-1 ${activeFilter === 'new' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
-              onClick={() => setActiveFilter('new')}
-            >
-              {t('newTab')}
-            </button>
-            <button
-              className={`pb-1 ${activeFilter === 'popular' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
-              onClick={() => setActiveFilter('popular')}
-            >
-              {t('popularTab')}
-            </button>
+    <div className="font-display text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white min-h-screen relative overflow-hidden">
+      <MeshBackground />
+      
+      {/* Scrollable Content Layer */}
+      <div className="relative z-10 flex flex-col min-h-screen max-w-md mx-auto w-full">
+      {/* Search & Filter Header (Sticky) */}
+      <div className="sticky top-0 z-40 bg-white/95 dark:bg-[#1a0f14]/95 backdrop-blur-3xl border-b border-pink-100/30 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.02)] pt-10">
+        <div className="max-w-md mx-auto">
+          <SearchBar 
+            showLogo={false}
+            title="Discover"
+            onSearch={setSearchQuery} 
+            onFilterToggle={() => setIsFilterModalOpen(true)} 
+          />
+        </div>
+        
+        {/* Tabs / Filters */}
+        <div className="px-2 pb-1 max-w-md mx-auto">
+          <div className="flex items-center justify-around w-full">
+            {[
+              { id: 'all', label: t('recommend') },
+              { id: 'online', label: t('onlineTab') },
+              { id: 'new', label: t('newTab') },
+              { id: 'popular', label: t('popularTab') }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveFilter(tab.id as FilterType)}
+                className={`relative flex-1 py-3 text-[12px] font-black uppercase tracking-wider transition-all text-center ${
+                  activeFilter === tab.id 
+                    ? 'text-primary' 
+                    : 'text-gray-400 dark:text-gray-600'
+                }`}
+              >
+                {tab.label}
+                {activeFilter === tab.id && (
+                  <div className="absolute bottom-0.5 left-0 right-0 flex justify-center">
+                    <div className="w-8 h-[3.5px] bg-primary rounded-full shadow-[0_2px_10px_rgba(255,105,180,0.6)]" />
+                  </div>
+                )}
+              </button>
+            ))}
           </div>
-          <button onClick={() => refetch()} className="text-primary p-1">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -227,66 +220,13 @@ export const NearbyFemalesPage = () => {
         )}
 
         {/* Profile List */}
-        {!isLoading && !error && profiles.map((profile: any) => (
-          <div
+        {!isLoading && !error && displayProfiles.map((profile: any) => (
+          <NearbyFemaleItem
             key={profile.id}
-            onClick={() => handleProfileClick(profile.id)}
-            className="bg-white dark:bg-[#2d1a24] rounded-2xl shadow-sm border border-pink-100/60 dark:border-pink-900/30 px-3 py-2.5 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow"
-          >
-            <div className="relative">
-              <img
-                src={profile.avatar || 'https://via.placeholder.com/48?text=?'}
-                alt={profile.name}
-                className="h-12 w-12 rounded-xl object-cover border border-pink-100 dark:border-pink-800"
-              />
-              {profile.isOnline && (
-                <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-400 ring-2 ring-white dark:ring-[#2d1a24]" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold truncate">{profile.name}</p>
-                {profile.occupation && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-50 text-pink-600 dark:bg-pink-900/30 dark:text-pink-300">
-                    {profile.occupation}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center flex-wrap gap-x-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
-                {profile.location && <span>{profile.location}</span>}
-                {profile.location && profile.age && <span>•</span>}
-                {profile.age && <span>{t('yearsOld', { count: profile.age })}</span>}
-                {(profile.location || profile.age) && profile.distance && <span>•</span>}
-                {profile.distance && <span>{profile.distance}</span>}
-              </div>
-              {profile.bio && (
-                <p className="text-[11px] text-slate-500 dark:text-slate-300 mt-0.5 line-clamp-1">
-                  {profile.bio}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent card click
-                if (profile.hasChat) {
-                  handleProfileClick(profile.id);
-                } else {
-                  handleSendHi(profile.id, profile.name);
-                }
-              }}
-              disabled={sendingHiTo === profile.id}
-              className="px-4 py-2 rounded-full text-sm font-bold text-white bg-gradient-to-r from-primary to-rose-500 shadow-md active:scale-95 transition-transform disabled:opacity-50 flex items-center gap-1"
-            >
-              {sendingHiTo === profile.id ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>{profile.hasChat ? '💬' : '👋'}</span>
-                  <span>{profile.hasChat ? t('message') : t('hi')}</span>
-                </>
-              )}
-            </button>
-          </div>
+            profile={profile}
+            onProfileClick={handleProfileClick}
+            onChatClick={(id) => navigate(`/male/chat/new_${id}`)}
+          />
         ))}
       </main>
 
@@ -300,15 +240,18 @@ export const NearbyFemalesPage = () => {
         onBuyCoins={() => navigate('/male/buy-coins')}
         requiredCoins={requiredCoins}
         currentBalance={coinBalance || 0}
-        action="send a Hi"
+        action="perform this action"
       />
 
-      {/* Hi Sent Success Modal */}
-      <HiSentModal
-        isOpen={isHiSentModalOpen}
-        onClose={() => setIsHiSentModalOpen(false)}
-        onGoToChat={() => navigate(`/male/chat/${sentHiRecipient.chatId}`)}
-        recipientName={sentHiRecipient.name}
+      {/* Filter Modal (Bottom Sheet) */}
+      <FilterPanel
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        initialFilters={filterOptions}
+        onApply={(filters) => {
+          setFilterOptions(filters);
+          setIsFilterModalOpen(false);
+        }}
       />
 
       {/* Daily Reward Modal */}
@@ -318,6 +261,7 @@ export const NearbyFemalesPage = () => {
         coinsAwarded={dailyRewardData.amount}
         newBalance={dailyRewardData.newBalance}
       />
+      </div>
     </div>
   );
 };

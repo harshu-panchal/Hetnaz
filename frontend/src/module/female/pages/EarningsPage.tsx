@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
-import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import walletService from '../../../core/services/wallet.service';
 import type { Transaction } from '../../../core/types/wallet.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
 
 export const EarningsPage = () => {
   const { t } = useTranslation();
@@ -94,146 +94,152 @@ export const EarningsPage = () => {
   const hasMoreEarnings = earningsTransactions.length > visibleEarningsCount;
 
   return (
-    <div className="flex flex-col bg-background-light dark:bg-background-dark min-h-screen pb-20">
-      {/* Top Navbar */}
-      <FemaleTopNavbar />
-
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-4 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-white/5">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
-          >
-            <MaterialSymbol name="arrow_back" />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('earnings')}</h1>
+    <div className="font-display text-slate-900 dark:text-white antialiased selection:bg-pink-500 selection:text-white min-h-screen relative overflow-hidden flex flex-col bg-background-light dark:bg-[#0a0a0a] pb-24">
+      <MeshBackground />
+      
+      <header className="relative z-20 flex items-center justify-between px-6 pb-6 pt-12 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-white/20 dark:border-white/5 shadow-sm">
+        <div className="space-y-0.5">
+          <h1 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 leading-none">{t('finance')}</h1>
+          <h2 className="text-2xl font-black tracking-tight dark:text-white">{t('earnings')}</h2>
         </div>
-        <button
-          onClick={() => navigate('/female/withdrawal')}
-          className="px-4 py-2 bg-primary text-slate-900 font-medium rounded-lg hover:bg-yellow-400 transition-colors"
-        >
-          {t('withdraw')}
-        </button>
       </header>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
+      <main className="relative z-10 flex-1 overflow-y-auto px-4 py-8 space-y-8">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-40">
+            <div className="size-12 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('syncingWallet')}</p>
+          </div>
+        )}
 
-      {/* Error State */}
-      {error && (
-        <div className="mx-6 mt-4 p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl flex items-center gap-2">
-          <MaterialSymbol name="error" className="text-red-500" />
-          <span>{error}</span>
-        </div>
-      )}
+        {/* Error State */}
+        {error && (
+          <div className="skeuo-card bg-red-500/5 border-red-500/20 p-6 rounded-[2rem] text-center space-y-2">
+            <MaterialSymbol name="error" className="text-red-500" size={32} />
+            <p className="text-xs font-bold text-red-500">{error}</p>
+          </div>
+        )}
 
-      {!isLoading && !error && (
-        <>
-          {/* Earnings Summary */}
-          <div className="px-6 py-4 space-y-4">
-            <div className="bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/10 dark:to-primary/5 rounded-xl p-6 border border-primary/10">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-slate-600 dark:text-[#cbbc90]">
-                  {t('totalEarningsPeriod', { period: t(selectedPeriod) })}
-                </span>
-                <MaterialSymbol name="trending_up" className="text-primary" />
-              </div>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                {displayTotalEarnings.toLocaleString()} coins
-              </p>
-              <p className="text-sm text-slate-500 dark:text-[#cbbc90]">
-                {t('available')}: {balance.toLocaleString()} coins
-              </p>
-            </div>
-
-            {/* Earnings by Type */}
-            <div className="grid grid-cols-3 gap-3">
-              {Object.entries(earningsByType).map(([type, amount]) => (
-                <div key={type} className="bg-white dark:bg-[#342d18] rounded-xl p-4 text-center shadow-sm">
-                  <MaterialSymbol name={getTypeIcon(type)} className="text-primary mb-1" size={24} />
-                  <div className="flex items-center justify-center gap-1">
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{amount as number}</p>
-                    <MaterialSymbol name="monetization_on" filled size={16} className="text-yellow-600 dark:text-gold" />
+        {!isLoading && !error && (
+          <>
+            {/* Earnings Vault Summary */}
+            <div className="group relative overflow-hidden skeuo-card bg-mesh-glass rounded-[2.5rem] p-8 border-white/60 dark:border-white/10 shadow-2xl transition-all hover:translate-y-[-2px]">
+               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none" />
+               <div className="flex flex-col gap-6 relative z-10">
+                  <div className="flex items-center justify-between">
+                    <div className="skeuo-inset size-12 rounded-2xl flex items-center justify-center bg-amber-500/10 text-amber-500">
+                       <MaterialSymbol name="account_balance_wallet" size={28} filled />
+                    </div>
+                    <div className="flex flex-col items-end">
+                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-1">{t('totalEarnings')}</span>
+                       <div className="flex items-center gap-2">
+                          <p className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">
+                            {displayTotalEarnings.toLocaleString()}
+                          </p>
+                          <MaterialSymbol name="monetization_on" className="text-amber-500 text-xl" filled />
+                       </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-[#cbbc90]">{formatType(type)}</p>
-                </div>
-              ))}
-            </div>
+                  
+                  <div className="skeuo-inset bg-black/5 dark:bg-black/20 rounded-2xl p-4 flex items-center justify-between border border-white/5 mb-2">
+                     <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">{t('availableToWithdraw')}</span>
+                     <p className="text-sm font-black text-emerald-500 uppercase tracking-widest">₹{balance.toLocaleString()}</p>
+                  </div>
 
-            {/* Period Selector */}
-            <div className="flex gap-2">
-              {(['daily', 'weekly', 'monthly'] as const).map((period) => (
-                <button
-                  key={period}
-                  onClick={() => setSelectedPeriod(period)}
-                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${selectedPeriod === period
-                    ? 'bg-primary text-slate-900'
-                    : 'bg-gray-200 dark:bg-[#342d18] text-gray-700 dark:text-white'
-                    }`}
-                >
-                  {t(period)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Earnings History */}
-          <div className="flex-1 overflow-y-auto px-4 min-h-0">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('recentEarnings')}</h2>
-            {earningsTransactions.length === 0 ? (
-              <div className="text-center py-8">
-                <MaterialSymbol name="account_balance_wallet" size={48} className="text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500 dark:text-[#cbbc90]">{t('noEarningsYet')}</p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-3">
-                  {earningsTransactions
-                    .slice(0, visibleEarningsCount)
-                    .map((tx) => (
-                      <div
-                        key={tx._id}
-                        className="flex items-center justify-between p-4 bg-white dark:bg-[#342d18] rounded-xl shadow-sm"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-600">
-                            <MaterialSymbol name={getTypeIcon(tx.type)} filled />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                              {formatType(tx.type)}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-[#cbbc90]">
-                              {new Date(tx.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                          +{tx.amountCoins}
-                        </p>
-                      </div>
-                    ))}
-                </div>
-
-                {/* Show More Button */}
-                {hasMoreEarnings && (
                   <button
-                    onClick={() => setVisibleEarningsCount(prev => prev + 10)}
-                    className="w-full mt-4 px-4 py-3 bg-gray-200 dark:bg-[#342d18] text-gray-700 dark:text-white font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors"
+                    onClick={() => navigate('/female/withdrawal')}
+                    className="skeuo-button w-full h-14 rounded-2xl bg-amber-500 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    {t('showMore')}
+                    <MaterialSymbol name="payments" size={20} filled />
+                    {t('withdrawFunds') || t('withdraw')}
                   </button>
-                )}
-              </>
-            )}
-          </div>
-        </>
-      )}
+               </div>
+            </div>
+
+            {/* Stats Grid - Skeuomorphic Insets */}
+            <div className="grid grid-cols-3 gap-4">
+               {Object.entries(earningsByType).map(([type, amount]) => (
+                 <div key={type} className="skeuo-inset bg-white/40 dark:bg-black/40 rounded-[2rem] p-4 flex flex-col items-center gap-3 border border-white/20">
+                    <div className="skeuo-card size-10 rounded-xl flex items-center justify-center bg-white/80 dark:bg-white/5 text-pink-500 shadow-sm">
+                       <MaterialSymbol name={getTypeIcon(type)} size={22} filled />
+                    </div>
+                    <div className="space-y-0.5 text-center">
+                       <p className="text-lg font-black text-slate-900 dark:text-white leading-none">{amount as number}</p>
+                       <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{formatType(type)}</p>
+                    </div>
+                 </div>
+               ))}
+            </div>
+
+            {/* Period Selector Tabs */}
+            <div className="skeuo-inset bg-gray-50/50 dark:bg-black/40 rounded-2xl p-1.5 flex gap-1 relative overflow-hidden">
+                {(['daily', 'weekly', 'monthly'] as const).map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setSelectedPeriod(period)}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative z-10 ${
+                      selectedPeriod === period ? 'skeuo-button bg-amber-500 text-white shadow-amber-500/20' : 'text-slate-400 dark:text-slate-500'
+                    }`}
+                  >
+                    {t(period)}
+                  </button>
+                ))}
+            </div>
+
+            {/* Recent History */}
+            <div className="space-y-6">
+               <div className="flex items-center gap-3 px-1">
+                  <div className="skeuo-inset size-8 rounded-xl flex items-center justify-center bg-gray-50/50 dark:bg-black/20">
+                    <MaterialSymbol name="history" size={18} className="text-amber-500" />
+                  </div>
+                  <h3 className="text-xs font-black uppercase tracking-[0.25em] text-slate-900 dark:text-white">{t('recentEarnings')}</h3>
+               </div>
+
+               <div className="skeuo-card rounded-[2.5rem] overflow-hidden bg-white/20 dark:bg-black/10 shadow-xl border-white/60 dark:border-white/5 divide-y divide-white/10">
+                  {earningsTransactions.length === 0 ? (
+                    <div className="py-20 text-center space-y-4 opacity-40">
+                      <MaterialSymbol name="wallet" size={48} className="text-slate-400" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('noEarningsYet')}</p>
+                    </div>
+                  ) : (
+                    <>
+                      {earningsTransactions.slice(0, visibleEarningsCount).map((tx) => (
+                        <div key={tx._id} className="flex items-center justify-between p-6 group transition-colors hover:bg-white/10">
+                           <div className="flex items-center gap-4">
+                              <div className="skeuo-inset size-12 rounded-2xl flex items-center justify-center bg-emerald-500/5 text-emerald-500">
+                                 <MaterialSymbol name={getTypeIcon(tx.type)} size={24} filled />
+                              </div>
+                              <div className="space-y-1">
+                                 <p className="text-sm font-black text-slate-900 dark:text-white">{formatType(tx.type)}</p>
+                                 <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                                   {new Date(tx.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                 </p>
+                              </div>
+                           </div>
+                           <div className="text-right">
+                              <p className="text-lg font-black text-emerald-500 tracking-tight">+{tx.amountCoins}</p>
+                              <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">COINS</p>
+                           </div>
+                        </div>
+                      ))}
+                      
+                      {hasMoreEarnings && (
+                        <button
+                          onClick={() => setVisibleEarningsCount(prev => prev + 10)}
+                          className="w-full py-6 text-[10px] font-black uppercase tracking-[0.3em] text-amber-500 hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                        >
+                          {t('showMoreHistory')}
+                          <MaterialSymbol name="expand_more" size={16} />
+                        </button>
+                      )}
+                    </>
+                  )}
+               </div>
+            </div>
+          </>
+        )}
+      </main>
 
       <FemaleBottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
     </div>

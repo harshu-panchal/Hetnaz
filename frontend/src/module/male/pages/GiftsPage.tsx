@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import type { Gift, GiftTransaction } from '../types/male.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
@@ -110,10 +109,9 @@ export const GiftsPage = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      <MaleTopNavbar />
 
       <header className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-[#342d18] text-slate-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
@@ -125,6 +123,8 @@ export const GiftsPage = () => {
           <div className="size-10" />
         </div>
       </header>
+
+      <div className="max-w-md mx-auto w-full flex flex-col">
 
       <div className="flex border-b border-gray-200 dark:border-white/5 mx-4 mt-4">
         <button
@@ -304,6 +304,7 @@ export const GiftsPage = () => {
             )}
           </div>
         )}
+      </div>
       </div>
 
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />

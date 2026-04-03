@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { useTranslation } from '../../../core/hooks/useTranslation';
@@ -46,8 +45,8 @@ export const NotificationsPage = () => {
         break;
     }
 
-    return filtered;
-  }, [persistentNotifications, selectedFilter]);
+    return filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }, [persistentNotifications, selectedFilter, sessionStartTime]);
 
   const handleNotificationClick = (id: string, actionUrl?: string) => {
     markNotificationAsRead(id);
@@ -61,14 +60,14 @@ export const NotificationsPage = () => {
     deletePersistentNotification(id);
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationTheme = (type: string) => {
     switch (type) {
-      case 'match': return 'favorite';
-      case 'message': return 'chat_bubble';
-      case 'payment': return 'payments';
-      case 'gift': return 'redeem';
-      case 'system': return 'info';
-      default: return 'notifications';
+      case 'match': return { icon: 'favorite', color: 'text-rose-500', bgColor: 'bg-rose-500/10' };
+      case 'message': return { icon: 'chat_bubble', color: 'text-blue-500', bgColor: 'bg-blue-500/10' };
+      case 'payment': return { icon: 'payments', color: 'text-amber-500', bgColor: 'bg-amber-500/10' };
+      case 'gift': return { icon: 'redeem', color: 'text-purple-500', bgColor: 'bg-purple-500/10' };
+      case 'system': return { icon: 'info', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' };
+      default: return { icon: 'notifications', color: 'text-primary', bgColor: 'bg-primary/10' };
     }
   };
 
@@ -83,128 +82,161 @@ export const NotificationsPage = () => {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      <MaleTopNavbar />
+    <div className="bg-[#fffcfd] dark:bg-[#0a0a0a] min-h-screen pb-32 relative overflow-hidden font-display antialiased">
+      {/* Background Decor */}
+      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
+        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-pink-500/5 blur-[120px] rounded-full animate-blob-shift" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-500/5 blur-[120px] rounded-full animate-blob-shift" style={{ animationDelay: '-6s' }} />
+      </div>
 
-      <div className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <MaterialSymbol name="notifications" size={20} className="text-primary" />
+      {/* High-Gloss Header */}
+      <header className="sticky top-0 z-50 bg-white/60 dark:bg-black/60 backdrop-blur-2xl border-b border-white/20 dark:border-white/5 shadow-sm">
+
+        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate('/male/dashboard')}
+              className="skeuo-button w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 shrink-0"
+              aria-label="Back to home"
+            >
+              <MaterialSymbol name="arrow_back_ios_new" size={18} className="text-slate-600 dark:text-white" />
+            </button>
+            <div>
+              <h1 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white">{t('notifications')}</h1>
+              {unreadCount > 0 && <span className="text-[9px] font-black uppercase tracking-widest text-primary animate-pulse-slow">{unreadCount} {t('New Alerts')}</span>}
             </div>
-            <h1 className="text-lg font-bold">{t('notifications')}</h1>
           </div>
           {persistentNotifications.length > 0 && (
             <button
               onClick={clearAllPersistentNotifications}
-              className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all flex items-center gap-1"
+              className="skeuo-button h-10 px-4 rounded-2xl flex items-center gap-2 group transition-all"
             >
-              <MaterialSymbol name="delete_sweep" size={16} />
-              {t('clearAll')}
+              <MaterialSymbol name="delete_sweep" size={18} className="text-rose-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 group-hover:text-rose-500 transition-colors">{t('clearAll')}</span>
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      <div className="px-4 pb-3 pt-4">
-        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
-          {filterOptions.map((filter) => {
-            const isActive = selectedFilter === filter.id;
-            return (
-              <button
-                key={filter.id}
-                onClick={() => setSelectedFilter(filter.id)}
-                className={`flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full px-5 transition-all active:scale-95 ${isActive
-                  ? 'bg-primary shadow-lg shadow-primary/25 text-white'
-                  : 'bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/5 text-slate-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <p className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>
+      <div className="max-w-md mx-auto w-full flex flex-col relative z-10 px-4">
+        {/* Segmented Control */}
+        <div className="pt-6 pb-2">
+          <div className="skeuo-inset bg-gray-50 dark:bg-black/40 rounded-[1.5rem] p-1.5 flex gap-1">
+            {filterOptions.map((filter) => {
+              const isActive = selectedFilter === filter.id;
+              return (
+                <button
+                  key={filter.id}
+                  onClick={() => setSelectedFilter(filter.id)}
+                  className={`flex-1 h-10 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 capitalize text-xs tracking-wide ${isActive
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20 font-bold scale-[1.02]'
+                    : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-primary transition-colors'
+                    }`}
+                >
                   {filter.label}
-                </p>
-                {filter.id === 'unread' && unreadCount > 0 && (
-                  <span className="ml-1 flex min-w-[1.25rem] h-5 items-center justify-center rounded-full bg-white/20 px-1 text-[10px] font-bold">
-                    {unreadCount > 10 ? '10+' : unreadCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <main className="px-4 space-y-2 mt-2">
-        {filteredNotifications.length > 0 ? (
-          filteredNotifications.map((notification) => (
-            <div
-              key={notification.id}
-              onClick={() => handleNotificationClick(notification.id, notification.chatId ? `/male/chat/${notification.chatId}` : undefined)}
-              className={`group flex items-start gap-3 p-3.5 rounded-2xl cursor-pointer transition-all active:scale-[0.99] border ${notification.isRead
-                ? 'bg-white/50 dark:bg-white/5 border-transparent'
-                : 'bg-white dark:bg-[#1a1a1a] border-primary/20 shadow-sm'
-                }`}
-            >
-              <div className="shrink-0 relative">
-                {notification.avatar ? (
-                  <img
-                    src={notification.avatar}
-                    alt=""
-                    className="w-11 h-11 rounded-full object-cover ring-2 ring-primary/20"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center w-11 h-11 rounded-full bg-primary/10">
-                    <MaterialSymbol
-                      name={getNotificationIcon(notification.type)}
-                      className="text-primary"
-                      size={22}
-                    />
-                  </div>
-                )}
-                {!notification.isRead && (
-                  <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-primary border-2 border-white dark:border-[#1a1a1a]" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <h3 className={`text-sm tracking-tight truncate ${notification.isRead ? 'font-semibold text-slate-700 dark:text-gray-300' : 'font-bold text-slate-900 dark:text-white'}`}>
-                    {t(notification.title)}
-                  </h3>
-                  <button
-                    onClick={(e) => handleDeleteNotification(notification.id, e)}
-                    className="shrink-0 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-full transition-all text-gray-400 hover:text-rose-500"
-                  >
-                    <MaterialSymbol name="close" size={16} />
-                  </button>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                  {t(notification.message)}
-                </p>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <MaterialSymbol name="schedule" size={12} className="text-slate-400" />
-                  <p className="text-[10px] font-medium text-slate-400">
-                    {formatTimestamp(notification.timestamp)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 bg-white/50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
-            <div className="p-4 bg-slate-100 dark:bg-white/5 rounded-full mb-4">
-              <MaterialSymbol name="notifications_off" size={32} className="text-slate-400" />
-            </div>
-            <p className="text-sm font-medium text-slate-500 dark:text-gray-400">
-              {t('noNotificationsFound')}
-            </p>
+                  {filter.id === 'unread' && unreadCount > 0 && (
+                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-primary'} animate-pulse`} />
+                  )}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </main>
+        </div>
+
+        <main className="space-y-3 mt-6">
+          {filteredNotifications.length > 0 ? (
+            filteredNotifications.map((notification) => {
+              const theme = getNotificationTheme(notification.type);
+              
+              return (
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification.id, notification.chatId ? `/male/chat/${notification.chatId}` : undefined)}
+                  className={`group relative glass-card rounded-[1.5rem] p-4 flex items-start gap-4 cursor-pointer transition-all hover:translate-x-1 duration-300 ${!notification.isRead 
+                    ? 'ring-1 ring-primary/20 shadow-[inset_0_1px_10px_rgba(255,77,109,0.05)] border-primary/20' 
+                    : 'opacity-80 border-white/60 dark:border-white/10'}`}
+                >
+                  {/* Unread Indicator Pill */}
+                  {!notification.isRead && (
+                    <div className="absolute right-4 top-4 h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(255,77,109,0.5)]" />
+                  )}
+
+                  <div className="shrink-0">
+                    {notification.avatar ? (
+                      <div className="relative">
+                        <img
+                          src={notification.avatar}
+                          alt=""
+                          className="w-14 h-14 rounded-2xl object-cover skeuo-card p-0.5 border-white dark:border-white/10"
+                        />
+                        <div className={`absolute -bottom-1 -right-1 size-6 rounded-lg skeuo-card flex items-center justify-center bg-white dark:bg-black p-1`}>
+                           <MaterialSymbol name={theme.icon} size={14} className={theme.color} filled />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`flex items-center justify-center w-14 h-14 rounded-2xl skeuo-inset ${theme.bgColor}`}>
+                        <MaterialSymbol
+                          name={theme.icon}
+                          className={theme.color}
+                          size={28}
+                          filled
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                       <h3 className={`text-[13px] tracking-tight truncate ${!notification.isRead ? 'font-black text-slate-900 dark:text-white' : 'font-bold text-slate-600 dark:text-slate-400'}`}>
+                        {t(notification.title)}
+                      </h3>
+                      <button
+                        onClick={(e) => handleDeleteNotification(notification.id, e)}
+                        className="shrink-0 p-2 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100"
+                      >
+                        <MaterialSymbol name="close" size={16} />
+                      </button>
+                    </div>
+                    <p className={`text-[11px] leading-relaxed line-clamp-2 ${!notification.isRead ? 'font-bold text-slate-700 dark:text-slate-300' : 'font-semibold text-slate-400 dark:text-slate-500'}`}>
+                      {t(notification.message)}
+                    </p>
+                    <div className="flex items-center gap-2 pt-1 opacity-60">
+                      <MaterialSymbol name="schedule" size={12} className="text-slate-400" />
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                        {formatTimestamp(notification.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            /* Premium Empty State "The Void" */
+            <div className="pt-20">
+              <div className="skeuo-card bg-mesh-glass rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center relative overflow-hidden backdrop-blur-xl border border-white/60 dark:border-white/5">
+                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+                
+                <div className="relative size-24 skeuo-inset rounded-full flex items-center justify-center bg-gray-50 dark:bg-black/40 mb-8 animate-pulse-slow">
+                   {/* Glowing Bell Backdrop */}
+                   <div className="absolute inset-2 bg-primary/20 blur-[15px] rounded-full" />
+                   <MaterialSymbol name="notifications_off" size={48} className="text-primary drop-shadow-[0_4px_10px_rgba(255,77,109,0.3)]" />
+                </div>
+                
+                <h2 className="relative z-10 text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.25em] mb-2">
+                  {t('No New Alerts')}
+                </h2>
+                <p className="relative z-10 text-[10px] font-bold text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed uppercase tracking-widest">
+                  {t('Stay tuned! Your journey and connections will alert you here.')}
+                </p>
+
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
 
       <BottomNavigation items={navigationItems} onItemClick={handleNav} />
     </div>
   );
 };
-
-
-

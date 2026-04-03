@@ -11,25 +11,27 @@ export const WalletHeader = ({ onHelpClick }: WalletHeaderProps) => {
   const { t } = useTranslation();
 
   return (
-    <div className="sticky top-0 z-50 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between">
-      <button
-        onClick={() => navigate(-1)}
-        className="text-[#111418] dark:text-white flex size-12 shrink-0 items-center justify-start cursor-pointer active:scale-95 transition-transform"
-        aria-label="Back"
-      >
-        <MaterialSymbol name="arrow_back_ios" size={24} />
-      </button>
-      <h2 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">
-        {t('myWallet')}
-      </h2>
-      <div className="flex w-12 items-center justify-end">
+    <div className="sticky top-0 z-50 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 border-b border-black/5 dark:border-white/5 justify-center pt-10">
+      <div className="max-w-md mx-auto w-full flex items-center justify-between">
         <button
-          onClick={onHelpClick}
-          className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-[#111418] dark:text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0 active:scale-95 transition-transform"
-          aria-label="Help"
+          onClick={() => navigate(-1)}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-[#1a1a1a] text-slate-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95 shadow-sm border border-black/5 dark:border-white/5"
+          aria-label="Back"
         >
-          <MaterialSymbol name="help" size={24} />
+          <MaterialSymbol name="arrow_back" size={24} />
         </button>
+        <h2 className="text-slate-900 dark:text-white text-lg font-bold tracking-tight flex-1 text-center">
+          {t('myWallet')}
+        </h2>
+        <div className="flex w-10 items-center justify-end">
+          <button
+            onClick={onHelpClick}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-[#1a1a1a] text-slate-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95 shadow-sm border border-black/5 dark:border-white/5"
+            aria-label="Help"
+          >
+            <MaterialSymbol name="help" size={24} />
+          </button>
+        </div>
       </div>
     </div>
   );

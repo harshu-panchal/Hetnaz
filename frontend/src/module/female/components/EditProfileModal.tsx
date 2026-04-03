@@ -3,6 +3,7 @@ import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import axios from 'axios';
 import { useAuth } from '../../../core/context/AuthContext';
 import { getAuthToken } from '../../../core/utils/auth';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface EditProfileModalProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface EditProfileModalProps {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
+    const { t } = useTranslation();
     const { user, updateUser } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -22,6 +24,7 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
     const [bio, setBio] = useState('');
     const [interests, setInterests] = useState<string[]>([]);
     const [photos, setPhotos] = useState<string[]>([]);
+    const [newInterest, setNewInterest] = useState('');
 
     useEffect(() => {
         if (isOpen && user) {
@@ -62,7 +65,6 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
             onClose();
         } catch (error) {
             console.error('Failed to update profile', error);
-            alert('Failed to update profile');
         } finally {
             setIsLoading(false);
         }
@@ -103,9 +105,7 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
     };
 
     const handleDeletePhoto = (index: number) => {
-        if (window.confirm('Are you sure you want to delete this photo?')) {
-            setPhotos((prev) => prev.filter((_, i) => i !== index));
-        }
+        setPhotos((prev) => prev.filter((_, i) => i !== index));
     };
 
     const handleSetProfilePhoto = (index: number) => {
@@ -115,181 +115,215 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
         setPhotos(newPhotos);
     };
 
+    const handleAddInterest = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newInterest.trim() && !interests.includes(newInterest.trim()) && interests.length < 10) {
+            setInterests([...interests, newInterest.trim()]);
+            setNewInterest('');
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-[#230f16] w-full max-w-lg rounded-2xl shadow-xl max-h-[90vh] flex flex-col overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-[#230f16] z-10">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit Profile</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-500">
+            
+            <div className="relative z-10 bg-white w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-xl sm:rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-500">
+                {/* Header - Light Mesh Glass */}
+                <div className="flex items-center justify-between px-8 pb-6 pt-12 border-b border-slate-100 bg-slate-50/50 backdrop-blur-md shrink-0">
+                    <div className="space-y-1">
+                      <h2 className="text-2xl font-black tracking-tight text-slate-800">{t('editProfile')}</h2>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{t('vaultSettings')}</p>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#4b202e] text-gray-500 dark:text-gray-400 transition-colors"
+                        className="size-12 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-400 active:scale-90 transition-all hover:bg-pink-50 hover:text-pink-500"
                     >
                         <MaterialSymbol name="close" size={24} />
                     </button>
                 </div>
 
-                {/* Content - SCROLLABLE */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Photos Section */}
-                    <div>
-                        <div className="flex items-center justify-between mb-3">
-                            <label className="text-sm font-medium text-gray-700 dark:text-[#cbbc90]">Photos</label>
-                            <span className="text-xs text-gray-500">{photos.length}/4 items</span>
+                {/* Content - Light Mode Scrollable */}
+                <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar bg-white">
+                    
+                    {/* Photo Grid */}
+                    <section className="space-y-6">
+                        <div className="flex items-center justify-between px-1">
+                            <div className="flex items-center gap-3">
+                                <MaterialSymbol name="photo_library" size={20} className="text-pink-500" />
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-800 underline decoration-pink-500/20 underline-offset-4">{t('photos')}</h3>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{photos.length}/4</span>
                         </div>
+                        
                         <div className="grid grid-cols-3 gap-3">
-                            {photos.map((photo, index) => (
-                                <div key={index} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-[#2a2515]">
-                                    <img src={photo} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
-                                    {index === 0 && (
-                                        <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-0.5 shadow-sm flex items-center justify-center">
-                                            <MaterialSymbol name="star" size={12} filled />
+                            {/* Featured Slot */}
+                            <div className="col-span-3 aspect-video relative group rounded-[2rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-inner">
+                                {photos[0] ? (
+                                    <>
+                                        <img src={photos[0]} alt="Featured" className="size-full object-cover" />
+                                        <div className="absolute top-4 left-4 bg-pink-500 px-3 py-1 rounded-full shadow-lg z-20">
+                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white flex items-center gap-1">
+                                                <MaterialSymbol name="star" size={10} filled />
+                                                {t('featured')}
+                                            </span>
                                         </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        {index !== 0 && (
-                                            <button
-                                                onClick={() => handleSetProfilePhoto(index)}
-                                                className="p-1.5 bg-white/90 rounded-full hover:bg-white transition-colors"
-                                                title="Set as Main"
-                                            >
-                                                <MaterialSymbol name="star" size={16} className="text-primary" />
+                                        <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                            <button onClick={() => handleDeletePhoto(0)} className="size-12 rounded-2xl bg-red-500 text-white shadow-xl active:scale-95 transition-all">
+                                                <MaterialSymbol name="delete" size={24} />
                                             </button>
-                                        )}
-                                        <button
-                                            onClick={() => handleDeletePhoto(index)}
-                                            className="p-1.5 bg-red-500/90 rounded-full hover:bg-red-600 transition-colors"
-                                            title="Delete"
-                                        >
-                                            <MaterialSymbol name="delete" size={16} className="text-white" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <button onClick={handlePhotoUpload} className="size-full flex flex-col items-center justify-center gap-3 bg-slate-50 border-2 border-dashed border-slate-200 hover:border-pink-200 hover:bg-pink-50 transition-all group">
+                                        <MaterialSymbol name="add_a_photo" size={40} className="text-slate-300 group-hover:text-pink-300 transition-colors" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('addCoverPhoto')}</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Others */}
+                            {[1, 2, 3].map((slotIndex) => (
+                                <div key={slotIndex} className="aspect-square relative group rounded-[1.5rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-sm">
+                                    {photos[slotIndex] ? (
+                                        <>
+                                            <img src={photos[slotIndex]} alt={`Slot ${slotIndex}`} className="size-full object-cover" />
+                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                <button onClick={() => handleSetProfilePhoto(slotIndex)} className="size-10 rounded-xl bg-white/90 text-pink-500 shadow-lg active:scale-95 transition-all">
+                                                    <MaterialSymbol name="star" size={20} filled />
+                                                </button>
+                                                <button onClick={() => handleDeletePhoto(slotIndex)} className="size-10 rounded-xl bg-red-500 text-white shadow-lg active:scale-95 transition-all">
+                                                    <MaterialSymbol name="delete" size={20} />
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <button onClick={handlePhotoUpload} className="size-full flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-pink-200 transition-all">
+                                            <MaterialSymbol name="add" size={24} className="text-slate-300" />
                                         </button>
-                                    </div>
+                                    )}
                                 </div>
                             ))}
-                            {photos.length < 4 && (
-                                <button
-                                    onClick={handlePhotoUpload}
-                                    className="aspect-square rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center hover:border-primary dark:hover:border-primary transition-colors bg-gray-50 dark:bg-transparent"
-                                >
-                                    <MaterialSymbol name="add_photo_alternate" size={24} className="text-gray-400 mb-1" />
-                                    <span className="text-[10px] text-gray-500">Add</span>
-                                </button>
-                            )}
                         </div>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={handleFileChange}
-                            className="hidden"
-                        />
-                    </div>
+                        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
+                    </section>
 
-                    <div className="space-y-4">
-                        {/* Name */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-1">Name</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full px-4 py-2 bg-gray-50 dark:bg-[#1a0b10] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                placeholder="Your Name"
-                            />
+                    {/* Basic Info Inputs */}
+                    <section className="space-y-10">
+                        <div className="flex items-center gap-3 px-1">
+                            <MaterialSymbol name="person" size={20} className="text-pink-500" />
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-800">{t('personalDetails')}</h3>
                         </div>
 
-                        {/* Age & Location */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-1">Age</label>
-                                <input
-                                    type="number"
-                                    value={age}
-                                    onChange={(e) => setAge(parseInt(e.target.value) || 0)}
-                                    min={18}
-                                    max={100}
-                                    className="w-full px-4 py-2 bg-gray-50 dark:bg-[#1a0b10] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                />
+                        <div className="space-y-6">
+                            <div className="space-y-3">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">{t('fullName')}</label>
+                                <div className="bg-slate-50 rounded-2xl p-1.5 px-4 border border-slate-100 focus-within:border-pink-100 focus-within:bg-white transition-all shadow-inner">
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full h-12 bg-transparent text-sm font-bold text-slate-800 outline-none placeholder:text-slate-300"
+                                        placeholder={t('enterName')}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-1">Location</label>
-                                <input
-                                    type="text"
-                                    value={location}
-                                    onChange={(e) => setLocation(e.target.value)}
-                                    className="w-full px-4 py-2 bg-gray-50 dark:bg-[#1a0b10] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="City, Country"
-                                />
-                            </div>
-                        </div>
 
-                        {/* Bio */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-1">Bio</label>
-                            <textarea
-                                value={bio}
-                                onChange={(e) => setBio(e.target.value)}
-                                rows={3}
-                                className="w-full px-4 py-2 bg-gray-50 dark:bg-[#1a0b10] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                placeholder="Tell us about yourself..."
-                            />
-                        </div>
-
-                        {/* Interests */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-2">Interests</label>
-                            <div className="flex flex-wrap gap-2">
-                                {interests.map((interest, index) => (
-                                    <div key={index} className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 dark:bg-primary/20 rounded-full border border-primary/20">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-3">
+                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">{t('age')}</label>
+                                    <div className="bg-slate-50 rounded-2xl p-1.5 px-4 border border-slate-100 focus-within:border-pink-100 focus-within:bg-white transition-all shadow-inner">
+                                        <input
+                                            type="number"
+                                            value={age}
+                                            onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+                                            className="w-full h-12 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">{t('location')}</label>
+                                    <div className="bg-slate-50 rounded-2xl p-1.5 px-4 border border-slate-100 focus-within:border-pink-100 focus-within:bg-white transition-all shadow-inner">
                                         <input
                                             type="text"
-                                            value={interest}
-                                            onChange={(e) => {
-                                                const newInterests = [...interests];
-                                                newInterests[index] = e.target.value;
-                                                setInterests(newInterests);
-                                            }}
-                                            className="bg-transparent border-none outline-none text-xs font-semibold text-gray-900 dark:text-white w-20"
+                                            value={location}
+                                            onChange={(e) => setLocation(e.target.value)}
+                                            className="w-full h-12 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                                            placeholder={t('city')}
                                         />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">{t('bio')}</label>
+                                <div className="bg-slate-50 rounded-3xl p-4 border border-slate-100 focus-within:border-pink-100 focus-within:bg-white transition-all shadow-inner">
+                                    <textarea
+                                        value={bio}
+                                        onChange={(e) => setBio(e.target.value)}
+                                        rows={4}
+                                        className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none placeholder:text-slate-300 resize-none leading-relaxed"
+                                        placeholder={t('writeSomethingAboutYourself')}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Interests Section */}
+                    <section className="space-y-10">
+                        <div className="flex items-center gap-3 px-1">
+                            <MaterialSymbol name="auto_fix" size={20} className="text-pink-500" />
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-800">{t('interests')}</h3>
+                        </div>
+
+                        <div className="space-y-4">
+                            <form onSubmit={handleAddInterest} className="flex gap-2">
+                                <div className="flex-1 bg-slate-50 rounded-2xl p-1 px-4 border border-slate-100 shadow-inner">
+                                    <input
+                                        type="text"
+                                        value={newInterest}
+                                        onChange={(e) => setNewInterest(e.target.value)}
+                                        className="w-full h-10 bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-800 outline-none placeholder:text-slate-300"
+                                        placeholder={t('addNewInterest')}
+                                    />
+                                </div>
+                                <button type="submit" className="size-12 rounded-2xl bg-pink-500 text-white shadow-lg active:scale-90 transition-all">
+                                    <MaterialSymbol name="add" size={24} />
+                                </button>
+                            </form>
+
+                            <div className="flex flex-wrap gap-2">
+                                {interests.map((interest, index) => (
+                                    <div key={index} className="flex items-center gap-2 pl-4 pr-2 py-2 rounded-xl bg-slate-50 border border-slate-100 animate-in slide-in-from-left-2 duration-300">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{interest}</span>
                                         <button
                                             onClick={() => setInterests(interests.filter((_, i) => i !== index))}
-                                            className="text-gray-500 hover:text-red-500"
+                                            className="size-6 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
                                         >
                                             <MaterialSymbol name="close" size={14} />
                                         </button>
                                     </div>
                                 ))}
-                                {interests.length < 10 && (
-                                    <button
-                                        onClick={() => setInterests([...interests, ''])}
-                                        className="flex items-center gap-1 px-3 py-1 border border-dashed border-gray-300 dark:border-gray-600 rounded-full text-xs text-gray-500 hover:border-primary hover:text-primary transition-colors"
-                                    >
-                                        <MaterialSymbol name="add" size={14} />
-                                        Add
-                                    </button>
-                                )}
                             </div>
                         </div>
-                    </div>
+                    </section>
                 </div>
 
-                {/* Footer - FIXED */}
-                <div className="p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#1a0b10]/50">
+                {/* Footer */}
+                <div className="p-8 pt-4 border-t border-slate-100 bg-white shrink-0">
                     <button
                         onClick={handleSave}
                         disabled={isLoading}
-                        className="w-full py-3 bg-primary text-slate-900 font-bold rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full h-16 bg-pink-500 text-white rounded-2xl shadow-xl hover:bg-pink-600 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                     >
                         {isLoading ? (
-                            <>
-                                <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                                Saving...
-                            </>
+                            <div className="size-6 border-3 border-white/20 border-t-white rounded-full animate-spin" />
                         ) : (
-                            'Save Changes'
+                            <>
+                              <span className="text-xs font-black uppercase tracking-[0.3em]">{t('saveProfileChanges')}</span>
+                              <MaterialSymbol name="lock" size={20} className="opacity-50" />
+                            </>
                         )}
                     </button>
                 </div>

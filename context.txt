@@ -1,0 +1,89 @@
+# HETNAZ (MatchMint) - Project Context
+
+## Project Overview
+HETNAZ is a premium dating and social interaction platform designed to facilitate meaningful connections between users through real-time communication, video calling, and a gamified coin-based economy. The platform distinguishes between male and female user roles, each with specialized features and monetization models.
+
+## Technology Stack
+
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS (with glassmorphism and modern UI patterns)
+- **State Management**: Zustand
+- **Data Fetching**: React Query (TanStack Query)
+- **Routing**: React Router v6
+- **Real-time**: Socket.IO Client
+- **Internationalization**: i18next (Multi-language support)
+- **Forms**: React Hook Form + Zod validation
+- **Notifications**: Firebase Cloud Messaging (FCM)
+
+### Backend
+- **Environment**: Node.js & Express
+- **Database**: MongoDB with Mongoose ODM
+- **Real-time**: Socket.IO for messaging and WebRTC signaling
+- **Authentication**: JWT (JSON Web Tokens) with Refresh Token logic
+- **File Management**: Cloudinary for cloud-based media storage
+- **Payments**: Razorpay integration for coin purchases
+- **SMS/OTP**: SMS Hub integration for secure authentication
+- **Logging**: Winston for error and activity tracking
+
+---
+
+## User Roles & Key Features
+
+### 1. Male User Features
+- **Dashboard & Discovery**: Browse and discover nearby female profiles.
+- **Real-time Chat**: Text-based communication with female users.
+- **Video Calling**: High-quality video interactions (charged per minute/session).
+- **Coin Wallet**: Purchase coins via Razorpay to unlock interactions and features.
+- **Gifts**: Send virtual gifts to female users during chats or calls.
+- **Badges & Referral**: System-wide badges for engagement and a referral program for rewards.
+- **Purchase History**: Detailed logs of all coin transactions.
+
+### 2. Female User Features
+- **Monetization (Earnings)**: Earn coins from text messages and video calls received from male users.
+- **Withdrawal System**: Convert earned coins into real currency through a managed withdrawal process.
+- **Auto-Message Templates**: Set up predefined messages to engage with visitors and matches.
+- **Profile Management**: Detailed profile setup including interests and images for discovery.
+- **Notifications**: Stay updated on new matches, messages, and earnings.
+
+### 3. Admin Features
+- **User Management**: Overview and moderation of all registered users (Male, Female, Admin).
+- **Female Approval (KYC)**: Manual verification process for female profiles to ensure platform safety.
+- **Withdrawal Management**: Review, approve, or reject withdrawal requests from female users.
+- **Coin Economy Control**: Manage coin plans, pricing, and payout slabs.
+- **Reports & Moderation**: Handle user-submitted reports and block/unblock accounts.
+- **System Settings**: Global app configurations including video call prices and platform variables.
+
+---
+
+## Technical Specifications & Infrastructure
+
+### 1. Real-time Infrastructure
+- Uses **Socket.IO** for low-latency messaging and real-time event synchronization.
+- **WebRTC** signaling logic implemented for secure peer-to-peer video connections.
+
+### 2. Economy Model
+- **Males**: Pay for coins -> Use coins for interactions.
+- **Females**: Receive interactions -> Earn coins -> Request withdrawal.
+- **Platform**: Admin monitors and facilitates the exchange, ensuring security and validity.
+
+### 3. Security Measures
+- **Authenticatin**: Secure OTP-based login and session management.
+- **RBAC**: Strict Role-Based Access Control on both frontend and backend routes.
+- **Validation**: Strict schema validation using Mongoose models and Zod.
+- **Rate Limiting**: Protection against brute-force and API abuse.
+
+### 4. Folder Structure
+- **Frontend**: Follows a modular `features/` (or `module/`) architecture for high maintainability.
+- **Backend**: Clean MVC separation with dedicated `services/` layer for complex business logic.
+
+---
+
+## Localization
+The project is built with internationalization in mind, supporting multiple languages to cater to a global audience. Configuration and translations are managed via the `i18n` module.
+
+## Deployment & Scalability
+- **Frontend**: Optimized for deployment on platforms like Vercel or Netlify.
+- **Backend**: Container-ready Express server suitable for AWS, DigitalOcean, or similar VPS hosting.
+- **Database**: Designed for MongoDB Atlas for easy scaling and high availability.

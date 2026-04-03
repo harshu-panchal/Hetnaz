@@ -7,13 +7,13 @@ export interface DiscoverProfile {
     avatar: string | null;
     bio?: string;
     occupation?: string;
-    location?: string;
     isOnline: boolean;
     distance?: string | number;
     chatCost: number;
-    latitude?: number;
-    longitude?: number;
+    hasChat?: boolean;
 }
+
+
 
 export interface UserProfile {
     id: string;
@@ -27,6 +27,8 @@ export interface UserProfile {
     interests: string[];
     isOnline: boolean;
     lastSeen?: string;
+    role?: string;
+    distance?: string;
 }
 
 export const discoverFemales = async (filter: string = 'all', page: number = 1, limit: number = 50) => {
@@ -84,6 +86,11 @@ export const unblockUser = async (targetUserId: string) => {
     return response.data;
 };
 
+export const reportUser = async (targetUserId: string, reason: string, description?: string) => {
+    const response = await apiClient.post('/users/report', { targetUserId, reason, description });
+    return response.data;
+};
+
 export const deleteChat = async (chatId: string) => {
     const response = await apiClient.delete(`/users/chats/${chatId}`);
     return response.data;
@@ -116,6 +123,7 @@ export default {
     },
     blockUser,
     unblockUser,
+    reportUser,
     deleteChat,
     deleteMyAccount,
 };
