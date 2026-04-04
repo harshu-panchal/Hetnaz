@@ -585,5 +585,12 @@
   "confirmDeleteChatDesc": "Are you sure you want to delete this chat? This action cannot be undone.",
   "confirmBlockUserDesc": "Are you sure you want to block {{name}}? They will no longer be able to message you.",
   "personalDetails": "Personal Details",
-  "saveProfileChanges": "Save Profile Changes"
+  "saveProfileChanges": "Save Profile Changes",
+  "signOutOfVault": "Secure Logout",
+  "logoutConfirmText": "Are you sure you want to log out of your account?",
+  "confirmLogout": "Sign Me Out",
+  "stayInVault": "Stay in Account",
+  "confirmDelete": "Confirm Delete",
+  "abortAction": "Abort Action",
+  "selfDestructTitle": "Delete Account?"
 }

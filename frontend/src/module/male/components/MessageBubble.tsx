@@ -115,8 +115,8 @@ export const MessageBubble = ({ message, onImageClick, onProfileClick }: Message
   }
 
   return (
-    <div className={`flex items-end gap-2 ${isSent ? 'flex-row-reverse' : 'flex-row'} mb-1.5 px-3 group`}>
-      {/* Avatar */}
+    <div className={`flex items-end gap-2 ${isSent ? 'flex-row-reverse' : 'flex-row'} mb-1.5 px-3 group transition-all duration-300`}>
+      {/* Avatar - Only for received messages */}
       {!isSent && (
         <div 
           className="shrink-0 mb-0.5 cursor-pointer hover:opacity-80 transition-opacity self-end pb-1"
@@ -137,9 +137,9 @@ export const MessageBubble = ({ message, onImageClick, onProfileClick }: Message
 
       <div className={`flex flex-col max-w-[82%] ${isSent ? 'items-end' : 'items-start'}`}>
         <div
-          className={`rounded-2xl px-3.5 py-2 shadow-sm transition-all hover:brightness-95 ${isSent
-            ? 'bg-primary/90 text-white rounded-tr-none'
-            : 'bg-white dark:bg-[#2d1b24]/50 text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/10 shadow-sm'
+          className={`rounded-[1.4rem] px-4 py-2 shadow-sm transition-all hover:brightness-110 ${isSent
+            ? 'bg-primary text-white rounded-tr-none'
+            : 'bg-white dark:bg-white/10 backdrop-blur-md text-gray-900 dark:text-white rounded-tl-none border border-gray-200 dark:border-white/10 shadow-sm'
             }`}
         >
           <p className="text-[14.5px] leading-snug whitespace-pre-wrap break-words font-medium">
@@ -147,9 +147,9 @@ export const MessageBubble = ({ message, onImageClick, onProfileClick }: Message
           </p>
         </div>
         
-        {/* Subtle timestamp on hover or always if sent */}
-        <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isSent ? 'mr-1' : 'ml-1'}`}>
-          <span className="text-[9px] font-medium text-gray-400 dark:text-gray-500">{time}</span>
+        {/* Alignment-aware timestamp + ticks */}
+        <div className={`flex items-center gap-1.5 mt-1 pb-1 transition-opacity duration-300 ${isSent ? 'mr-1' : 'ml-1'}`}>
+          <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500/80">{time}</span>
           {getReadStatusIcon()}
         </div>
       </div>

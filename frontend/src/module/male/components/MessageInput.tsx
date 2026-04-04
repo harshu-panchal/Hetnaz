@@ -161,41 +161,49 @@ export const MessageInput = ({
             className="flex-1 bg-transparent text-[15px] pb-[7px] pt-[7px] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-[#cc8ea3]/70 focus:outline-none"
           />
           
-          {/* Action Icons inside input */}
-          <div className="flex items-center gap-2 ml-1 pb-[3px] shrink-0">
-            {!message.trim() && (
-              <>
-                {onSendGift && (
-                  <button 
-                    className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-400 text-white shadow-sm shadow-pink-500/30 hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
-                    onClick={onSendGift}
-                    title="Send Gift"
-                  >
-                    <MaterialSymbol name="featured_seasonal_and_gifts" size={22} filled />
-                    <div className="absolute inset-0 rounded-full w-full h-full animate-ping opacity-0 group-hover:opacity-20 bg-white ease-out duration-1000"></div>
-                  </button>
-                )}
-                {onSendPhoto && (
-                  <button 
-                    className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-400 text-white shadow-sm shadow-blue-500/30 hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
-                    onClick={() => imagePickerRef.current?.pickImage()}
-                    title="Send Photo"
-                  >
-                    <MaterialSymbol name="image" size={22} filled />
-                    <div className="absolute inset-0 rounded-full w-full h-full animate-ping opacity-0 group-hover:opacity-20 bg-white ease-out duration-1000"></div>
-                  </button>
-                )}
-              </>
-            )}
+          {/* Action Icons inside input - Animated Transition */}
+          <div className="flex items-center relative ml-1 pb-[3px] shrink-0 h-9 transition-all duration-500 ease-in-out"
+               style={{ width: message.trim() ? '40px' : (onSendGift && onSendPhoto ? '88px' : '44px') }}>
             
-            {message.trim() && (
+            {/* Gift & Photo Icons Container */}
+            <div className={`flex items-center gap-2 transition-all duration-500 transform ${message.trim() ? '-translate-x-4 opacity-0 pointer-events-none scale-75' : 'translate-x-0 opacity-100 scale-100'}`}>
+              {onSendGift && (
+                <button 
+                  className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-400 text-white shadow-sm shadow-pink-500/30 hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
+                  onClick={onSendGift}
+                  title="Send Gift"
+                >
+                  <MaterialSymbol name="featured_seasonal_and_gifts" size={22} filled />
+                  <div className="absolute inset-0 rounded-full w-full h-full animate-ping opacity-0 group-hover:opacity-20 bg-white ease-out duration-1000"></div>
+                </button>
+              )}
+              {onSendPhoto && (
+                <button 
+                  className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-400 text-white shadow-sm shadow-blue-500/30 hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
+                  onClick={() => imagePickerRef.current?.pickImage()}
+                  title="Send Photo"
+                >
+                  <MaterialSymbol name="image" size={22} filled />
+                  <div className="absolute inset-0 rounded-full w-full h-full animate-ping opacity-0 group-hover:opacity-20 bg-white ease-out duration-1000"></div>
+                </button>
+              )}
+            </div>
+            
+            {/* Animated Send Arrow Button */}
+            <div className={`absolute right-0.5 transition-all duration-500 transform ${message.trim() ? 'scale-100 opacity-100 rotate-0' : 'scale-0 opacity-0 rotate-45 pointer-events-none'}`}>
               <button
                 onClick={handleSend}
-                className="text-primary font-bold text-sm px-2 py-0.5 active:opacity-50 transition-opacity"
+                disabled={isSending}
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-white shadow-lg shadow-primary/30 active:scale-90 active:shadow-inner transition-all group"
               >
-                Send
+                <MaterialSymbol 
+                  name="arrow_upward" 
+                  size={24} 
+                  filled={message.trim().length > 0} 
+                  className="group-hover:-translate-y-0.5 transition-transform" 
+                />
               </button>
-            )}
+            </div>
           </div>
         </div>
       </div>

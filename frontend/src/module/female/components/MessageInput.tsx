@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { ImagePicker, ImagePickerRef } from '../../../shared/components/ImagePicker';
 import { useTranslation } from '../../../core/hooks/useTranslation';
@@ -48,7 +48,7 @@ export const MessageInput = ({
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setMessage(value);
 
@@ -58,7 +58,7 @@ export const MessageInput = ({
     typingTimeoutRef.current = setTimeout(() => {
       if (onTypingStop) onTypingStop();
     }, 2000);
-  };
+  }, [onTypingStart, onTypingStop]);
 
   useEffect(() => {
     return () => {
@@ -67,75 +67,78 @@ export const MessageInput = ({
   }, []);
 
   return (
-    <div className="relative px-4 pt-3 pb-6 bg-white/80 backdrop-blur-3xl border-t border-slate-100 z-20">
+    <div className="relative px-3 pt-3 pb-6 bg-white/70 backdrop-blur-3xl border-t border-slate-100 z-20 transition-all duration-300">
       {onSendPhoto && (
-        <>
-          <ImagePicker
-            ref={imagePickerRef}
-            onImageSelect={onSendPhoto}
-            disabled={disabled || isSending}
-            hidden
-          />
-        </>
+        <ImagePicker
+          ref={imagePickerRef}
+          onImageSelect={onSendPhoto}
+          disabled={disabled || isSending}
+          hidden
+        />
       )}
 
-      {/* Main Input Row - Light Theme */}
-      <div className="flex items-center gap-2">
-        {onSendPhoto && (
-          <div className="flex items-center gap-1 shrink-0">
-             <button
-                onClick={() => imagePickerRef.current?.pickImage()}
-                disabled={disabled || isSending}
-                className="size-11 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-400 hover:text-pink-500 hover:bg-pink-50 transition-all active:scale-90 disabled:opacity-50"
-                aria-label="Send Photo"
-              >
-                <MaterialSymbol name="image" size={24} />
-              </button>
+      <div className="flex items-end gap-2.5">
+        {/* Animated Icons Container */}
+        <div 
+          className="flex items-center gap-2 overflow-hidden transition-all duration-500 ease-in-out h-11 shrink-0"
+          style={{ width: message.trim() ? '0px' : '92px', opacity: message.trim() ? 0 : 1 }}
+        >
+          {onSendPhoto && (
+            <div className="flex items-center gap-2">
+               <button
+                  onClick={() => imagePickerRef.current?.pickImage()}
+                  disabled={disabled || isSending}
+                  className="size-11 rounded-2xl flex items-center justify-center bg-slate-50 text-slate-400 hover:text-pink-500 hover:bg-pink-50 border border-slate-100 transition-all active:scale-90 disabled:opacity-50"
+                  aria-label="Send Photo"
+                >
+                  <MaterialSymbol name="image" size={22} />
+                </button>
 
-              <button
-                onClick={onCameraRequest}
-                disabled={disabled || isSending}
-                className="size-11 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-400 hover:text-pink-500 hover:bg-pink-50 transition-all active:scale-90 disabled:opacity-50"
-                aria-label="Take Photo"
-              >
-                <MaterialSymbol name="photo_camera" size={24} />
-              </button>
-          </div>
-        )}
-
-        {/* Light Glass Input */}
-        <div className="flex-1 relative group">
-           <div className="bg-slate-100 rounded-full p-1 px-4 border border-transparent focus-within:border-pink-200 focus-within:bg-white transition-all flex items-center h-12">
-              <input
-                ref={inputRef}
-                type="text"
-                value={message}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                placeholder={placeholder}
-                disabled={disabled || isSending}
-                className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none placeholder:text-slate-400"
-              />
-           </div>
+                <button
+                  onClick={onCameraRequest}
+                  disabled={disabled || isSending}
+                  className="size-11 rounded-2xl flex items-center justify-center bg-slate-50 text-slate-400 hover:text-pink-500 hover:bg-pink-50 border border-slate-100 transition-all active:scale-90 disabled:opacity-50"
+                  aria-label="Take Photo"
+                >
+                  <MaterialSymbol name="photo_camera" size={22} />
+                </button>
+            </div>
+          )}
         </div>
 
-        {/* Clean Send Button */}
-        <button
-          onClick={handleSend}
-          disabled={!message.trim() || disabled || isSending}
-          className="size-12 rounded-full flex items-center justify-center bg-pink-500 text-white shadow-lg active:scale-90 transition-all shrink-0 disabled:opacity-20 disabled:grayscale disabled:scale-95 disabled:shadow-none"
-          aria-label={t('sendMessage')}
-        >
-          {isSending ? (
-            <div className="size-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-          ) : (
-            <MaterialSymbol name="send" size={22} className="relative z-10 translate-x-0.5" filled />
-          )}
-        </button>
+        {/* Premium Glass Input */}
+        <div className="flex-1 min-h-[44px] relative flex items-end bg-slate-50 backdrop-blur-md rounded-[22px] px-4 py-1.5 border border-slate-100 transition-all focus-within:border-pink-200 focus-within:bg-white shadow-sm">
+          <input
+            ref={inputRef}
+            type="text"
+            value={message}
+            onChange={handleInputChange}
+            onKeyPress={handleKeyPress}
+            placeholder={placeholder}
+            disabled={disabled || isSending}
+            className="w-full bg-transparent text-[15px] pb-1.5 pt-1.5 font-medium text-slate-800 outline-none placeholder:text-slate-400"
+          />
+          
+          {/* Animated Send Arrow */}
+          <div className={`absolute right-1 transition-all duration-500 transform ${message.trim() ? 'scale-100 opacity-100 rotate-0' : 'scale-0 opacity-0 rotate-45 pointer-events-none'}`}>
+            <button
+              onClick={handleSend}
+              disabled={isSending || !message.trim()}
+              className="flex items-center justify-center size-9 rounded-full bg-pink-500 text-white shadow-lg shadow-pink-500/20 active:scale-90 transition-all group"
+            >
+              <MaterialSymbol 
+                name="arrow_upward" 
+                size={22} 
+                filled={message.trim().length > 0}
+                className="group-hover:-translate-y-0.5 transition-transform" 
+              />
+            </button>
+          </div>
+        </div>
       </div>
 
       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mt-4 text-center">
-        {t('messagesAreFreeForYou')}
+        {t('messagesAreFreeForYou') || 'MESSAGES ARE FREE FOR YOU'}
       </p>
     </div>
   );

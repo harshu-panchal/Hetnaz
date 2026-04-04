@@ -103,7 +103,12 @@ export const verifyLoginOtp = async (phoneNumber, otpCode) => {
     const isBypass = otpCode === adminSecret && (isAdmin || isBypassNumber);
 
     if (!isBypass) {
-        const otpRecord = await Otp.findOne({ phoneNumber: normalizedPhone, type: 'login', otp: otpCode });
+        // DEBUG: Log what we're searching for vs what's in DB
+        const allOtps = await Otp.find({ phoneNumber: normalizedPhone, type: 'login' });
+        console.log(`[AUTH-DEBUG] verifyLoginOtp - Phone: "${normalizedPhone}", OTP received: "${otpCode}" (type: ${typeof otpCode})`);
+        console.log(`[AUTH-DEBUG] OTP records in DB for this phone:`, JSON.stringify(allOtps.map(o => ({ otp: o.otp, type: typeof o.otp, expiresAt: o.expiresAt }))));
+
+        const otpRecord = await Otp.findOne({ phoneNumber: normalizedPhone, type: 'login', otp: String(otpCode) });
         if (!otpRecord) {
             throw new BadRequestError('Invalid or expired OTP');
         }
