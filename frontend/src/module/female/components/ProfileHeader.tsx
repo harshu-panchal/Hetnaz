@@ -19,7 +19,7 @@ export const ProfileHeader = ({ user }: ProfileHeaderProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <div className="flex items-center justify-between p-4 pt-12 pb-3 animate-in fade-in slide-in-from-top-4 duration-700">
+    <div className="flex items-center justify-between p-4 pt-4 pb-3 animate-in fade-in slide-in-from-top-4 duration-700">
       <div className="flex items-center gap-5">
         <div className="relative group">
           <div className="absolute inset-0 bg-pink-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

@@ -208,7 +208,7 @@ export const ChatWindowPage = () => {
         <div className="absolute top-0 right-0 w-80 h-80 bg-pink-100/40 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="absolute bottom-40 left-0 w-64 h-64 bg-amber-100/30 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col items-center pt-12 pb-6">
+        <div className="relative z-10 flex flex-col items-center pt-4 pb-6">
           {/* Profile Centerpiece - Instagram Style (Light Theme) */}
           <div className="flex flex-col items-center mb-10 px-6 text-center">
             <div className="relative mb-6 group cursor-pointer" onClick={handleUserInfoClick}>

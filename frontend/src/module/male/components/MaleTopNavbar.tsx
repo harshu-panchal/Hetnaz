@@ -11,7 +11,7 @@ export const MaleTopNavbar = ({ title }: MaleTopNavbarProps) => {
   const { unreadCount } = useGlobalState();
 
   return (
-    <div className="sticky top-0 z-40 bg-gradient-to-r from-pink-50/95 via-rose-50/95 to-pink-50/95 dark:from-[#1a0f14]/95 dark:via-[#2d1a24]/95 dark:to-[#1a0f14]/95 backdrop-blur-lg border-b border-pink-200/50 dark:border-pink-900/30 shadow-sm pt-10">
+    <div className="sticky top-0 z-40 bg-gradient-to-r from-pink-50/95 via-rose-50/95 to-pink-50/95 dark:from-[#1a0f14]/95 dark:via-[#2d1a24]/95 dark:to-[#1a0f14]/95 backdrop-blur-lg border-b border-pink-200/50 dark:border-pink-900/30 shadow-sm">
       <div className="flex items-center justify-between px-4 py-3 max-w-md mx-auto w-full">
         {/* Logo or Title */}
         {title ? (

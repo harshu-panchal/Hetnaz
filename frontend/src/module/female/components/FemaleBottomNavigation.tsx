@@ -15,8 +15,8 @@ interface FemaleBottomNavigationProps {
 
 export const FemaleBottomNavigation = ({ items, onItemClick }: FemaleBottomNavigationProps) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#221e10]/95 backdrop-blur-md border-t border-slate-200 dark:border-white/5 pt-3 safe-area-inset-bottom">
-      <div className="flex justify-around items-center">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md md:max-w-2xl lg:max-w-3xl z-50 bg-white/95 dark:bg-[#1a0f14]/95 backdrop-blur-md border border-pink-100/50 dark:border-pink-900/30 rounded-t-[2.5rem] md:rounded-[3rem] md:bottom-4 px-6 md:px-12 py-3 shadow-[0_-8px_32px_rgba(255,105,180,0.1)]">
+      <div className="flex justify-around items-center max-w-2xl mx-auto">
         {items.map((item) => (
           <button
             key={item.id}
@@ -26,21 +26,22 @@ export const FemaleBottomNavigation = ({ items, onItemClick }: FemaleBottomNavig
             <MaterialSymbol
               name={item.icon}
               filled={item.isActive}
+              size={24}
               className={`transition-all duration-200 ${item.isActive
-                  ? 'text-primary scale-110'
-                  : 'text-slate-400 dark:text-[#cbbc90] group-hover:text-primary group-hover:scale-105'
+                ? 'text-pink-600 scale-110'
+                : 'text-gray-400 dark:text-gray-500 group-hover:text-pink-500 group-hover:scale-105'
                 }`}
             />
             <span
               className={`text-[10px] transition-all duration-200 ${item.isActive
-                  ? 'font-bold text-primary'
-                  : 'font-medium text-slate-400 dark:text-[#cbbc90] group-hover:text-primary'
+                ? 'font-bold text-pink-600'
+                : 'font-medium text-gray-400 dark:text-gray-500 group-hover:text-pink-500'
                 }`}
             >
               {item.label}
             </span>
             {item.hasBadge && (
-              <span className="absolute top-0 right-3 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="absolute top-0 right-3 h-2 w-2 rounded-full bg-pink-500 animate-pulse" />
             )}
           </button>
         ))}

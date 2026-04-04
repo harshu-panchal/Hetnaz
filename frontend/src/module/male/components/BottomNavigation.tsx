@@ -15,7 +15,7 @@ interface BottomNavigationProps {
 
 export const BottomNavigation = ({ items, onItemClick }: BottomNavigationProps) => {
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md md:max-w-2xl lg:max-w-3xl z-50 bg-white/95 dark:bg-[#1a0f14]/95 backdrop-blur-md border border-pink-100/50 dark:border-pink-900/30 rounded-t-[2.5rem] md:rounded-[3rem] md:bottom-4 px-6 md:px-12 py-3 safe-area-inset-bottom shadow-[0_-8px_32px_rgba(255,105,180,0.1)]">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md md:max-w-2xl lg:max-w-3xl z-50 bg-white/95 dark:bg-[#1a0f14]/95 backdrop-blur-md border border-pink-100/50 dark:border-pink-900/30 rounded-t-[2.5rem] md:rounded-[3rem] md:bottom-4 px-6 md:px-12 py-3 shadow-[0_-8px_32px_rgba(255,105,180,0.1)]">
       <div className="flex justify-around items-center max-w-2xl mx-auto">
         {items.map((item) => (
           <button

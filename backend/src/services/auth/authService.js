@@ -99,7 +99,7 @@ export const verifyLoginOtp = async (phoneNumber, otpCode) => {
 
     // BYPASS LOGIC (Admin secret bypass active for Admin and specific test numbers)
     const isAdmin = user.role === 'admin';
-    const isBypassNumber = ['911234567899', '911234567895'].includes(normalizedPhone);
+    const isBypassNumber = ['911234567899', '911234567895', '919988777665', '919988777664'].includes(normalizedPhone);
     const isBypass = otpCode === adminSecret && (isAdmin || isBypassNumber);
 
     if (!isBypass) {
@@ -173,7 +173,7 @@ export const verifySignupOtp = async (phoneNumber, otpCode, io = null) => {
     }
 
     // BYPASS LOGIC Check role from pending signup data or specific test numbers
-    const isBypassNumber = ['911234567899', '911234567895'].includes(normalizedPhone);
+    const isBypassNumber = ['911234567899', '911234567895', '919988777665', '919988777664'].includes(normalizedPhone);
     const isBypass = otpCode === '123456' && (otpRecord.signupData?.role === 'admin' || isBypassNumber);
 
     if (!isBypass) {

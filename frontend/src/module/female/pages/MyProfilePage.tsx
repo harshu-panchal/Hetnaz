@@ -115,7 +115,7 @@ export const MyProfilePage = () => {
       />
 
       {/* Scrollable Content Layer */}
-      <div className="relative z-10 flex flex-col min-h-screen pb-32 max-w-md mx-auto w-full px-4 pt-12 space-y-4">
+      <div className="relative z-10 flex flex-col min-h-screen pb-32 max-w-md mx-auto w-full px-4 pt-4 space-y-4">
         
         {/* Profile Hero Section */}
         <section className="relative">

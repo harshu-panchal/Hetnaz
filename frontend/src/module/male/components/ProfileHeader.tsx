@@ -73,7 +73,7 @@ export const ProfileHeader = ({ user, onEditClick, showNotifications = true, sho
   };
 
   return (
-    <div className="flex items-center justify-between px-2 pb-6 pt-12 animate-in fade-in slide-in-from-top-4 duration-700">
+    <div className="flex items-center justify-between px-2 pb-6 pt-4 animate-in fade-in slide-in-from-top-4 duration-700">
       <div className="flex items-center gap-5">
         {/* Vault Avatar */}
         <div

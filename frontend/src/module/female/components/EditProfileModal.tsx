@@ -130,7 +130,7 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
             
             <div className="relative z-10 bg-white w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-xl sm:rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-500">
                 {/* Header - Light Mesh Glass */}
-                <div className="flex items-center justify-between px-8 pb-6 pt-12 border-b border-slate-100 bg-slate-50/50 backdrop-blur-md shrink-0">
+                <div className="flex items-center justify-between px-8 pb-6 pt-4 border-b border-slate-100 bg-slate-50/50 backdrop-blur-md shrink-0">
                     <div className="space-y-1">
                       <h2 className="text-2xl font-black tracking-tight text-slate-800">{t('editProfile')}</h2>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{t('vaultSettings')}</p>

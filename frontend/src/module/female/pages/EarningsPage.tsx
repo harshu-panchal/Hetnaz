@@ -97,7 +97,7 @@ export const EarningsPage = () => {
     <div className="font-display text-slate-900 dark:text-white antialiased selection:bg-pink-500 selection:text-white min-h-screen relative overflow-hidden flex flex-col bg-background-light dark:bg-[#0a0a0a] pb-24">
       <MeshBackground />
       
-      <header className="relative z-20 flex items-center justify-between px-6 pb-6 pt-12 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-white/20 dark:border-white/5 shadow-sm">
+      <header className="relative z-20 flex items-center justify-between px-6 pb-6 pt-4 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-white/20 dark:border-white/5 shadow-sm">
         <div className="space-y-0.5">
           <h1 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 leading-none">{t('finance')}</h1>
           <h2 className="text-2xl font-black tracking-tight dark:text-white">{t('earnings')}</h2>

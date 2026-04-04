@@ -153,6 +153,7 @@ const SEED_DATA = {
     role: 'male',
     isVerified: true,
     coinBalance: 500,
+    genderPreference: 'female',
     profile: {
       name: 'Ujjawal',
       age: 22,
@@ -165,6 +166,43 @@ const SEED_DATA = {
     isVerified: true,
     profile: {
       name: 'HETNAZ Admin'
+    }
+  },
+
+  // 7. Bypass Login Test Accounts (OTP: 123456)
+  bypassFemale: {
+    phoneNumber: '919988777665',
+    role: 'female',
+    approvalStatus: 'approved',
+    isVerified: true,
+    isActive: true,
+    genderPreference: 'male',
+    profile: {
+      name: 'Priya Sharma',
+      age: 24,
+      bio: 'Fitness enthusiast and travel lover ✈️',
+      occupation: 'Model',
+      interests: ['Travel', 'Fitness', 'Music'],
+      photos: [{ url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=cover', isPrimary: true, uploadedAt: new Date() }],
+      location: { city: 'Mumbai', coordinates: { coordinates: [72.8777, 19.0760] } }
+    }
+  },
+  bypassMale: {
+    phoneNumber: '919988777664',
+    role: 'male',
+    approvalStatus: 'approved',
+    isVerified: true,
+    isActive: true,
+    genderPreference: 'female',
+    coinBalance: 100000,
+    profile: {
+      name: 'Rahul Dev',
+      age: 27,
+      bio: 'Entrepreneur with a passion for life 🎯',
+      occupation: 'Entrepreneur',
+      interests: ['Business', 'Travel', 'Sports'],
+      photos: [{ url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=cover', isPrimary: true, uploadedAt: new Date() }],
+      location: { city: 'Mumbai', coordinates: { coordinates: [72.8777, 19.0760] } }
     }
   }
 };
@@ -207,6 +245,13 @@ async function seedDatabase() {
     // Seed Admin & Test Male
     await Models.User.create(SEED_DATA.adminUser);
     const maleUser = await Models.User.create(SEED_DATA.maleUser);
+
+    // Seed Bypass Test Accounts
+    logger.info('🔑 Seeding Bypass Login Test Accounts...');
+    await Models.User.create(SEED_DATA.bypassFemale);
+    await Models.User.create(SEED_DATA.bypassMale);
+    logger.info('  ✅ Female bypass: +91-99887-77665 | OTP: 123456');
+    logger.info('  ✅ Male bypass:   +91-99887-77664 | OTP: 123456 | Coins: 100,000');
 
     // Seed Females
     const extraFemalesData = [

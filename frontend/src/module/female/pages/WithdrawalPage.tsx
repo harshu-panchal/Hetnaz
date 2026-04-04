@@ -115,7 +115,7 @@ export const WithdrawalPage = () => {
       <MeshBackground />
 
       {/* Premium Header */}
-      <header className="relative z-30 flex items-center justify-between px-4 pb-6 pt-12 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-white/20 dark:border-white/5 shadow-sm">
+      <header className="relative z-30 flex items-center justify-between px-4 pb-6 pt-4 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-white/20 dark:border-white/5 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
@@ -189,7 +189,7 @@ export const WithdrawalPage = () => {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0"
-                  className="w-full bg-transparent border-none text-slate-900 dark:text-white px-4 py-3 placeholder-slate-400 focus:ring-0 text-lg font-black"
+                  className="w-full bg-transparent border-none text-slate-900 dark:text-white px-4 py-3 placeholder-slate-400 focus:ring-0 text-lg font-black [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-slate-400">coins</span>
               </div>
