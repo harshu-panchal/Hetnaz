@@ -187,7 +187,7 @@ export const ChatListPage = () => {
       
       <div className="relative z-10 flex flex-col h-full flex-1 max-w-md mx-auto w-full">
         {/* Premium Skeuomorphic Header */}
-        <div className="sticky top-0 z-30 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-white/20 dark:border-white/5 shadow-sm px-4 pb-3 pt-10">
+        <div className="sticky top-0 z-30 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-white/20 dark:border-white/5 shadow-sm px-4 pb-3 pt-4">
           <div className="flex items-center justify-between mb-3">
              <div className="flex items-center gap-3">
                <div className="skeuo-inset size-12 rounded-[1.25rem] flex items-center justify-center bg-gray-50/50 dark:bg-black/40">

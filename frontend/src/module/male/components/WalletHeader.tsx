@@ -11,7 +11,7 @@ export const WalletHeader = ({ onHelpClick }: WalletHeaderProps) => {
   const { t } = useTranslation();
 
   return (
-    <div className="sticky top-0 z-50 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 border-b border-black/5 dark:border-white/5 justify-center pt-10">
+    <div className="sticky top-0 z-50 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 border-b border-black/5 dark:border-white/5 justify-center pt-4">
       <div className="max-w-md mx-auto w-full flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}

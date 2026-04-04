@@ -91,7 +91,7 @@ export const AutoMessageTemplatesPage = () => {
     <div className="font-display text-slate-800 antialiased selection:bg-pink-500 selection:text-white min-h-screen relative overflow-hidden flex flex-col bg-[#fdfafb] pb-24">
       
       {/* Header - Light Mode */}
-      <header className="relative z-30 flex items-center justify-between px-4 pb-6 pt-10 bg-white/70 backdrop-blur-3xl border-b border-slate-100 shadow-none">
+      <header className="relative z-30 flex items-center justify-between px-4 pb-6 pt-4 bg-white/70 backdrop-blur-3xl border-b border-slate-100 shadow-none">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}

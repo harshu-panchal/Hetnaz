@@ -58,7 +58,7 @@ export const ChatWindowHeader = ({
   };
 
   return (
-    <header className="flex flex-col bg-white/70 dark:bg-black/40 backdrop-blur-md z-20 sticky top-0 border-b border-white/20 dark:border-white/5 shadow-sm pt-10">
+    <header className="flex flex-col bg-white/70 dark:bg-black/40 backdrop-blur-md z-20 sticky top-0 border-b border-white/20 dark:border-white/5 shadow-sm pt-4">
       {/* Main Header Row */}
       <div className="flex items-center justify-between px-3 py-2 h-16">
         {/* Left Side: Back + User Info (Reverted to left-aligned) */}

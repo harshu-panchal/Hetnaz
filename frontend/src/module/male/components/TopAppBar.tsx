@@ -50,7 +50,7 @@ export const TopAppBar = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5 transition-colors duration-300 pt-10">
+    <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5 transition-colors duration-300 pt-4">
       <div className="flex items-center justify-between px-4 py-3 relative">
         {!isSearchOpen ? (
           <>
