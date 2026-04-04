@@ -32,7 +32,7 @@ export const ChatWindowHeader = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between px-3 pt-10 pb-2 bg-white/80 backdrop-blur-2xl border-b border-slate-100 shadow-none transition-all duration-300">
+    <header className="sticky top-0 z-50 flex items-center justify-between px-3 pt-4 pb-2 bg-white/80 backdrop-blur-2xl border-b border-slate-100 shadow-none transition-all duration-300">
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <button
           onClick={handleBack}

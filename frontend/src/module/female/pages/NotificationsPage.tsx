@@ -94,7 +94,7 @@ export const NotificationsPage = () => {
       <MeshBackground />
 
       {/* High-Gloss Header */}
-      <header className="sticky top-0 z-50 bg-white/60 dark:bg-black/60 backdrop-blur-2xl border-b border-white/20 dark:border-white/5 shadow-sm pt-10 pb-1">
+      <header className="sticky top-0 z-50 bg-white/60 dark:bg-black/60 backdrop-blur-2xl border-b border-white/20 dark:border-white/5 shadow-sm pt-4 pb-1">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <button 
@@ -215,7 +215,7 @@ export const NotificationsPage = () => {
             })
           ) : (
             /* Premium Empty State "The Void" */
-            <div className="pt-20">
+            <div className="pt-8">
               <div className="skeuo-card bg-mesh-glass rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center relative overflow-hidden backdrop-blur-xl border border-white/60 dark:border-white/5">
                 <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
                 

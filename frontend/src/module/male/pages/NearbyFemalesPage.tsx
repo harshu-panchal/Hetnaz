@@ -152,7 +152,7 @@ export const NearbyFemalesPage = () => {
       {/* Scrollable Content Layer */}
       <div className="relative z-10 flex flex-col min-h-screen max-w-md mx-auto w-full">
       {/* Search & Filter Header (Sticky) */}
-      <div className="sticky top-0 z-40 bg-white/95 dark:bg-[#1a0f14]/95 backdrop-blur-3xl border-b border-pink-100/30 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.02)] pt-10">
+      <div className="sticky top-0 z-40 bg-white/95 dark:bg-[#1a0f14]/95 backdrop-blur-3xl border-b border-pink-100/30 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.02)] pt-4">
         <div className="max-w-md mx-auto">
           <SearchBar 
             showLogo={false}

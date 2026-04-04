@@ -196,7 +196,7 @@ export const ChatListPage = () => {
       <div className="relative z-10 flex flex-col h-full flex-1 max-w-md mx-auto w-full">
         
         {/* Search & Filter Header (Sticky below TopNavbar) */}
-        <div className="sticky top-0 z-30 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-pink-200/30 dark:border-pink-900/10 shadow-sm px-4 py-1.5 pt-10">
+        <div className="sticky top-0 z-30 bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-b border-pink-200/30 dark:border-pink-900/10 shadow-sm px-4 py-1.5 pt-4">
           <div className="max-w-md mx-auto w-full space-y-1">
             <SearchBar 
               variant="full"

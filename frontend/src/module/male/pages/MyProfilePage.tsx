@@ -115,7 +115,7 @@ export const MyProfilePage = () => {
       <div className="relative z-10 max-w-md mx-auto w-full flex flex-col pb-32">
         
         {/* Header Hero */}
-        <section className="pt-10 px-4 pb-2">
+        <section className="pt-2 px-4 pb-2">
           <ProfileHeader
             user={{
               name: profile.name,

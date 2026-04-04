@@ -236,7 +236,7 @@ export const UserProfilePage = () => {
           )}
 
           {/* Floated Header Controls */}
-          <div className="absolute top-0 left-0 w-full p-5 pt-10 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent">
+          <div className="absolute top-0 left-0 w-full p-5 pt-4 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent">
             <button
               onClick={() => navigate(-1)}
               className="skeuo-button w-10 h-10 rounded-2xl flex items-center justify-center text-white bg-black/20 backdrop-blur-md active:scale-90 transition-all border-white/20"
