@@ -125,6 +125,12 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: [0, 'Coin balance cannot be negative'],
     },
+    totalCoinsSpent: {
+      type: Number,
+      default: 0,
+      min: [0, 'Total coins spent cannot be negative'],
+      index: true,
+    },
     memberTier: {
       type: String,
       enum: ['basic', 'silver', 'gold', 'platinum'],

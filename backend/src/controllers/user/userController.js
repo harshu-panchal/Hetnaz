@@ -4,6 +4,8 @@ import { calculateDistance, formatDistance } from '../../utils/distanceCalculato
 import memoryCache, { CACHE_TTL } from '../../core/cache/memoryCache.js';
 import * as userService from '../../services/user/userService.js';
 import { NotFoundError } from '../../utils/errors.js';
+import AppSettings from '../../models/AppSettings.js';
+import { calculateUserLevel } from '../../utils/levelHelper.js';
 
 export const resubmitVerification = async (req, res, next) => {
     try {
@@ -23,10 +25,45 @@ export const resubmitVerification = async (req, res, next) => {
 
 export const getProfile = async (req, res, next) => {
     try {
-        // req.user is already populated by auth middleware
+        const user = { ...req.user };
+        if (user.role === 'male') {
+            const settings = await AppSettings.getSettings();
+            user.levelInfo = calculateUserLevel(user.totalCoinsSpent || 0, settings.maleLevels || []);
+            
+            // Self-healing badges verification
+            const activeLevels = (settings.maleLevels || [])
+              .filter(lvl => (user.totalCoinsSpent || 0) >= lvl.minCoinsSpent);
+
+            let needsSave = false;
+            const userDoc = await User.findById(user._id || user.id);
+            if (userDoc) {
+              userDoc.badges = userDoc.badges || [];
+              activeLevels.forEach(lvl => {
+                const badgeId = `level_${lvl.level}`;
+                const hasBadge = userDoc.badges.some(b => b.id === badgeId);
+                if (!hasBadge) {
+                  userDoc.badges.push({
+                    id: badgeId,
+                    name: `${lvl.badgeName} Status`,
+                    icon: 'military_tech',
+                    category: 'achievement',
+                    isUnlocked: true,
+                    unlockedAt: new Date()
+                  });
+                  needsSave = true;
+                }
+              });
+              if (needsSave) {
+                await userDoc.save();
+                user.badges = userDoc.badges.toObject();
+                const { invalidateUserCache } = await import('../../middleware/auth.js');
+                invalidateUserCache(user._id || user.id);
+              }
+            }
+        }
         res.status(200).json({
             status: 'success',
-            data: { user: req.user }
+            data: { user }
         });
     } catch (error) {
         next(error);
@@ -321,6 +358,12 @@ export const getUserById = async (req, res, next) => {
             distanceFormatted = formatDistance(distanceKm);
         }
 
+        let levelInfo = null;
+        if (user.role === 'male') {
+            const settings = await AppSettings.getSettings();
+            levelInfo = calculateUserLevel(user.totalCoinsSpent || 0, settings.maleLevels || []);
+        }
+
         res.status(200).json({
             status: 'success',
             data: {
@@ -343,7 +386,8 @@ export const getUserById = async (req, res, next) => {
                     verificationDocuments: currentUser?.role === 'admin' ? (user.verificationDocuments || {}) : undefined,
                     createdAt: currentUser?.role === 'admin' ? user.createdAt : undefined,
                     isVerified: currentUser?.role === 'admin' ? user.isVerified : undefined,
-                    isBlocked: currentUser?.role === 'admin' ? user.isBlocked : undefined
+                    isBlocked: currentUser?.role === 'admin' ? user.isBlocked : undefined,
+                    levelInfo
                 }
             }
         });

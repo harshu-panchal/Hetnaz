@@ -119,7 +119,7 @@ export const BadgesPage = () => {
       },
     ];
 
-    return masterList.map(badge => {
+    const mappedList = masterList.map(badge => {
       const unlockedInfo = user?.badges?.find(b => b.id === badge.id || b.name === badge.name);
       if (unlockedInfo) {
         return {
@@ -130,6 +130,21 @@ export const BadgesPage = () => {
       }
       return badge;
     });
+
+    const levelBadges: Badge[] = (user?.badges || [])
+      .filter(b => b.id && b.id.startsWith('level_'))
+      .map(b => ({
+        id: b.id,
+        name: b.name,
+        icon: b.icon || 'military_tech',
+        description: `Unlocked by reaching level milestone!`,
+        category: 'achievement',
+        isUnlocked: true,
+        unlockedAt: b.unlockedAt,
+        rarity: 'epic'
+      }));
+
+    return [...mappedList, ...levelBadges];
   }, [t, user?.badges]);
 
   const rarityGradients = {

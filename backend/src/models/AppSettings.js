@@ -61,7 +61,25 @@ const appSettingsSchema = new mongoose.Schema(
         // Admin authentication secret (bypass OTP for admin login)
         adminSecret: { type: String, default: '123456' },
         // List of admin phone numbers
-        adminPhones: { type: [String], default: ['919981331303'] }
+        adminPhones: { type: [String], default: ['919981331303'] },
+        // Male user levels config
+        maleLevels: {
+            type: [
+                {
+                    level: { type: Number, required: true },
+                    minCoinsSpent: { type: Number, required: true },
+                    badgeName: { type: String, default: '' }
+                }
+            ],
+            default: [
+                { level: 1, minCoinsSpent: 0, badgeName: 'Novice' },
+                { level: 2, minCoinsSpent: 1000, badgeName: 'Explorer' },
+                { level: 3, minCoinsSpent: 3000, badgeName: 'Chaser' },
+                { level: 4, minCoinsSpent: 6000, badgeName: 'Vanguard' },
+                { level: 5, minCoinsSpent: 10000, badgeName: 'Elite' },
+                { level: 6, minCoinsSpent: 20000, badgeName: 'Titan' }
+            ]
+        }
     },
     {
         timestamps: true,

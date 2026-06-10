@@ -175,6 +175,11 @@ export interface AdminSettings {
     rewardAmount: number;
     isEnabled: boolean;
   };
+  maleLevels?: Array<{
+    level: number;
+    minCoinsSpent: number;
+    badgeName: string;
+  }>;
 }
 
 // Gift Management

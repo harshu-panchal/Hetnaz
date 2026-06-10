@@ -11,6 +11,8 @@ import { ReportModal } from '../../../shared/components/ReportModal';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
 
+import { extractCityFromAddress } from '../../../core/utils/auth';
+
 interface UserProfile {
   _id: string;
   name: string;
@@ -82,7 +84,8 @@ export const UserProfilePage = () => {
       }
 
       // Format location 
-      const city = data.profile?.location?.city || data.city || '';
+      const rawCity = data.profile?.location?.city || data.city || data.location || '';
+      const city = rawCity.includes(',') && rawCity.split(',').length > 3 ? extractCityFromAddress(rawCity) : rawCity;
       const state = data.profile?.location?.state || '';
       const formattedLocation = [city, state].filter(Boolean).join(', ');
 
@@ -91,7 +94,7 @@ export const UserProfilePage = () => {
         name: data.name || data.profile?.name,
         bio: data.bio || data.profile?.bio,
         age: data.age || data.profile?.age,
-        location: formattedLocation || data.location,
+        location: formattedLocation,
         occupation: data.occupation || data.profile?.occupation,
         photos: data.photos || data.profile?.photos || [],
         interests: data.interests || data.profile?.interests || [],

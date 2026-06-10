@@ -54,6 +54,9 @@ const MaleProfileEditPage = lazy(() => import('./module/male/pages/MaleProfileEd
 const GiftsPage = lazy(() => import('./module/male/pages/GiftsPage').then(m => ({ default: m.GiftsPage })));
 const BadgesPage = lazy(() => import('./module/male/pages/BadgesPage').then(m => ({ default: m.BadgesPage })));
 const ReferralPage = lazy(() => import('./module/male/pages/ReferralPage').then(m => ({ default: m.ReferralPage })));
+const MaleSettingsPage = lazy(() => import('./module/male/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const LeaderboardPage = lazy(() => import('./module/male/pages/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
+const MyLevelPage = lazy(() => import('./module/male/pages/MyLevelPage').then(m => ({ default: m.MyLevelPage })));
 
 // Female module - lazy loaded
 const FemaleDashboard = lazy(() => import('./module/female/pages/FemaleDashboard').then(m => ({ default: m.FemaleDashboard })));
@@ -65,6 +68,7 @@ const AutoMessageTemplatesPage = lazy(() => import('./module/female/pages/AutoMe
 const FemaleMyProfilePage = lazy(() => import('./module/female/pages/MyProfilePage').then(m => ({ default: m.MyProfilePage })));
 const FemaleNotificationsPage = lazy(() => import('./module/female/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const FemaleUserProfilePage = lazy(() => import('./module/female/pages/UserProfilePage').then(m => ({ default: m.UserProfilePage })));
+const FemaleSettingsPage = lazy(() => import('./module/female/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 // Admin module - lazy loaded
 const AdminDashboard = lazy(() => import('./module/admin/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
@@ -80,6 +84,8 @@ const CoinEconomyPage = lazy(() => import('./module/admin/pages/CoinEconomyPage'
 const TransactionsPage = lazy(() => import('./module/admin/pages/TransactionsPage').then(m => ({ default: m.TransactionsPage })));
 const SettingsPage = lazy(() => import('./module/admin/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const ReportsManagementPage = lazy(() => import('./module/admin/pages/ReportsManagementPage').then(m => ({ default: m.ReportsManagementPage })));
+const FaqsManagementPage = lazy(() => import('./module/admin/pages/FaqsManagementPage').then(m => ({ default: m.FaqsManagementPage })));
+const FaqsPage = lazy(() => import('./pages/FaqsPage').then(m => ({ default: m.FaqsPage })));
 
 
 function App() {
@@ -171,6 +177,10 @@ function AppShell() {
                         <Route path="/male/gifts" element={<GiftsPage />} />
                         <Route path="/male/badges" element={<BadgesPage />} />
                         <Route path="/male/referral" element={<ReferralPage />} />
+                        <Route path="/male/settings" element={<MaleSettingsPage />} />
+                        <Route path="/male/faqs" element={<FaqsPage />} />
+                        <Route path="/male/leaderboard" element={<LeaderboardPage />} />
+                        <Route path="/male/level" element={<MyLevelPage />} />
                       </Route>
 
                       {/* Female Routes */}
@@ -184,6 +194,8 @@ function AppShell() {
                         <Route path="/female/my-profile" element={<FemaleMyProfilePage />} />
                         <Route path="/female/notifications" element={<FemaleNotificationsPage />} />
                         <Route path="/female/profile/:profileId" element={<FemaleUserProfilePage />} />
+                        <Route path="/female/settings" element={<FemaleSettingsPage />} />
+                        <Route path="/female/faqs" element={<FaqsPage />} />
                       </Route>
 
                       {/* Admin Routes */}
@@ -207,6 +219,7 @@ function AppShell() {
                                 <Route path="transactions" element={<TransactionsPage />} />
                                 <Route path="reports" element={<ReportsManagementPage />} />
                                 <Route path="settings" element={<SettingsPage />} />
+                                <Route path="faqs" element={<FaqsManagementPage />} />
                               </Routes>
                             </AdminStatsProvider>
                           }

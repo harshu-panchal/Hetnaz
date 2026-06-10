@@ -124,6 +124,21 @@ export const fetchUserProfile = async (): Promise<any> => {
 };
 
 /**
+ * Extract city name from a full address string
+ */
+export const extractCityFromAddress = (address: string): string => {
+  if (!address) return '';
+  const parts = address.split(',').map(p => p.trim());
+  if (parts.length === 1) return parts[0];
+  // Normally: Street, Area, City, State Zip, Country
+  // If there are at least 3 parts, the city is usually parts[parts.length - 3]
+  if (parts.length >= 3) {
+    return parts[parts.length - 3];
+  }
+  return parts[0];
+};
+
+/**
  * Map backend user object to frontend UserProfile
  */
 export const mapUserToProfile = (user: any): UserProfile => {
@@ -135,6 +150,9 @@ export const mapUserToProfile = (user: any): UserProfile => {
   const firstPhoto = profilePhotos[0]?.url;
   const avatarUrl = user.avatarUrl || user.primaryPhoto || primaryPhoto || firstPhoto || '';
 
+  const rawLoc = user.profile?.location?.city || user.city || user.location || '';
+  const cleanCity = rawLoc.includes(',') && rawLoc.split(',').length > 3 ? extractCityFromAddress(rawLoc) : rawLoc;
+
   return {
     id: user._id || user.id || 'unknown',
     phoneNumber: user.phoneNumber || '',
@@ -144,8 +162,8 @@ export const mapUserToProfile = (user: any): UserProfile => {
     photos: profilePhotos.map((p: any) => typeof p === 'string' ? p : p?.url).filter(Boolean),
     age: parseInt(user.profile?.age, 10) || 18,
     bio: user.profile?.bio || '',
-    city: user.profile?.location?.city || user.location || user.city || 'Unknown',
-    location: user.profile?.location?.city || user.location || user.city || 'Location not set',
+    city: cleanCity || 'Unknown',
+    location: cleanCity || 'Location not set',
     interests: Array.isArray(user.profile?.interests) ? user.profile.interests : [],
     occupation: user.profile?.occupation || '',
     isVerified: !!user.isVerified,
@@ -159,6 +177,7 @@ export const mapUserToProfile = (user: any): UserProfile => {
     badges: Array.isArray(user.badges) ? user.badges : (Array.isArray(user.profile?.badges) ? user.profile.badges : []),
     referralId: user.referralId || '',
     referralCount: parseInt(user.referralCount, 10) || 0,
+    levelInfo: user.levelInfo || null,
   };
 };
 

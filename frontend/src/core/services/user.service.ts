@@ -101,6 +101,16 @@ export const deleteMyAccount = async () => {
     return response.data;
 };
 
+export const getFaqs = async () => {
+    const response = await apiClient.get('/users/faqs');
+    return response.data.data;
+};
+
+export const getLeaderboard = async () => {
+    const response = await apiClient.get('/users/male/leaderboard');
+    return response.data.data;
+};
+
 // Export as default object
 export default {
     getMeStats,
@@ -126,4 +136,7 @@ export default {
     reportUser,
     deleteChat,
     deleteMyAccount,
+    getFaqs,
+    getLeaderboard,
 };
+

@@ -128,6 +128,7 @@
     "logoutConfirmTitle": "लॉगआउट करें?",
     "logoutConfirmMessage": "क्या आप वाकई अपने खाते से लॉगआउट करना चाहते हैं?",
     "settings": "सेटिंग्स",
+    "faqs": "अक्सर पूछे जाने वाले प्रश्न",
     "notifications": "सूचनाएं",
     "notificationsDesc": "अपने डिवाइस पर सूचनाएं प्राप्त करें",
     "thisWeek": "इस सप्ताह",
@@ -613,5 +614,9 @@
     "confirmDeleteChatDesc": "क्या आप वाकई इस चैट को हटाना चाहते हैं? यह कार्रवाई वापस नहीं ली जा सकती।",
     "confirmBlockUserDesc": "क्या आप वाकई {{name}} को ब्लॉक करना चाहते हैं? वे अब आपको संदेश नहीं भेज पाएंगे।",
     "personalDetails": "व्यक्तिगत विवरण",
-    "saveProfileChanges": "प्रोफ़ाइल परिवर्तन सहेजें"
+    "saveProfileChanges": "प्रोफ़ाइल परिवर्तन सहेजें",
+    "levelProgress": "लेवल {{next}} के लिए {{count}} / {{total}} कॉइन्स खर्च किए",
+    "leaderboardTitle": "लेवल तुलना",
+    "levelBadge": "लेवल {{level}} • {{badgeName}}",
+    "nextLevelReached": "अधिकतम लेवल पहुँच गया!"
 }

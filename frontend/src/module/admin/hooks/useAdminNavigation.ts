@@ -114,6 +114,12 @@ export const useAdminNavigation = () => {
       ],
     },
     {
+      id: 'faqs',
+      icon: 'help',
+      label: 'FAQs',
+      isActive: location.pathname.startsWith('/admin/faqs'),
+    },
+    {
       id: 'settings',
       icon: 'settings',
       label: 'Settings',
@@ -148,6 +154,9 @@ export const useAdminNavigation = () => {
         break;
       case 'settings':
         navigate('/admin/settings');
+        break;
+      case 'faqs':
+        navigate('/admin/faqs');
         break;
       case 'reports':
         navigate('/admin/reports');

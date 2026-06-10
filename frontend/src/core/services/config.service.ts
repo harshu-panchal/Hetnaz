@@ -21,6 +21,11 @@ export interface AppConfig {
         minAmount: number;
         maxAmount: number;
     };
+    maleLevels?: Array<{
+        level: number;
+        minCoinsSpent: number;
+        badgeName: string;
+    }>;
 }
 
 class ConfigService {

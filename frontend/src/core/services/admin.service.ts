@@ -141,6 +141,26 @@ export const updateAdminSecret = async (phoneNumber: string, otp: string, newSec
     return response.data;
 };
 
+export const listFaqsAdmin = async () => {
+    const response = await apiClient.get('/admin/faqs');
+    return response.data.data;
+};
+
+export const createFaq = async (faqData: any) => {
+    const response = await apiClient.post('/admin/faqs', faqData);
+    return response.data.data;
+};
+
+export const updateFaq = async (faqId: string, faqData: any) => {
+    const response = await apiClient.put(`/admin/faqs/${faqId}`, faqData);
+    return response.data.data;
+};
+
+export const deleteFaq = async (faqId: string) => {
+    const response = await apiClient.delete(`/admin/faqs/${faqId}`);
+    return response.data;
+};
+
 export const adminService = {
     getDashboardStats,
     listUsers,
@@ -162,7 +182,12 @@ export const adminService = {
     getAdminProfile,
     requestAdminOtp,
     updateAdminPhone,
-    updateAdminSecret
+    updateAdminSecret,
+    listFaqsAdmin,
+    createFaq,
+    updateFaq,
+    deleteFaq
 };
 
 export default adminService;
+

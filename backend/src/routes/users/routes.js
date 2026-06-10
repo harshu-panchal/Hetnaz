@@ -6,6 +6,8 @@ import * as relationshipController from '../../controllers/user/relationshipCont
 import autoMessageController from '../../controllers/user/autoMessageController.js';
 import * as reportController from '../../controllers/user/reportController.js';
 import { protect, restrictTo } from '../../middleware/auth.js';
+import * as faqController from '../../controllers/faq/faqController.js';
+import * as leaderboardController from '../../controllers/user/leaderboardController.js';
 
 const router = express.Router();
 
@@ -38,6 +40,12 @@ router.post('/resubmit-verification', userController.resubmitVerification);
 
 // Discover approved females (for male users)
 router.get('/discover', userController.discoverFemales);
+
+// FAQs list
+router.get('/faqs', faqController.getFaqs);
+
+// Male Leaderboard / Levels Comparison
+router.get('/male/leaderboard', restrictTo('male'), leaderboardController.getLeaderboard);
 
 // Get a specific user's profile
 router.get('/:userId', userController.getUserById);

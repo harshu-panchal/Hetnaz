@@ -47,7 +47,7 @@ export const SettingsPage = () => {
   const [gifts, setGifts] = useState<AdminGift[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingGifts, setIsLoadingGifts] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'withdrawal' | 'coin-costs' | 'referral' | 'gifts' | 'admin'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'withdrawal' | 'coin-costs' | 'referral' | 'gifts' | 'admin' | 'male-levels'>('general');
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
@@ -195,6 +195,56 @@ export const SettingsPage = () => {
     }
   };
 
+  const handleMaleLevelsChange = (index: number, field: 'level' | 'minCoinsSpent' | 'badgeName', value: any) => {
+    setSettings((prev) => {
+      if (!prev) return prev;
+      const updatedLevels = [...(prev.maleLevels || [])];
+      updatedLevels[index] = {
+        ...updatedLevels[index],
+        [field]: field === 'badgeName' ? value : (parseInt(value) || 0)
+      };
+      updatedLevels.sort((a, b) => a.level - b.level);
+      return {
+        ...prev,
+        maleLevels: updatedLevels
+      };
+    });
+    setHasChanges(true);
+  };
+
+  const handleAddMaleLevel = () => {
+    setSettings((prev) => {
+      if (!prev) return prev;
+      const updatedLevels = [...(prev.maleLevels || [])];
+      const nextLevelNum = updatedLevels.length > 0 ? Math.max(...updatedLevels.map(l => l.level)) + 1 : 1;
+      const nextMinCoins = updatedLevels.length > 0 ? Math.max(...updatedLevels.map(l => l.minCoinsSpent)) + 1000 : 0;
+      updatedLevels.push({
+        level: nextLevelNum,
+        minCoinsSpent: nextMinCoins,
+        badgeName: `Level ${nextLevelNum} Badge`
+      });
+      updatedLevels.sort((a, b) => a.level - b.level);
+      return {
+        ...prev,
+        maleLevels: updatedLevels
+      };
+    });
+    setHasChanges(true);
+  };
+
+  const handleRemoveMaleLevel = (index: number) => {
+    setSettings((prev) => {
+      if (!prev) return prev;
+      const updatedLevels = (prev.maleLevels || []).filter((_, i) => i !== index);
+      updatedLevels.sort((a, b) => a.level - b.level);
+      return {
+        ...prev,
+        maleLevels: updatedLevels
+      };
+    });
+    setHasChanges(true);
+  };
+
   const tabs = [
     { id: 'general', label: 'General', icon: 'settings' },
     { id: 'withdrawal', label: 'Withdrawal', icon: 'account_balance_wallet' },
@@ -202,6 +252,7 @@ export const SettingsPage = () => {
     { id: 'referral', label: 'Referral', icon: 'share' },
     { id: 'gifts', label: 'Gifts', icon: 'card_giftcard' },
     { id: 'admin', label: 'Admin Profile', icon: 'admin_panel_settings' },
+    { id: 'male-levels', label: 'Male Levels', icon: 'military_tech' },
   ];
 
   if (isLoading || !settings) {
@@ -1029,6 +1080,97 @@ export const SettingsPage = () => {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Male Levels Tab */}
+            {activeTab === 'male-levels' && (
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Male Levels Configuration</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Define levels, minimum coins spent thresholds, and badges for male users
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAddMaleLevel}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                  >
+                    <MaterialSymbol name="add" size={20} />
+                    Add Level
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {(settings.maleLevels || []).length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <MaterialSymbol name="military_tech" size={64} className="text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400">No custom levels defined. Default levels will be used.</p>
+                      <button
+                        onClick={handleAddMaleLevel}
+                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        Create Level 1
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm font-semibold">
+                            <th className="py-3 px-4">Level</th>
+                            <th className="py-3 px-4">Minimum Coins Spent</th>
+                            <th className="py-3 px-4">Badge Name</th>
+                            <th className="py-3 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {(settings.maleLevels || []).map((lvl, index) => (
+                            <tr key={index} className="text-gray-900 dark:text-white">
+                              <td className="py-3 px-4">
+                                <input
+                                    type="number"
+                                    value={lvl.level}
+                                    onChange={(e) => handleMaleLevelsChange(index, 'level', e.target.value)}
+                                    min="1"
+                                    className="w-20 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </td>
+                              <td className="py-3 px-4">
+                                <input
+                                    type="number"
+                                    value={lvl.minCoinsSpent}
+                                    onChange={(e) => handleMaleLevelsChange(index, 'minCoinsSpent', e.target.value)}
+                                    min="0"
+                                    className="w-36 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </td>
+                              <td className="py-3 px-4">
+                                <input
+                                    type="text"
+                                    value={lvl.badgeName}
+                                    onChange={(e) => handleMaleLevelsChange(index, 'badgeName', e.target.value)}
+                                    placeholder="e.g. Explorer"
+                                    className="w-full max-w-xs px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <button
+                                  onClick={() => handleRemoveMaleLevel(index)}
+                                  className="p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                  title="Delete Level"
+                                >
+                                  <MaterialSymbol name="delete" size={18} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

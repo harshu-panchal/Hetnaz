@@ -30,11 +30,10 @@ const mockProfile = {
 export const MyProfilePage = () => {
   const { t, changeLanguage, currentLanguage } = useTranslation();
   const navigate = useNavigate();
-  const { user, logout, isLoading: isAuthLoading } = useAuth();
-  const { coinBalance, addNotification } = useGlobalState();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { coinBalance } = useGlobalState();
   const { isConnected } = useSocket();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [stats, setStats] = useState({
     matches: 0,
     sent: 0,
@@ -43,9 +42,6 @@ export const MyProfilePage = () => {
 
   const [profile, setProfile] = useState(mockProfile);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -81,20 +77,6 @@ export const MyProfilePage = () => {
     }
   }, [user]);
 
-  const handleDeleteAccount = async () => {
-    try {
-      setIsDeleting(true);
-      await userService.deleteMyAccount();
-      logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Failed to delete account:', error);
-      alert('Failed to delete account. Please try again.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const handleTopUpClick = () => {
     navigate('/male/buy-coins');
   };
@@ -123,6 +105,7 @@ export const MyProfilePage = () => {
               isPremium: user?.memberTier ? user.memberTier !== 'basic' : false,
               isOnline: isConnected,
               memberTier: user?.memberTier || 'basic',
+              levelInfo: user?.levelInfo || null,
             }}
             onEditClick={() => navigate('/male/edit-profile')}
             showNotifications={false}
@@ -133,6 +116,55 @@ export const MyProfilePage = () => {
               onTopUpClick={handleTopUpClick}
             />
           </div>
+
+          {user?.levelInfo && (
+            <div className="mt-4 skeuo-card rounded-[2rem] bg-mesh-glass border-white/60 dark:border-white/5 p-5 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+              
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="skeuo-inset size-8 rounded-xl flex items-center justify-center bg-violet-500/10 text-violet-500">
+                    <MaterialSymbol name="military_tech" size={18} className="text-violet-600 dark:text-violet-400" filled />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                      Level Progression
+                    </span>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-white">
+                      Lvl {user.levelInfo.level} • {user.levelInfo.badgeName}
+                    </h4>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => navigate('/male/leaderboard')}
+                  className="px-3.5 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-black uppercase tracking-wider transition-all duration-300 shadow-lg shadow-violet-500/20 active:scale-95 flex items-center gap-1.5"
+                >
+                  <MaterialSymbol name="leaderboard" size={14} />
+                  Leaderboard
+                </button>
+              </div>
+
+              {user.levelInfo.nextLevelThreshold !== null ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                    <span>{t('levelProgress', { count: user.levelInfo.totalCoinsSpent, total: user.levelInfo.nextLevelThreshold, next: user.levelInfo.nextLevel })}</span>
+                    <span>{user.levelInfo.progressPercent}%</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-black/40 p-[2px] border border-white/20 dark:border-white/5 skeuo-inset overflow-hidden">
+                    <div 
+                      className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 shadow-[0_0_10px_rgba(139,92,246,0.5)] transition-all duration-1000"
+                      style={{ width: `${user.levelInfo.progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 text-center py-1 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/20">
+                  🎉 {t('nextLevelReached')}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* About & Interests Section */}
@@ -328,82 +360,36 @@ export const MyProfilePage = () => {
                  </div>
               </div>
 
-              <div className="p-4 space-y-2">
               <button
-                onClick={() => setShowLogoutModal(true)}
-                className="w-full h-16 skeuo-inset bg-slate-50/50 dark:bg-black/20 rounded-2xl flex items-center justify-between px-6 group hover:bg-slate-100 dark:hover:bg-black/40 transition-all duration-500"
+                onClick={() => navigate('/male/faqs')}
+                className="w-full h-16 flex items-center justify-between px-6 hover:bg-white/40 dark:hover:bg-white/5 transition-all group"
               >
-                 <div className="flex items-center gap-4">
-                    <MaterialSymbol name="power_settings_new" size={22} className="text-slate-400 group-hover:text-amber-500 transition-colors" />
-                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{t('logout')}</span>
-                 </div>
-                 <MaterialSymbol name="chevron_right" size={20} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center gap-4">
+                  <div className="skeuo-inset size-10 rounded-2xl flex items-center justify-center bg-indigo-500/10 text-indigo-500">
+                    <MaterialSymbol name="help" size={22} filled />
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white group-hover:text-primary transition-colors">{t('faqs')}</span>
+                </div>
+                <MaterialSymbol name="chevron_right" size={20} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
               </button>
 
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full h-14 skeuo-inset bg-red-500/5 dark:bg-red-500/10 rounded-2xl flex items-center justify-between px-6 group hover:bg-red-500/10 transition-all duration-500"
-                >
-                   <div className="flex items-center gap-4">
-                      <MaterialSymbol name="delete_sweep" size={20} className="text-red-500/60 group-hover:text-red-500 transition-colors" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/60 group-hover:text-red-500 transition-colors">{t('deleteAccount')}</span>
-                   </div>
-                   <MaterialSymbol name="chevron_right" size={18} className="text-red-300/40" />
-                </button>
-              </div>
+              <button
+                onClick={() => navigate('/male/settings')}
+                className="w-full h-16 flex items-center justify-between px-6 hover:bg-white/40 dark:hover:bg-white/5 transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="skeuo-inset size-10 rounded-2xl flex items-center justify-center bg-slate-500/10 text-slate-500 dark:text-slate-400">
+                    <MaterialSymbol name="settings" size={22} filled />
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white group-hover:text-primary transition-colors">{t('settings')}</span>
+                </div>
+                <MaterialSymbol name="chevron_right" size={20} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+              </button>
           </div>
         </section>
       </div>
 
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
-
-      {/* Redesigned Premium Logout Modal */}
-      {showLogoutModal && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl animate-in fade-in duration-300"
-          onClick={() => setShowLogoutModal(false)}
-        >
-          <div 
-            className="skeuo-card bg-slate-900/90 rounded-[2.5rem] p-10 max-w-sm w-full border border-white/10 shadow-2xl space-y-10 animate-in zoom-in-95 duration-300 relative overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-             {/* Background Mesh Glow */}
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-amber-500/10 blur-[80px] rounded-full pointer-events-none" />
-             
-             <div className="flex flex-col items-center text-center space-y-6 relative z-10">
-                <div className="skeuo-inset size-24 rounded-[2rem] flex items-center justify-center bg-amber-500/10 text-amber-500 shadow-inner">
-                   <MaterialSymbol name="power_settings_new" size={56} filled />
-                </div>
-                <div className="space-y-3">
-                   <h3 className="text-3xl font-black tracking-tighter text-white leading-none">{t('signOutOfVault')}</h3>
-                   <p className="text-[12px] font-medium text-slate-400 leading-relaxed px-4 opacity-80">{t('logoutConfirmText')}</p>
-                </div>
-             </div>
-
-             <div className="flex flex-col gap-4 relative z-10">
-                <button
-                  disabled={isLoggingOut}
-                  onClick={() => {
-                    if (isLoggingOut) return;
-                    setIsLoggingOut(true);
-                    addNotification({ title: 'logoutSuccess', message: 'logoutSuccessMessage', type: 'system' });
-                    logout();
-                    navigate('/login');
-                  }}
-                  className="h-16 skeuo-button-bold bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl text-white text-[12px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-amber-500/20"
-                >
-                   {isLoggingOut ? <div className="h-6 w-6 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" /> : t('confirmLogout')}
-                </button>
-                <button
-                  onClick={() => setShowLogoutModal(false)}
-                  className="h-14 skeuo-button-outline bg-white/5 rounded-2xl text-slate-300 text-[11px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all border border-white/10 hover:bg-white/10"
-                >
-                   {t('stayInVault')}
-                </button>
-             </div>
-          </div>
-        </div>
-      )}
 
       {/* Cinematic Photo Lightbox */}
       {selectedPhotoIndex !== null && (
@@ -448,49 +434,6 @@ export const MyProfilePage = () => {
           </div>
         </div>
       </div>
-      )}
-
-
-
-      {showDeleteConfirm && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-2xl animate-in fade-in duration-300"
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-           <div 
-             className="skeuo-card bg-slate-900/90 rounded-[2.5rem] p-10 max-w-sm w-full border border-white/10 shadow-2xl space-y-10 animate-in zoom-in-95 duration-300 relative overflow-hidden"
-             onClick={e => e.stopPropagation()}
-           >
-             {/* Destructive Mesh Glow */}
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-red-500/10 blur-[80px] rounded-full pointer-events-none" />
-             
-             <div className="flex flex-col items-center text-center space-y-6 relative z-10">
-                <div className="skeuo-inset size-24 rounded-[2rem] flex items-center justify-center bg-red-500/10 text-red-500 shadow-inner">
-                   <MaterialSymbol name="delete_forever" size={56} filled />
-                </div>
-                <div className="space-y-3">
-                   <h3 className="text-3xl font-black tracking-tighter text-white leading-none">{t('selfDestructTitle')}</h3>
-                   <p className="text-[12px] font-medium text-slate-400 leading-relaxed px-4 opacity-80">{t('deleteAccountConfirm')}</p>
-                </div>
-             </div>
-
-             <div className="flex flex-col gap-4 relative z-10">
-                <button
-                  disabled={isDeleting}
-                  onClick={handleDeleteAccount}
-                  className="h-16 skeuo-button-bold bg-gradient-to-r from-red-500 to-red-600 rounded-2xl text-white text-[12px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-red-500/20"
-                >
-                   {isDeleting ? <div className="h-6 w-6 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" /> : t('confirmDelete')}
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="h-14 skeuo-button-outline bg-white/5 rounded-2xl text-slate-300 text-[11px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all border border-white/10 hover:bg-white/10"
-                >
-                   {t('abortAction')}
-                </button>
-             </div>
-          </div>
-        </div>
       )}
     </div>
   );

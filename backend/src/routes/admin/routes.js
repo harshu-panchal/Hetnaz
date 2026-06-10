@@ -7,6 +7,7 @@ import express from 'express';
 import * as adminController from '../../controllers/admin/adminController.js';
 import { protect, restrictTo } from '../../middleware/auth.js';
 import * as reportController from '../../controllers/user/reportController.js';
+import * as faqController from '../../controllers/faq/faqController.js';
 
 const router = express.Router();
 
@@ -54,5 +55,11 @@ router.get('/profile', adminController.getAdminProfile);
 router.post('/profile/request-otp', adminController.requestAdminOtp);
 router.patch('/profile/update-phone', adminController.updateAdminPhone);
 router.patch('/profile/update-secret', adminController.updateAdminSecret);
+
+// FAQs Management Routes
+router.get('/faqs', faqController.listFaqsAdmin);
+router.post('/faqs', faqController.createFaqAdmin);
+router.put('/faqs/:id', faqController.updateFaqAdmin);
+router.delete('/faqs/:id', faqController.deleteFaqAdmin);
 
 export default router;

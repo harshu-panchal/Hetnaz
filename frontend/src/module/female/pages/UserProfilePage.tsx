@@ -6,6 +6,7 @@ import { calculateDistance, formatDistance, areCoordinatesValid } from '../../..
 import userService from '../../../core/services/user.service';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
+import { extractCityFromAddress } from '../../../core/utils/auth';
 
 interface UserProfile {
   _id: string;
@@ -23,6 +24,10 @@ interface UserProfile {
   longitude?: number;
   memberTier?: 'basic' | 'silver' | 'gold' | 'platinum';
   role?: string;
+  levelInfo?: {
+    level: number;
+    badgeName: string;
+  } | null;
 }
 
 
@@ -73,13 +78,16 @@ export const UserProfilePage = () => {
         distanceStr = formatDistance(dist);
       }
 
+      const rawLoc = data.city || data.profile?.location?.city || data.location || '';
+      const cleanLoc = rawLoc.includes(',') && rawLoc.split(',').length > 3 ? extractCityFromAddress(rawLoc) : rawLoc;
+
       // Map backend response to frontend structure
       const mappedProfile: UserProfile = {
         _id: data.id || data._id,
         name: data.name || data.profile?.name,
         bio: data.bio || data.profile?.bio,
         age: data.age || data.profile?.age,
-        location: data.city || data.location || data.profile?.location?.city,
+        location: cleanLoc,
         occupation: data.occupation || data.profile?.occupation,
         photos: data.photos || data.profile?.photos || [],
         interests: data.interests || data.profile?.interests || [],
@@ -89,6 +97,8 @@ export const UserProfilePage = () => {
         latitude: profileLat,
         longitude: profileLng,
         memberTier: data.memberTier || 'basic',
+        role: data.role || 'user',
+        levelInfo: data.levelInfo || null,
       };
 
       console.log('[FemaleUserProfilePage] Mapped profile:', mappedProfile);
@@ -183,7 +193,7 @@ export const UserProfilePage = () => {
                     <h1 className="text-[28px] font-black tracking-tighter text-slate-900 dark:text-white leading-none">{profile.name}</h1>
                     {profile.isVerified && <MaterialSymbol name="verified" filled size={20} className="text-blue-500 drop-shadow-sm" />}
                  </div>
-                 <div className="flex items-center gap-3">
+                 <div className="flex flex-wrap items-center gap-3">
                     {profile.isOnline && (
                       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
@@ -195,6 +205,14 @@ export const UserProfilePage = () => {
                           <MaterialSymbol name="location_on" size={14} className="text-primary" />
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{profile.distance} AWAY</span>
                        </div>
+                    )}
+                    {profile.levelInfo && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500/10 to-indigo-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400">
+                         <MaterialSymbol name="military_tech" size={14} className="text-violet-600 dark:text-violet-400" filled />
+                         <span className="text-[9px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400">
+                           Lvl {profile.levelInfo.level} • {profile.levelInfo.badgeName}
+                         </span>
+                      </div>
                     )}
                  </div>
                </div>

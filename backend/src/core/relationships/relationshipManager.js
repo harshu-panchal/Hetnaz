@@ -37,6 +37,38 @@ class RelationshipManager {
         throw new Error('Insufficient balance');
       }
       balanceAfter = balanceBefore - transactionData.amountCoins;
+      // Increment totalCoinsSpent for male users
+      if (user.role === 'male') {
+        user.totalCoinsSpent = (user.totalCoinsSpent || 0) + transactionData.amountCoins;
+        
+        try {
+          const AppSettings = (await import('../../models/AppSettings.js')).default;
+          const { invalidateUserCache } = await import('../../middleware/auth.js');
+          const settings = await AppSettings.getSettings();
+          const activeLevels = (settings.maleLevels || [])
+            .filter(lvl => user.totalCoinsSpent >= lvl.minCoinsSpent);
+
+          user.badges = user.badges || [];
+          activeLevels.forEach(lvl => {
+            const badgeId = `level_${lvl.level}`;
+            const hasBadge = user.badges.some(b => b.id === badgeId);
+            if (!hasBadge) {
+              user.badges.push({
+                id: badgeId,
+                name: `${lvl.badgeName} Status`,
+                icon: 'military_tech',
+                category: 'achievement',
+                isUnlocked: true,
+                unlockedAt: new Date()
+              });
+            }
+          });
+          
+          invalidateUserCache(user._id || user.id);
+        } catch (err) {
+          logger.error(`Error in dynamic badge unlock: ${err.message}`);
+        }
+      }
     }
 
     // Create transaction

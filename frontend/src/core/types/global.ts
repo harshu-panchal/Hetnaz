@@ -23,6 +23,15 @@ export interface UserProfile {
   badges?: Badge[];
   referralId?: string;
   referralCount?: number;
+  levelInfo?: {
+    level: number;
+    badgeName: string;
+    totalCoinsSpent: number;
+    nextLevelThreshold: number | null;
+    progressPercent: number;
+    coinsNeeded: number;
+    nextLevel: number | null;
+  };
 }
 
 export interface Badge {

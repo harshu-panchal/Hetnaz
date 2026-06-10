@@ -12,6 +12,10 @@ interface ProfileHeaderProps {
     isPremium: boolean;
     isOnline: boolean;
     memberTier?: 'basic' | 'silver' | 'gold' | 'platinum';
+    levelInfo?: {
+      level: number;
+      badgeName: string;
+    } | null;
   };
   onEditClick?: () => void;
   showNotifications?: boolean;
@@ -72,6 +76,19 @@ export const ProfileHeader = ({ user, onEditClick, showNotifications = true, sho
     );
   };
 
+  // Render level badge if present
+  const renderLevelBadge = () => {
+    if (!user.levelInfo) return null;
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-violet-100 to-indigo-100 dark:from-violet-900/40 dark:to-indigo-900/20 text-violet-600 dark:text-violet-400">
+        <MaterialSymbol name="military_tech" size={14} className="text-violet-600 dark:text-violet-400" filled />
+        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-600 dark:text-violet-400">
+          Lvl {user.levelInfo.level} • {user.levelInfo.badgeName}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="flex items-center justify-between px-2 pb-6 pt-4 animate-in fade-in slide-in-from-top-4 duration-700">
       <div className="flex items-center gap-5">
@@ -101,7 +118,10 @@ export const ProfileHeader = ({ user, onEditClick, showNotifications = true, sho
           <h1 className="text-slate-900 dark:text-white text-[28px] font-black leading-none tracking-tighter">
             {user.name}
           </h1>
-          {renderMembershipBadge()}
+          <div className="flex flex-wrap gap-2">
+            {renderMembershipBadge()}
+            {renderLevelBadge()}
+          </div>
         </div>
       </div>
 

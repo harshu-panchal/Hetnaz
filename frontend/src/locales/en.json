@@ -92,6 +92,7 @@
   "logoutConfirmTitle": "Logout?",
   "logoutConfirmMessage": "Are you sure you want to log out of your account?",
   "settings": "Settings",
+  "faqs": "FAQs",
   "notifications": "Notifications",
   "notificationsDesc": "Receive notifications on your device",
   "thisWeek": "This week",
@@ -592,5 +593,9 @@
   "stayInVault": "Stay in Account",
   "confirmDelete": "Confirm Delete",
   "abortAction": "Abort Action",
-  "selfDestructTitle": "Delete Account?"
+  "selfDestructTitle": "Delete Account?",
+  "levelProgress": "Spent {{count}} / {{total}} coins to Level {{next}}",
+  "leaderboardTitle": "Level Comparisons",
+  "levelBadge": "Level {{level}} • {{badgeName}}",
+  "nextLevelReached": "Maximum level reached!"
 }
