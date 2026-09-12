@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../core/context/AuthContext';
-import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
-import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
-import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
-import { EditProfileModal } from '../components/EditProfileModal';
-import { useTranslation } from '../../../core/hooks/useTranslation';
-import userService from '../../../core/services/user.service';
-import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../core/context/AuthContext";
+import { MaterialSymbol } from "../../../shared/components/MaterialSymbol";
+import { FemaleBottomNavigation } from "../components/FemaleBottomNavigation";
+import { useFemaleNavigation } from "../hooks/useFemaleNavigation";
+import { useTranslation } from "../../../core/hooks/useTranslation";
+import userService from "../../../core/services/user.service";
+import { ProfileSkeletonLoader } from "../../../shared/components/ProfileSkeletonLoader";
 
 export const MyProfilePage = () => {
   const { t } = useTranslation();
@@ -15,14 +14,10 @@ export const MyProfilePage = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { navigationItems, handleNavigationClick } = useFemaleNavigation();
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  // Local display state (synced with user)
-  const [name, setName] = useState(user?.name || t('anonymous'));
+  const [name, setName] = useState(user?.name || t("anonymous"));
   const [age, setAge] = useState(24);
-  const [location, setLocation] = useState(t('unknownLocation'));
+  const [location, setLocation] = useState(t("unknownLocation"));
 
-  // Stats - fetched from backend
   const [stats, setStats] = useState({
     messagesReceived: 0,
     activeConversations: 0,
@@ -39,7 +34,6 @@ export const MyProfilePage = () => {
     fetchProfileStats();
   }, []);
 
-  // Fetch real stats from backend
   const fetchProfileStats = async () => {
     try {
       setIsStatsLoading(true);
@@ -51,7 +45,7 @@ export const MyProfilePage = () => {
         availableBalance: data.earnings?.availableBalance || 0,
       });
     } catch (error) {
-      console.error('Failed to fetch profile stats:', error);
+      console.error("Failed to fetch profile stats:", error);
     } finally {
       setIsStatsLoading(false);
     }
@@ -59,10 +53,9 @@ export const MyProfilePage = () => {
 
   useEffect(() => {
     if (user) {
-      setName(user.name || t('anonymous'));
+      setName(user.name || t("anonymous"));
       setAge(user.age || 24);
-      setLocation(user.location || user.city || t('unknownLocation'));
-
+      setLocation(user.location || user.city || t("unknownLocation"));
       if (user.photos && user.photos.length > 0) {
         setPhotos(user.photos);
       } else if (user.avatarUrl) {
@@ -73,120 +66,204 @@ export const MyProfilePage = () => {
     }
   }, [user, t]);
 
+  if (isAuthLoading) return <ProfileSkeletonLoader />;
 
-
-  if (isAuthLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background-light dark:bg-background-dark relative overflow-hidden">
-        <MeshBackground />
-        <div className="relative z-10 animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500"></div>
-      </div>
-    );
-  }
+  const heroImage = photos[0] || user?.avatarUrl;
+  const avatarUrl = user?.avatarUrl || "";
 
   return (
-    <div className="font-display text-slate-900 dark:text-white antialiased selection:bg-pink-500 selection:text-white min-h-screen relative overflow-x-hidden bg-background-light dark:bg-[#0a0a0a]">
-      <MeshBackground />
-      
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-      />
+    <div className="font-display text-ink antialiased min-h-screen relative lg:pl-60 overflow-x-hidden bg-[#f8f4f6]">
+      {/* ── Sticky Gradient Header ── */}
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 pt-safe-top pt-3 pb-3 bg-white/80 backdrop-blur-xl border-b border-pink-100/50">
+        <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-pink-600 via-rose-500 to-indigo-600 bg-clip-text text-transparent">
+          PROFILE
+        </h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/female/edit-profile")}
+            className="size-10 flex items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-lg active:scale-90 transition-all"
+          >
+            <MaterialSymbol name="edit" size={20} filled />
+          </button>
+        </div>
+      </header>
 
-      {/* Scrollable Content Layer */}
-      <div className="relative z-10 flex flex-col min-h-screen pb-32 max-w-md mx-auto w-full px-4 pt-4 space-y-4">
-        
-        {/* Profile Hero Section */}
+      <div className="relative z-10 flex flex-col min-h-screen pb-32 max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full">
+
+        {/* ── Hero Section ── */}
         <section className="relative">
-          <div className="absolute inset-0 bg-pink-500/10 blur-[80px] rounded-full opacity-50 pointer-events-none" />
-          
-          <div className="flex flex-col items-center text-center space-y-6">
-            <div className="relative group">
-               {/* Glossy Aura */}
-               <div className="absolute -inset-4 bg-gradient-to-tr from-pink-500/20 to-purple-500/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-               
-               <div className="relative z-10 group/avatar">
-                 <div className="size-40 rounded-full overflow-hidden shadow-2xl transition-transform active:scale-95 duration-500 group-hover/avatar:rotate-1">
-                   <div
-                     className="size-full rounded-full bg-center bg-no-repeat bg-cover"
-                     style={{
-                       backgroundImage: photos.length > 0 ? `url("${photos[0]}")` : undefined,
-                       backgroundColor: photos.length === 0 ? '#e5e7eb' : undefined,
-                     }}
-                   />
-                 </div>
-                 <button 
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="absolute bottom-2 right-2 skeuo-button size-10 rounded-full bg-pink-500 flex items-center justify-center text-white shadow-xl hover:scale-110 active:scale-90 transition-all border border-pink-400/50 z-30"
-                 >
-                   <MaterialSymbol name="edit" size={20} filled />
-                 </button>
-               </div>
-               
-               {/* Online Indicator */}
-               <div className="absolute top-2 right-2 size-6 rounded-full bg-green-500 border-2 border-white/20 z-20 flex items-center justify-center shadow-lg shadow-green-500/20">
-                  <div className="size-1.5 bg-white rounded-full animate-pulse" />
-               </div>
+          {/* Cover Photo */}
+          <div className="w-full h-[52vw] max-h-[320px] min-h-[220px] bg-gradient-to-br from-pink-200 to-indigo-200 overflow-hidden">
+            {heroImage ? (
+              <img src={heroImage} alt={name} className="w-full h-full object-cover object-top" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <MaterialSymbol name="person" size={64} className="text-pink-200" />
+              </div>
+            )}
+            {/* Gradient overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
+          </div>
+
+          {/* Identity Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 flex items-end justify-between">
+            <div className="flex flex-col gap-2">
+              {/* Online indicator */}
+              <div className="flex items-center gap-1.5 bg-green-500/20 backdrop-blur-sm border border-green-400/30 rounded-full px-2 py-0.5 self-start">
+                <div className="size-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[9px] font-black text-green-300 uppercase tracking-wider">Online</span>
+              </div>
+
+              {/* Name + verified */}
+              <div className="flex items-center gap-2">
+                <h2 className="text-3xl font-black text-white leading-tight tracking-tight drop-shadow-lg">
+                  {name}
+                </h2>
+                <MaterialSymbol name="verified" size={22} className="text-blue-400" filled />
+              </div>
+
+              {/* Age + Location chips */}
+              <div className="flex items-center gap-1.5">
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/80">{age} yrs</span>
+                </div>
+                {location && location !== t("unknownLocation") && (
+                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10">
+                    <MaterialSymbol name="location_on" size={10} className="text-pink-300" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/80">{location}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-1 relative z-10">
-              <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white px-6 leading-tight pb-2">
-                {name}
-                <span className="inline-flex items-center ml-2 align-middle">
-                  <MaterialSymbol name="verified" className="text-blue-500 drop-shadow-[0_2px_8px_rgba(59,130,246,0.3)]" size={28} filled />
-                </span>
-              </h1>
-              <div className="flex items-center justify-center gap-3">
-                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{t('yearsOld', { count: age })}</span>
-                 <div className="size-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-                 <div className="flex items-center gap-1">
-                    <MaterialSymbol name="location_on" size={14} className="text-pink-500" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{location}</span>
-                 </div>
+            {/* Avatar thumb */}
+            <button
+              onClick={() => navigate("/female/edit-profile")}
+              className="relative"
+            >
+              <div className="size-16 rounded-2xl overflow-hidden border-2 border-white/40 shadow-2xl">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center">
+                    <MaterialSymbol name="person" size={28} className="text-pink-400" />
+                  </div>
+                )}
+              </div>
+              <div className="absolute -bottom-1 -right-1 size-5 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-md border border-white">
+                <MaterialSymbol name="edit" size={10} className="text-white" filled />
+              </div>
+            </button>
+          </div>
+        </section>
+
+        {/* ── Frosted Glass Stats Strip ── */}
+        <section className="mx-4 -mt-1 z-10 relative">
+          <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-white/60 shadow-xl p-4 grid grid-cols-3 gap-3">
+            {[
+              { icon: "payments", value: stats.availableBalance.toLocaleString(), label: "Coins", color: "text-pink-600", bg: "bg-pink-50" },
+              { icon: "mail", value: stats.messagesReceived.toLocaleString(), label: "Messages", color: "text-indigo-500", bg: "bg-indigo-50" },
+              { icon: "chat_bubble", value: stats.activeConversations.toLocaleString(), label: "Active Chats", color: "text-violet-500", bg: "bg-violet-50" },
+            ].map((s) => (
+              <div key={s.label} className="flex flex-col items-center gap-1.5">
+                <div className={`size-8 rounded-xl ${s.bg} flex items-center justify-center`}>
+                  <MaterialSymbol name={s.icon as any} size={16} className={s.color} filled />
+                </div>
+                <span className="text-sm font-black text-ink leading-none">{s.value}</span>
+                <span className="text-[8px] font-bold text-muted-light uppercase tracking-wide leading-none text-center">{s.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Bento Stats Grid ── */}
+        <section className="px-4 mt-4 space-y-3">
+          {/* Verification Banner */}
+          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
+            <div className="size-10 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+              <MaterialSymbol name="verified" size={22} className="text-emerald-500" filled />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-700">{t("profileVerified")}</p>
+              <p className="text-[9px] font-medium text-emerald-600/70 leading-tight">{t("profileVerifiedDesc")}</p>
+            </div>
+          </div>
+
+          {/* Bento Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Earnings Hero Tile */}
+            <button
+              onClick={() => navigate("/female/earnings")}
+              className="row-span-2 rounded-[1.5rem] p-5 bg-gradient-to-br from-pink-600 via-rose-500 to-indigo-600 shadow-lg flex flex-col justify-between text-left active:scale-[0.97] transition-transform relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-10 -mt-10" />
+              <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full -ml-8 -mb-8" />
+              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center relative z-10">
+                <MaterialSymbol name="payments" size={22} className="text-white" filled />
+              </div>
+              <div className="relative z-10">
+                <div className="text-[28px] font-black text-white leading-none tracking-tight">
+                  {stats.availableBalance.toLocaleString()}
+                </div>
+                <div className="text-[9px] font-extrabold uppercase tracking-widest text-white/70 mt-1 flex items-center gap-1">
+                  COINS
+                  <span className="bg-white/20 rounded-full px-2 py-0.5 text-white/90">VIEW DETAILS</span>
+                </div>
+              </div>
+            </button>
+
+            {/* Messages Tile */}
+            <div className="rounded-[1.25rem] p-4 bg-white shadow-card flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
+                <MaterialSymbol name="mail" size={20} className="text-blue-500" filled />
+              </div>
+              <div>
+                <div className="text-xl font-black text-ink leading-tight">{stats.messagesReceived.toLocaleString()}</div>
+                <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-light">{t("messages")}</div>
+              </div>
+            </div>
+
+            {/* Active Chats Tile */}
+            <div className="rounded-[1.25rem] p-4 bg-white shadow-card flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
+                <MaterialSymbol name="chat_bubble" size={20} className="text-purple-500" filled />
+              </div>
+              <div>
+                <div className="text-xl font-black text-ink leading-tight">{stats.activeConversations.toLocaleString()}</div>
+                <div className="text-[9px] font-extrabold uppercase tracking-wider text-muted-light">{t("activeChats")}</div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Verification Status Banner */}
-        <div className="skeuo-inset bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl p-4 border border-emerald-500/20 flex items-center gap-4 transition-colors duration-500 max-w-sm mx-auto w-full">
-          <MaterialSymbol name="verified" size={24} className="text-emerald-500" filled />
-          <div className="space-y-0.5">
-            <p className="text-[10px] font-black uppercase tracking-[0.1em] text-emerald-600 dark:text-emerald-400">{t('profileVerified')}</p>
-            <p className="text-[8px] font-medium text-emerald-600/60 dark:text-emerald-400/60 leading-tight">{t('profileVerifiedDesc')}</p>
-          </div>
-        </div>
-
-        {/* About & Interests Section */}
+        {/* ── About & Interests ── */}
         {(user?.bio || (user?.interests && user.interests.length > 0)) && (
-          <section className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex items-center gap-3 px-1">
-              <MaterialSymbol name="person_outline" size={22} className="text-pink-500" />
-              <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-900 dark:text-white font-display">
-                {t('about')}
-              </h2>
+          <section className="px-4 mt-4">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="size-7 rounded-xl bg-pink-50 flex items-center justify-center">
+                <MaterialSymbol name="person_outline" size={16} className="text-pink-600" />
+              </div>
+              <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-muted">{t("about")}</h3>
             </div>
-
-            <div className="skeuo-card bg-mesh-glass rounded-[2rem] px-6 py-4 border-white/60 dark:border-white/5 shadow-xl space-y-3 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
-              
+            <div className="bg-white rounded-[1.5rem] p-5 shadow-card space-y-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-br from-pink-50 to-rose-50 rounded-full -mr-14 -mt-14 blur-2xl" />
               {user?.bio && (
-                <div className="space-y-0.5 relative z-10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{t('bio')}</p>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic border-l-2 border-pink-500/20 pl-4 py-0 mt-0.5">
+                <div className="space-y-2 relative z-10">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-light">{t("bio")}</p>
+                  <p className="text-sm font-semibold text-slate-600 leading-relaxed italic border-l-2 border-pink-300 pl-4 py-0.5">
                     "{user.bio}"
                   </p>
                 </div>
               )}
-
               {user?.interests && user.interests.length > 0 && (
-                <div className="space-y-2 relative z-10">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{t('interests')}</p>
+                <div className="space-y-2.5 relative z-10">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-light">{t("interests")}</p>
                   <div className="flex flex-wrap gap-2">
-                    {user.interests.map((interest, index) => (
+                    {user.interests.map((interest, i) => (
                       <span
-                        key={index}
-                        className="px-4 py-2 rounded-xl bg-pink-500/5 border border-pink-500/10 text-[9px] font-black uppercase tracking-widest text-pink-500/80 shadow-sm transition-all hover:scale-105 active:scale-95"
+                        key={i}
+                        className="px-3 py-1 rounded-xl bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-100 text-[10px] font-bold uppercase tracking-wide text-pink-600"
                       >
                         {interest}
                       </span>
@@ -198,210 +275,161 @@ export const MyProfilePage = () => {
           </section>
         )}
 
-        {/* Photo Portfolio Section */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-3">
-              <MaterialSymbol name="photo_library" size={22} className="text-pink-500" />
-              <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-900 dark:text-white font-display">
-                {t('photos')}
-              </h2>
+        {/* ── Photo Gallery ── */}
+        <section className="px-4 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="size-7 rounded-xl bg-indigo-50 flex items-center justify-center">
+                <MaterialSymbol name="photo_library" size={16} className="text-indigo-500" />
+              </div>
+              <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-muted">{t("photos")}</h3>
             </div>
-            <button 
-              onClick={() => setIsEditModalOpen(true)}
-              className="text-[10px] font-black uppercase tracking-widest text-pink-500 hover:scale-105 active:scale-95 transition-transform"
+            <button
+              onClick={() => navigate("/female/edit-profile")}
+              className="text-[9px] font-black uppercase tracking-widest text-pink-600 active:scale-95 transition-transform"
             >
-              {t('manage')}
+              {t("manage")}
             </button>
           </div>
 
-          <div className="grid grid-cols-6 gap-4">
-            {photos.length > 0 ? photos.map((photo, index) => (
-              <div
-                key={index}
-                onClick={() => setSelectedPhotoIndex(index)}
-                className={`relative group rounded-[2rem] overflow-hidden skeuo-card bg-mesh-glass border-white/60 dark:border-white/5 shadow-xl cursor-pointer hover:translate-y-[-4px] active:scale-95 transition-all duration-500 ${
-                  index === 0 ? 'col-span-6 aspect-[16/9]' : 'col-span-2 aspect-[4/5]'
-                }`}
-              >
-                {index === 0 && (
-                  <div className="absolute top-4 left-4 z-20">
-                     <div className="skeuo-card bg-pink-500/90 backdrop-blur-md px-3 py-1 rounded-full border-white/20 shadow-lg">
-                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white flex items-center gap-1">
-                           <MaterialSymbol name="star" size={10} filled />
-                           {t('featured')}
-                        </span>
-                     </div>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
-                <img
-                  src={photo}
-                  alt={`Portfolio ${index + 1}`}
-                  className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                
-                <div className="absolute bottom-4 right-4 skeuo-button size-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 z-20">
-                   <MaterialSymbol name="open_in_full" size={16} className="text-pink-500" />
-                </div>
-              </div>
-            )) : (
-              <div className="col-span-2 skeuo-inset bg-gray-50/50 dark:bg-black/20 rounded-[2rem] p-12 flex flex-col items-center justify-center text-center space-y-4 border border-dashed border-slate-200 dark:border-white/10">
-                 <div className="size-16 skeuo-card rounded-full flex items-center justify-center bg-white/40 dark:bg-white/5">
-                    <MaterialSymbol name="add_a_photo" size={32} className="text-slate-300 dark:text-slate-600" />
-                 </div>
-                 <div className="space-y-1">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{t('noPhotos')}</p>
-                    <p className="text-[10px] font-medium text-slate-400/60 dark:text-slate-600">{t('uploadToShine')}</p>
-                 </div>
-                 <button onClick={() => setIsEditModalOpen(true)} className="skeuo-button px-6 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-pink-500">
-                    {t('uploadNow')}
-                 </button>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Stats & Earnings Showcase */}
-        <section className="space-y-6">
-           <div className="flex items-center gap-3 px-1">
-            <MaterialSymbol name="bar_chart" size={22} className="text-pink-500" />
-            <h2 className="text-xs font-black uppercase tracking-[0.25em] text-slate-900 dark:text-white font-display">
-              {t('performance')}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-             <div className="skeuo-card bg-mesh-glass rounded-[2rem] p-6 space-y-4 shadow-xl border-white/60 dark:border-white/5">
-                <MaterialSymbol name="mail" size={32} className="text-blue-500" filled />
-                <div>
-                   <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-none">{stats.messagesReceived.toLocaleString()}</p>
-                   <p className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 mt-1">{t('messages')}</p>
-                </div>
-             </div>
-             <div className="skeuo-card bg-mesh-glass rounded-[2rem] p-6 space-y-4 shadow-xl border-white/60 dark:border-white/5">
-                <MaterialSymbol name="chat_bubble" size={32} className="text-purple-500" filled />
-                <div>
-                   <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white leading-none">{stats.activeConversations.toLocaleString()}</p>
-                   <p className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 mt-1">{t('activeChats')}</p>
-                </div>
-             </div>
-          </div>
-
-          {/* Earnings Glass Card */}
-          <div className="group relative overflow-hidden skeuo-card bg-mesh-glass rounded-[2.5rem] p-8 border-white/60 dark:border-white/5 shadow-2xl transition-all hover:translate-y-[-2px]">
-             <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent pointer-events-none" />
-             <div className="flex items-center justify-between relative z-10">
-                <div className="space-y-4">
-                   <div className="flex items-center gap-3">
-                      <MaterialSymbol name="payments" size={22} className="text-emerald-500" filled />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{t('earnings')}</span>
-                   </div>
-                   <div className="space-y-1">
-                      <p className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">
-                        {stats.availableBalance.toLocaleString()}
-                      </p>
-                      <p className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest">{t('coinsAvailable')}</p>
-                   </div>
-                </div>
-                <button 
-                  onClick={() => navigate('/female/earnings')}
-                  className="skeuo-button h-14 px-8 rounded-2xl flex items-center justify-center bg-pink-500 text-white shadow-xl shadow-pink-500/20 active:scale-95 transition-all group/btn"
+          {photos.length > 0 ? (
+            <div className="grid grid-cols-6 gap-2.5">
+              {photos.map((photo, index) => (
+                <div
+                  key={index}
+                  onClick={() => setSelectedPhotoIndex(index)}
+                  className={`group relative rounded-[1.25rem] overflow-hidden cursor-pointer active:scale-95 transition-all duration-300 bg-pink-50 ${
+                    index === 0 ? "col-span-6 aspect-[16/9]" : "col-span-2 aspect-[4/5]"
+                  }`}
                 >
-                   <span className="text-[10px] font-black uppercase tracking-[0.25em] drop-shadow-sm">{t('details')}</span>
-                </button>
-             </div>
-          </div>
+                  {index === 0 && (
+                    <div className="absolute top-3 left-3 z-20">
+                      <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-3 py-1 rounded-full shadow-md">
+                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white flex items-center gap-1">
+                          <MaterialSymbol name="star" size={10} filled />
+                          {t("featured")}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
+                  <img
+                    src={photo}
+                    alt={`Portfolio ${index + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute bottom-3 right-3 size-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 z-20 shadow-sm">
+                    <MaterialSymbol name="open_in_full" size={14} className="text-pink-600" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-pink-50/60 rounded-[1.5rem] p-12 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="size-16 bg-white shadow-card rounded-full flex items-center justify-center">
+                <MaterialSymbol name="add_a_photo" size={30} className="text-pink-300" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-black uppercase tracking-widest text-muted-light">{t("noPhotos")}</p>
+                <p className="text-[10px] font-medium text-muted-light">{t("uploadToShine")}</p>
+              </div>
+              <button
+                onClick={() => navigate("/female/edit-profile")}
+                className="bg-gradient-to-r from-pink-500 to-rose-600 text-white px-6 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+              >
+                {t("uploadNow")}
+              </button>
+            </div>
+          )}
         </section>
 
-        {/* Global Settings Section (Button only) */}
-        <section className="space-y-4 pb-10">
-          <button
-            onClick={() => navigate('/female/faqs')}
-            className="w-full h-16 skeuo-card bg-mesh-glass rounded-2xl flex items-center justify-between px-6 group hover:translate-y-[-2px] active:scale-95 transition-all duration-300 border-white/60 dark:border-white/5 shadow-xl"
-          >
-             <div className="flex items-center gap-3">
-                <MaterialSymbol name="help" size={22} className="text-pink-500" />
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200">{t('faqs')}</span>
-             </div>
-             <MaterialSymbol name="chevron_right" size={20} className="text-slate-400 group-hover:translate-x-1 transition-transform" />
-          </button>
+        {/* ── Settings Section ── */}
+        <section className="px-4 mt-4 mb-6">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="size-7 rounded-xl bg-pink-50 flex items-center justify-center">
+              <MaterialSymbol name="tune" size={16} className="text-pink-600" />
+            </div>
+            <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-muted">SETTINGS</h3>
+          </div>
+          <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden divide-y divide-gray-50">
+            <button
+              onClick={() => navigate("/female/faqs")}
+              className="w-full flex items-center justify-between px-5 py-4 group active:bg-pink-50/50 transition-colors"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="size-10 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                  <MaterialSymbol name="help" size={20} className="text-indigo-500" filled />
+                </div>
+                <span className="text-[13px] font-bold text-ink">{t("faqs")}</span>
+              </div>
+              <MaterialSymbol name="chevron_right" size={20} className="text-muted-light group-hover:translate-x-0.5 transition-transform" />
+            </button>
 
-          <button
-            onClick={() => navigate('/female/settings')}
-            className="w-full h-16 skeuo-card bg-mesh-glass rounded-2xl flex items-center justify-between px-6 group hover:translate-y-[-2px] active:scale-95 transition-all duration-300 border-white/60 dark:border-white/5 shadow-xl"
-          >
-             <div className="flex items-center gap-3">
-                <MaterialSymbol name="settings" size={22} className="text-pink-500 group-hover:rotate-45 transition-transform duration-500" />
-                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200">{t('settings')}</span>
-             </div>
-             <MaterialSymbol name="chevron_right" size={20} className="text-slate-400 group-hover:translate-x-1 transition-transform" />
-          </button>
+            <button
+              onClick={() => navigate("/female/settings")}
+              className="w-full flex items-center justify-between px-5 py-4 group active:bg-pink-50/50 transition-colors"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="size-10 rounded-2xl bg-pink-50 flex items-center justify-center">
+                  <MaterialSymbol name="settings" size={20} className="text-pink-600" filled />
+                </div>
+                <span className="text-[13px] font-bold text-ink">{t("settings")}</span>
+              </div>
+              <MaterialSymbol name="chevron_right" size={20} className="text-muted-light group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
         </section>
       </div>
 
       <FemaleBottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
 
-
-
-      {/* Modern High-Gloss Photo Lightbox */}
+      {/* ── Photo Lightbox ── */}
       {selectedPhotoIndex !== null && (
         <div
           className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex items-center justify-center animate-in fade-in duration-500"
           onClick={() => setSelectedPhotoIndex(null)}
         >
-          {/* Close button relocated to bottom-center */}
-
-          {/* Large Portfolio View */}
           <div className="relative w-full h-[70vh] flex items-center justify-center px-4" onClick={(e) => e.stopPropagation()}>
-             <img
-               src={photos[selectedPhotoIndex]}
-               alt={`Portfolio ${selectedPhotoIndex + 1}`}
-               className="max-w-full max-h-full object-contain rounded-[2.5rem] shadow-2xl border border-white/10"
-             />
-             
-             {/* Large Navigation */}
-             <div className="absolute inset-x-4 flex items-center justify-between pointer-events-none">
-                <button
-                  disabled={selectedPhotoIndex === 0}
-                  onClick={() => setSelectedPhotoIndex(selectedPhotoIndex - 1)}
-                  className={`pointer-events-auto skeuo-button size-14 rounded-[1.5rem] flex items-center justify-center bg-white/10 text-white backdrop-blur-xl border-white/10 active:scale-90 transition-all ${selectedPhotoIndex === 0 ? 'opacity-0' : 'opacity-100'}`}
-                >
-                  <MaterialSymbol name="chevron_left" size={32} />
-                </button>
-                <button
-                  disabled={selectedPhotoIndex === photos.length - 1}
-                  onClick={() => setSelectedPhotoIndex(selectedPhotoIndex + 1)}
-                  className={`pointer-events-auto skeuo-button size-14 rounded-[1.5rem] flex items-center justify-center bg-white/10 text-white backdrop-blur-xl border-white/10 active:scale-90 transition-all ${selectedPhotoIndex === photos.length - 1 ? 'opacity-0' : 'opacity-100'}`}
-                >
-                  <MaterialSymbol name="chevron_right" size={32} />
-                </button>
-             </div>
-          </div>
-
-           <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-8 z-20">
-              {/* Glow Action Close Button */}
+            <img
+              src={photos[selectedPhotoIndex]}
+              alt={`Portfolio ${selectedPhotoIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-[2rem] shadow-2xl border border-white/10"
+            />
+            <div className="absolute inset-x-4 flex items-center justify-between pointer-events-none">
               <button
-                onClick={() => setSelectedPhotoIndex(null)}
-                className="skeuo-button size-16 rounded-full flex items-center justify-center bg-white/10 text-white backdrop-blur-2xl border border-white/20 shadow-2xl active:scale-90 transition-all group hover:bg-white/20"
+                disabled={selectedPhotoIndex === 0}
+                onClick={() => setSelectedPhotoIndex(selectedPhotoIndex - 1)}
+                className={`pointer-events-auto size-12 rounded-2xl flex items-center justify-center bg-white/10 text-white backdrop-blur-xl border border-white/10 active:scale-90 transition-all ${selectedPhotoIndex === 0 ? "opacity-0" : "opacity-100"}`}
               >
-                <div className="absolute inset-0 bg-pink-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                <MaterialSymbol name="close" size={32} className="relative z-10" />
+                <MaterialSymbol name="chevron_left" size={28} />
               </button>
-
-              <div className="p-1.5 rounded-2xl skeuo-inset bg-white/5 border border-white/10 backdrop-blur-md">
-                 <div className="flex gap-2">
-                    {photos.map((_, i) => (
-                       <div key={i} className={`h-1.5 transition-all duration-500 rounded-full ${i === selectedPhotoIndex ? 'w-8 bg-pink-500' : 'w-1.5 bg-white/20'}`} />
-                    ))}
-                 </div>
-              </div>
-           </div>
+              <button
+                disabled={selectedPhotoIndex === photos.length - 1}
+                onClick={() => setSelectedPhotoIndex(selectedPhotoIndex + 1)}
+                className={`pointer-events-auto size-12 rounded-2xl flex items-center justify-center bg-white/10 text-white backdrop-blur-xl border border-white/10 active:scale-90 transition-all ${selectedPhotoIndex === photos.length - 1 ? "opacity-0" : "opacity-100"}`}
+              >
+                <MaterialSymbol name="chevron_right" size={28} />
+              </button>
+            </div>
+          </div>
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 z-20">
+            <button
+              onClick={() => setSelectedPhotoIndex(null)}
+              className="size-12 rounded-full flex items-center justify-center bg-white/10 text-white backdrop-blur-xl border border-white/20 active:scale-90 transition-all"
+            >
+              <MaterialSymbol name="close" size={24} />
+            </button>
+            <div className="flex gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10">
+              {photos.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 transition-all duration-500 rounded-full ${i === selectedPhotoIndex ? "w-8 bg-pink-500" : "w-1.5 bg-white/20"}`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
-
-
     </div>
   );
 };
-

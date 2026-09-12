@@ -18,6 +18,7 @@ frontend/
 └── Configuration files
 ```
 
+
 ## Folder Structure
 
 ### `/src/features/` - Feature Modules

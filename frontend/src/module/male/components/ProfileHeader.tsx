@@ -28,29 +28,29 @@ const tierConfig = {
     label: 'BASIC',
     labelKey: 'BASIC',
     icon: null,
-    textClass: 'text-slate-500 dark:text-slate-400',
+    textClass: 'text-muted',
     bgClass: 'bg-transparent',
   },
   silver: {
     label: 'SILVER',
     labelKey: 'SILVER',
     icon: 'stars',
-    textClass: 'text-slate-600 dark:text-slate-300',
-    bgClass: 'bg-gradient-to-r from-slate-200 to-slate-300 dark:from-white/10 dark:to-white/5',
+    textClass: 'text-slate-600',
+    bgClass: 'bg-gradient-to-r from-slate-200 to-slate-300',
   },
   gold: {
     label: 'GOLD',
     labelKey: 'GOLD',
     icon: 'workspace_premium',
-    textClass: 'text-amber-600 dark:text-amber-400',
-    bgClass: 'bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/20',
+    textClass: 'text-[#7a4400]',
+    bgClass: 'bg-coin-gradient',
   },
   platinum: {
     label: 'PLATINUM',
     labelKey: 'PLATINUM',
     icon: 'diamond',
-    textClass: 'text-cyan-600 dark:text-cyan-400',
-    bgClass: 'bg-gradient-to-r from-cyan-100 to-blue-100 dark:from-cyan-900/40 dark:to-blue-900/20',
+    textClass: 'text-cyan-600',
+    bgClass: 'bg-gradient-to-r from-cyan-100 to-blue-100',
   },
 };
 
@@ -80,9 +80,9 @@ export const ProfileHeader = ({ user, onEditClick, showNotifications = true, sho
   const renderLevelBadge = () => {
     if (!user.levelInfo) return null;
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-violet-100 to-indigo-100 dark:from-violet-900/40 dark:to-indigo-900/20 text-violet-600 dark:text-violet-400">
-        <MaterialSymbol name="military_tech" size={14} className="text-violet-600 dark:text-violet-400" filled />
-        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-600 dark:text-violet-400">
+      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-violet-50 text-violet-600">
+        <MaterialSymbol name="military_tech" size={14} className="text-violet-600" filled />
+        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-600">
           Lvl {user.levelInfo.level} • {user.levelInfo.badgeName}
         </span>
       </div>
@@ -99,23 +99,20 @@ export const ProfileHeader = ({ user, onEditClick, showNotifications = true, sho
         >
           <div className="p-1 rounded-full relative z-10">
              <div
-               className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 border-2 border-white/60 dark:border-white/10"
+               className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 shadow-card"
                style={{ backgroundImage: `url("${user.avatar}")` }}
                aria-label={`${user.name}'s profile avatar`}
              />
           </div>
-          
-          {user.isOnline && (
-            <div className="absolute bottom-1 right-1 h-6 w-6 rounded-full bg-green-500 border-[3px] border-white dark:border-black shadow-[0_0_15px_rgba(34,197,94,0.6)] animate-pulse z-20" />
-          )}
 
-          {/* Decorative Glow */}
-          <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+          {user.isOnline && (
+            <div className="absolute bottom-1 right-1 h-6 w-6 rounded-full bg-green-500 border-[3px] border-white z-20" />
+          )}
         </div>
 
         {/* User Info */}
         <div className="flex flex-col justify-center gap-2">
-          <h1 className="text-slate-900 dark:text-white text-[28px] font-black leading-none tracking-tighter">
+          <h1 className="text-ink text-[28px] font-black leading-none tracking-tighter">
             {user.name}
           </h1>
           <div className="flex flex-wrap gap-2">
@@ -130,12 +127,12 @@ export const ProfileHeader = ({ user, onEditClick, showNotifications = true, sho
         {showNotifications && (
           <button
             onClick={() => navigate('/male/notifications')}
-            className="skeuo-inset relative size-14 shrink-0 flex items-center justify-center rounded-2xl text-slate-600 dark:text-slate-300 active:scale-90 transition-all group"
+            className="relative size-14 shrink-0 flex items-center justify-center rounded-2xl bg-white shadow-card text-muted active:scale-90 transition-all group"
             aria-label="Notifications"
           >
             <MaterialSymbol name="notifications" size={28} className="transition-transform group-hover:rotate-12" />
             {unreadCount > 0 && (
-              <div className="absolute top-1 right-1 size-5 rounded-full bg-primary border-2 border-white dark:border-black flex items-center justify-center shadow-lg shadow-primary/20">
+              <div className="absolute top-1 right-1 size-5 rounded-full bg-cta-gradient border-2 border-white flex items-center justify-center shadow-cta">
                 <span className="text-[10px] font-black text-white leading-none">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
@@ -148,14 +145,14 @@ export const ProfileHeader = ({ user, onEditClick, showNotifications = true, sho
         {showEdit && (
           <button
             onClick={onEditClick}
-            className="skeuo-inset size-14 shrink-0 flex items-center justify-center rounded-2xl bg-white text-primary active:scale-90 transition-all group shadow-sm"
+            className="size-14 shrink-0 flex items-center justify-center rounded-2xl bg-white shadow-card active:scale-90 transition-all group"
             aria-label="Edit Profile"
           >
-            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-all">
-              <MaterialSymbol 
-                name="edit_note" 
-                size={24} 
-                className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)] transition-transform group-hover:-rotate-6" 
+            <div className="size-10 rounded-xl bg-pink-50 flex items-center justify-center group-hover:bg-pink-100 transition-all">
+              <MaterialSymbol
+                name="edit_note"
+                size={24}
+                className="text-pink-600 transition-transform group-hover:-rotate-6"
               />
             </div>
           </button>

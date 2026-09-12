@@ -1,7 +1,7 @@
-import { MaterialSymbol } from '../types/material-symbol';
-import { useTranslation } from '../../../core/hooks/useTranslation';
+import { MaterialSymbol } from "../types/material-symbol";
+import { useTranslation } from "../../../core/hooks/useTranslation";
 
-export type PlanTier = 'basic' | 'silver' | 'gold' | 'platinum' | string;
+export type PlanTier = "basic" | "silver" | "gold" | "platinum" | string;
 
 interface CoinPlanCardProps {
   tier: PlanTier;
@@ -29,68 +29,62 @@ export const CoinPlanCard = ({
   disabled = false,
 }: CoinPlanCardProps) => {
   const { t } = useTranslation();
-
-  const getTierGradient = () => {
-    if (isBestValue) return 'bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.15)]';
-    if (isPopular) return 'bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-transparent border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]';
-    return 'bg-white/40 dark:bg-white/5 border-white/40 dark:border-white/10';
-  };
-
-  const getButtonClass = () => {
-    if (isBestValue) return 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30';
-    if (isPopular) return 'bg-gradient-to-r from-amber-500 to-yellow-600 text-white shadow-lg shadow-amber-500/30';
-    return 'bg-white/80 dark:bg-white/10 text-slate-900 dark:text-white shadow-sm';
-  };
+  const isHighlight = isPopular || isBestValue;
 
   return (
     <div
-      className={`relative flex flex-col items-center gap-4 rounded-3xl border p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 group overflow-hidden ${getTierGradient()}`}
-    >
-      {/* Floating Badge (Glass style) */}
-      {badge && (
-        <div className={`absolute top-2 right-2 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter backdrop-blur-md border border-white/20 shadow-sm z-20 ${
-          isBestValue ? 'bg-indigo-500 text-white' : 'bg-amber-500 text-white'
-        }`}>
+      onClick={!disabled ? onBuyClick : undefined}
+      className={`relative flex flex-col justify-between rounded-3xl p-5 transition-all duration-300 cursor-pointer overflow-hidden border ${
+        isHighlight
+          ? "bg-gradient-to-b from-pink-50/90 via-white to-rose-50/50 dark:from-pink-950/20 dark:via-slate-900 dark:to-rose-950/10 border-pink-400 dark:border-pink-600 shadow-md shadow-pink-500/10 hover:scale-[1.02]"
+          : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-xs hover:border-pink-200 dark:hover:border-slate-700 hover:scale-[1.01]"
+      }`}>
+      {/* Floating Badge on Top */}
+      {badge ? (
+        <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-2xs z-20">
           {badge}
         </div>
-      )}
-
-      {/* Bonus Ribbon (Diagonal Left) */}
-      {tier.toLowerCase() === 'silver' && (
-        <div className="absolute -left-8 top-3 px-8 py-1 bg-blue-600 text-white text-[9px] font-black -rotate-45 shadow-lg z-10 uppercase tracking-tighter">
-          BONUS
+      ) : isHighlight ? (
+        <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-2xs z-20">
+          BEST VALUE
         </div>
-      )}
+      ) : null}
 
-      {/* Content Section */}
-      <div className="flex flex-col items-center gap-1 w-full mt-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-white/50">
-          {t(tier.toUpperCase())}
+      {/* Header Tier */}
+      <div className="flex flex-col items-center gap-1 w-full pt-1">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+          {t(tier.toUpperCase(), { defaultValue: tier.toUpperCase() })}
         </span>
-        
-        <div className="flex flex-col items-center gap-0 my-2">
-          <div className="flex items-center justify-center gap-1.5">
-            <span className={`text-3xl font-black tracking-tighter text-slate-900 dark:text-white transition-all ${
-              isPopular || isBestValue ? 'text-glow-gold' : ''
-            }`}>
-              {coins.toLocaleString()}
-            </span>
-            <MaterialSymbol name="monetization_on" filled size={24} className="text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.4)]" />
-          </div>
-          
-          {bonus && (
-             <div className="mt-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-               <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase">
-                 {bonus}
-               </span>
-             </div>
-          )}
+
+        {/* Coins Total */}
+        <div className="flex items-center justify-center gap-1.5 my-2">
+          <MaterialSymbol
+            name="monetization_on"
+            filled
+            size={26}
+            className="text-amber-500 drop-shadow-xs"
+          />
+          <span className="text-3xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
+            {coins.toLocaleString()}
+          </span>
         </div>
 
-        <div className="flex flex-col items-center mt-2">
+        {/* Bonus Pill */}
+        {bonus ? (
+          <div className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
+            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-300 uppercase tracking-wide">
+              {bonus}
+            </span>
+          </div>
+        ) : (
+          <div className="h-6" />
+        )}
+
+        {/* Price Tag */}
+        <div className="flex flex-col items-center my-3">
           <div className="flex items-baseline gap-1">
-            <span className="text-xs font-bold text-slate-400">₹</span>
-            <span className="text-xl font-black text-slate-900 dark:text-white">
+            <span className="text-xs font-black text-slate-400">₹</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">
               {price.toLocaleString()}
             </span>
           </div>
@@ -104,16 +98,30 @@ export const CoinPlanCard = ({
 
       {/* Action Button */}
       <button
-        onClick={onBuyClick}
+        onClick={(e) => {
+          e.stopPropagation();
+          onBuyClick?.();
+        }}
         disabled={disabled}
-        className={`w-full h-11 rounded-2xl text-[13px] font-black uppercase tracking-wider transition-all active:scale-[0.96] flex items-center justify-center gap-2 ${getButtonClass()} ${disabled ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
-      >
-        {disabled ? t('loading') : t('buyCoins')}
-        {(isPopular || isBestValue) && !disabled && (
-          <MaterialSymbol name={isBestValue ? "diamond" : "bolt"} size={18} className="animate-pulse" />
+        className={`w-full h-11 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-xs ${
+          isHighlight
+            ? "bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-600 hover:to-rose-600 text-white shadow-pink-500/25"
+            : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
+        } ${disabled ? "opacity-50 grayscale cursor-not-allowed" : ""}`}>
+        <span>
+          {disabled
+            ? t("loading", { defaultValue: "Loading" })
+            : t("buyCoins", { defaultValue: "Buy Coins" })}
+        </span>
+        {isHighlight && !disabled && (
+          <MaterialSymbol
+            name="bolt"
+            size={16}
+            className="text-amber-200 animate-pulse"
+            filled
+          />
         )}
       </button>
     </div>
   );
 };
-

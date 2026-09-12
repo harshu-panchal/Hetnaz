@@ -2,15 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html,
+body {
   margin: 0;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
-  background-color: #0a0a0a;
+  background-color: #fffaf7;
   touch-action: pan-y;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
@@ -19,18 +30,12 @@ html, body {
   -webkit-touch-callout: none;
 }
 
-/* @media (prefers-color-scheme: dark) {
-  html, body {
-    background-color: #0a0a0a;
-  }
-} */
-
 /* Smooth transitions for interactive elements */
 @layer utilities {
   .transition-smooth {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom);
     padding-bottom: calc(max(1.25rem, env(safe-area-inset-bottom)));
@@ -128,7 +133,7 @@ html, body {
   .glass-card {
     @apply bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[0_8px_32px_0_rgba(255,77,109,0.1)];
   }
-  
+
   .glass-input {
     @apply bg-white/30 backdrop-blur-md border border-white/40 focus:bg-white/50 transition-all duration-300;
   }
@@ -148,8 +153,13 @@ html, body {
 
 /* Custom Keyframes for Artistic Background */
 @keyframes blob-shift {
-  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
-  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  0%,
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  50% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
 }
 
 .animate-blob-shift {
@@ -158,10 +168,24 @@ html, body {
 
 /* Floating Icon Drift */
 @keyframes icon-drift {
-  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
-  20% { opacity: 0.6; }
-  80% { opacity: 0.6; }
-  100% { transform: translate(var(--tw-translate-x, 100px), var(--tw-translate-y, -100px)) rotate(var(--tw-rotate, 20deg)); opacity: 0; }
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(
+        var(--tw-translate-x, 100px),
+        var(--tw-translate-y, -100px)
+      )
+      rotate(var(--tw-rotate, 20deg));
+    opacity: 0;
+  }
 }
 
 .animate-icon-drift {
@@ -170,8 +194,12 @@ html, body {
 
 /* Auth Page Floating Up Animation */
 @keyframes float-up {
-  0% { transform: translateY(0) rotate(0deg); }
-  100% { transform: translateY(-130vh) rotate(var(--tw-rotate, 20deg)); }
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-130vh) rotate(var(--tw-rotate, 20deg));
+  }
 }
 
 .animate-float-up {
@@ -179,8 +207,15 @@ html, body {
 }
 
 @keyframes gold-pulse {
-  0%, 100% { opacity: 0.2; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.1); }
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
 }
 
 .animate-gold-pulse {
@@ -197,7 +232,7 @@ html, body {
   .skeuo-card {
     @apply bg-white/5 backdrop-blur-3xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.05)] transition-all duration-300;
   }
-  
+
   .skeuo-inset {
     @apply bg-white/[0.03] backdrop-blur-xl shadow-[inset_1px_1px_3px_rgba(0,0,0,0.03)] border border-white/5;
   }
@@ -213,8 +248,12 @@ html, body {
 
 /* Loading Spinner */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .spinner-small {
@@ -229,8 +268,15 @@ html, body {
 
 /* Heartbeat Blink for Live Activity */
 @keyframes heartbeat-blink {
-  0%, 100% { opacity: 1; filter: drop-shadow(0 0 2px rgba(236, 72, 153, 0.4)); }
-  50% { opacity: 0.4; filter: drop-shadow(0 0 0px transparent); }
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 2px rgba(236, 72, 153, 0.4));
+  }
+  50% {
+    opacity: 0.4;
+    filter: drop-shadow(0 0 0px transparent);
+  }
 }
 
 .animate-heartbeat-blink {
@@ -239,13 +285,25 @@ html, body {
 
 /* Soft Glow for Premium Badges */
 @keyframes soft-glow {
-  0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 77, 109, 0.2)); transform: scale(1); }
-  50% { filter: drop-shadow(0 0 20px rgba(255, 77, 109, 0.4)); transform: scale(1.02); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgba(255, 77, 109, 0.2));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(255, 77, 109, 0.4));
+    transform: scale(1.02);
+  }
 }
 
 @keyframes gold-halo {
-  0%, 100% { filter: drop-shadow(0 0 12px rgba(244, 192, 37, 0.2)); }
-  50% { filter: drop-shadow(0 0 25px rgba(244, 192, 37, 0.5)); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 12px rgba(244, 192, 37, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(244, 192, 37, 0.5));
+  }
 }
 
 .animate-badge-glow {
@@ -257,7 +315,27 @@ html, body {
 }
 
 .bg-mesh-glass {
-  background: radial-gradient(circle at top right, rgba(255, 77, 109, 0.05), transparent),
-              radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.05), transparent);
+  background:
+    radial-gradient(circle at top right, rgba(255, 77, 109, 0.05), transparent),
+    radial-gradient(
+      circle at bottom left,
+      rgba(168, 85, 247, 0.05),
+      transparent
+    );
 }
 
+/* Tab Content Switch Cross-Fade Animation */
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tab-fade-in {
+  animation: tabFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

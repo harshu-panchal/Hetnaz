@@ -19,7 +19,7 @@ export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => 
         <MaterialSymbol
           name="done_all"
           size={14}
-          className="text-pink-500 ml-1 shrink-0"
+          className="text-pink-600 ml-1 shrink-0"
         />
       );
     }
@@ -28,7 +28,7 @@ export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => 
         <MaterialSymbol
           name="done_all"
           size={14}
-          className="text-slate-300 ml-1 shrink-0"
+          className="text-muted-light ml-1 shrink-0"
         />
       );
     }
@@ -36,7 +36,7 @@ export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => 
       <MaterialSymbol
         name="done"
         size={14}
-        className="text-slate-300 ml-1 shrink-0"
+        className="text-muted-light ml-1 shrink-0"
       />
     );
   };
@@ -63,11 +63,11 @@ export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => 
 
       <div className={`flex flex-col max-w-[78%] ${isSent ? 'items-end' : 'items-start'}`}>
         <div
-          className={`transition-all outline-none ${isImageMessage 
-            ? `p-1 bg-white border border-slate-100 shadow-md rounded-[1.4rem] cursor-pointer hover:opacity-95 ${isSent ? 'rounded-tr-none' : 'rounded-tl-none'}`
-            : `px-5 py-2.5 rounded-[1.4rem] shadow-sm ${isSent 
-                ? 'bg-pink-500 text-white rounded-tr-none shadow-pink-500/10' 
-                : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'}`
+          className={`transition-all outline-none ${isImageMessage
+            ? `p-1 bg-white shadow-card rounded-[1.4rem] cursor-pointer hover:opacity-95 ${isSent ? 'rounded-tr-none' : 'rounded-tl-none'}`
+            : `px-5 py-2.5 rounded-[1.4rem] ${isSent
+                ? 'bg-cta-gradient text-white rounded-tr-none shadow-cta'
+                : 'bg-[#f2e4da] shadow-sm text-ink rounded-tl-none'}`
           }`}
           onClick={() => isImageMessage && onImageClick?.(imageUrl!)}
         >
@@ -86,7 +86,7 @@ export const MessageBubble = ({ message, onImageClick }: MessageBubbleProps) => 
         
         {/* Alignment-aware timestamp + ticks */}
         <div className={`flex items-center gap-1.5 mt-1.5 transition-opacity duration-300 ${isSent ? 'pr-1' : 'pl-1'}`}>
-          <span className="text-[9.5px] font-black uppercase tracking-[0.15em] text-slate-400/70">{time}</span>
+          <span className="text-[9.5px] font-black uppercase tracking-[0.15em] text-muted-light">{time}</span>
           {getReadStatusIcon()}
         </div>
       </div>

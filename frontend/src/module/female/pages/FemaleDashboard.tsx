@@ -14,7 +14,6 @@ import socketService from '../../../core/services/socket.service';
 import userService from '../../../core/services/user.service';
 import type { FemaleDashboardData } from '../types/female.types';
 import { useTranslation } from '../../../core/hooks/useTranslation';
-import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
 
 const FemaleDashboardContent = () => {
   const { t } = useTranslation();
@@ -147,23 +146,21 @@ const FemaleDashboardContent = () => {
   // Show lightweight skeleton instead of blocking spinner
   if (isLoading && !dashboardData) {
     return (
-      <div className="flex h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-hidden relative">
-        <MeshBackground />
+      <div className="flex h-screen w-full flex-col bg-background-light overflow-hidden relative">
         <div className="relative z-10 flex-1 p-4 space-y-4 animate-pulse">
-          <div className="h-20 bg-white/20 dark:bg-gray-800 rounded-xl" />
-          <div className="h-32 bg-white/20 dark:bg-gray-800 rounded-xl" />
-          <div className="h-24 bg-white/20 dark:bg-gray-800 rounded-xl" />
+          <div className="h-20 bg-white/20 rounded-xl" />
+          <div className="h-32 bg-white/20 rounded-xl" />
+          <div className="h-24 bg-white/20 rounded-xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="font-display text-slate-900 dark:text-white antialiased selection:bg-pink-500 selection:text-white min-h-screen relative overflow-x-hidden bg-background-light dark:bg-[#0a0a0a]">
-      <MeshBackground />
+    <div className="font-display text-ink antialiased selection:bg-pink-500 selection:text-white min-h-screen relative lg:pl-60 overflow-x-hidden bg-background-light">
       
       {/* Scrollable Content Layer */}
-      <div className="relative z-10 flex flex-col min-h-screen pb-24 max-w-md mx-auto w-full">
+      <div className="relative z-10 flex flex-col min-h-screen pb-24 max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full">
         {/* Header Removed */}
 
         <ProfileHeader

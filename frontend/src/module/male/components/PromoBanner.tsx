@@ -1,3 +1,5 @@
+import { MaterialSymbol } from "../../../shared/components/MaterialSymbol";
+
 interface PromoBannerProps {
   title: string;
   badge?: string;
@@ -6,27 +8,42 @@ interface PromoBannerProps {
 
 export const PromoBanner = ({
   title,
-  badge = 'Limited Offer',
-  imageUrl,
+  badge = "LIMITED OFFER",
 }: PromoBannerProps) => {
-  const defaultImage =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuC6PWE1jNxfyMIbPh97ATlIV1viSolbj-GNFPFOAp7c1CS6Pz8wqZ6ckvNNeXAd49ju6KO4H7lqoxQiDi2zUIhk_WMCmlXQD8OVOAcAN-AOCL0xJSVUEwNjYZzaImsJW7uqdtcpHNV7W6nBkntmAA2gzo5zh0gvjZ-rPCEiu0AIWXm5OkS0crJ9yapByKamsFbLikBskdXgWRZ712FJcX4EVbW6lHSVzuIEKBqh4E4duw8Ir7-PPn8J4WJbv6qSzmEHhUBfW_OQrSc';
-
   return (
-    <div className="rounded-2xl overflow-hidden shadow-lg relative group">
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-      <img
-        className="w-full h-40 object-cover transform group-hover:scale-105 transition-transform duration-700"
-        src={imageUrl || defaultImage}
-        alt="Promotional banner"
-      />
-      <div className="absolute bottom-0 left-0 p-5 z-20 w-full">
-        <div className="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded w-fit mb-2 uppercase tracking-wider">
-          {badge}
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-600 via-rose-600 to-[#1e1b4b] p-5 text-white shadow-xl shadow-pink-500/15 border border-pink-300/30 group">
+      {/* Glow Effects & Ambience */}
+      <div className="absolute -top-12 -right-12 size-40 bg-pink-400/30 rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute -bottom-12 -left-12 size-40 bg-purple-600/30 rounded-full blur-2xl pointer-events-none" />
+
+      {/* Decorative Gold Watermark */}
+      <div className="absolute -right-2 -bottom-6 pointer-events-none select-none opacity-20 group-hover:scale-105 transition-transform duration-500">
+        <MaterialSymbol
+          name="savings"
+          size={130}
+          filled
+          className="text-white"
+        />
+      </div>
+
+      <div className="relative z-10 flex flex-col gap-2 max-w-[82%]">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-amber-300 text-[10px] font-black uppercase tracking-wider w-fit shadow-2xs">
+          <MaterialSymbol
+            name="local_fire_department"
+            size={13}
+            filled
+            className="text-amber-300"
+          />
+          <span>{badge}</span>
         </div>
-        <p className="text-white text-xl font-bold leading-tight shadow-sm">{title}</p>
+        <h3 className="text-lg sm:text-xl font-black leading-tight text-white drop-shadow-sm">
+          {title}
+        </h3>
+        <p className="text-xs text-white/85 font-medium leading-relaxed">
+          Instant coin activation with 100% bonus value for chats, gifts & video
+          calls!
+        </p>
       </div>
     </div>
   );
 };
-

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { useState, useEffect } from "react";
+import { MaterialSymbol } from "../../../shared/components/MaterialSymbol";
 
 interface SubItem {
   id: string;
@@ -28,14 +28,23 @@ interface AdminSidebarProps {
   onToggleCollapse?: () => void;
 }
 
-export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed = false, onToggleCollapse }: AdminSidebarProps) => {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['users', 'finance']));
+export const AdminSidebar = ({
+  isOpen,
+  onClose,
+  items,
+  onItemClick,
+  isCollapsed = false,
+  onToggleCollapse,
+}: AdminSidebarProps) => {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(
+    new Set(["users", "finance"]),
+  );
 
   useEffect(() => {
     // Auto-expand parent if child is active
-    items.forEach(item => {
-      if (item.subItems?.some(sub => sub.isActive)) {
-        setExpandedItems(prev => new Set(prev).add(item.id));
+    items.forEach((item) => {
+      if (item.subItems?.some((sub) => sub.isActive)) {
+        setExpandedItems((prev) => new Set(prev).add(item.id));
       }
     });
   }, [items]);
@@ -44,35 +53,35 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed 
     // Only lock body scroll on mobile when sidebar is open
     const handleResize = () => {
       if (isOpen && window.innerWidth < 1024) {
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = "hidden";
       } else {
-        document.body.style.overflow = '';
+        document.body.style.overflow = "";
       }
     };
 
     handleResize();
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     return () => {
-      window.removeEventListener('resize', handleResize);
-      document.body.style.overflow = '';
+      window.removeEventListener("resize", handleResize);
+      document.body.style.overflow = "";
     };
   }, [isOpen]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && window.innerWidth < 1024) {
+      if (e.key === "Escape" && isOpen && window.innerWidth < 1024) {
         onClose();
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [isOpen, onClose]);
 
   const handleItemClick = (itemId: string, hasSubItems: boolean) => {
     if (hasSubItems) {
       // Toggle expansion
-      setExpandedItems(prev => {
+      setExpandedItems((prev) => {
         const newSet = new Set(prev);
         if (newSet.has(itemId)) {
           newSet.delete(itemId);
@@ -105,17 +114,23 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed 
         className={`
           fixed top-0 h-full bg-[#1d2327] z-[9999] transition-all duration-300 ease-out
           lg:left-0 lg:translate-x-0 lg:shadow-none
-          ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
-          ${isOpen ? 'left-0 translate-x-0 shadow-2xl w-64' : 'left-0 -translate-x-full lg:translate-x-0'}
-        `}
-      >
+          ${isCollapsed ? "lg:w-16" : "lg:w-64"}
+          ${isOpen ? "left-0 translate-x-0 shadow-2xl w-64" : "left-0 -translate-x-full lg:translate-x-0"}
+        `}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#2c3338] h-[57px] bg-[#1d2327]">
-          <div className={`flex items-center gap-2 transition-opacity duration-300 ${isCollapsed ? 'lg:opacity-0 lg:w-0' : 'opacity-100'}`}>
-            <div className="w-8 h-8 flex items-center justify-center overflow-hidden shadow-md">
-              <img src="/DilMatelogo.jpg" alt="Dil Mate" className="w-full h-full object-cover" />
+          <div
+            className={`flex items-center gap-2 transition-opacity duration-300 ${isCollapsed ? "lg:opacity-0 lg:w-0" : "opacity-100"}`}>
+            <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-lg shadow-xs">
+              <img
+                src="/logo.jpeg"
+                alt="Dil Mate"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <span className="text-sm font-semibold text-white whitespace-nowrap">Dil Mate Admin</span>
+            <span className="text-sm font-semibold text-white whitespace-nowrap">
+              Dil Mate Admin
+            </span>
           </div>
 
           {/* Collapse Toggle - Desktop only */}
@@ -124,8 +139,7 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed 
               onClick={onToggleCollapse}
               className="hidden lg:flex items-center justify-center size-8 rounded hover:bg-[#2c3338] transition-colors active:scale-95"
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
               <MaterialSymbol
                 name={isCollapsed ? "chevron_right" : "chevron_left"}
                 size={20}
@@ -138,8 +152,7 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed 
           <button
             onClick={onClose}
             className="flex items-center justify-center size-8 rounded hover:bg-[#2c3338] transition-colors active:scale-95 lg:hidden"
-            aria-label="Close menu"
-          >
+            aria-label="Close menu">
             <MaterialSymbol name="close" size={20} className="text-gray-400" />
           </button>
         </div>
@@ -155,23 +168,25 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed 
                 {/* Main Item */}
                 <button
                   onClick={() => handleItemClick(item.id, hasSubItems)}
-                  className={`flex items-center gap-3 px-4 py-2.5 w-full transition-all duration-150 relative group ${item.isActive && !hasSubItems
-                      ? 'bg-[#2c3338] text-[#72aee6] border-l-4 border-[#72aee6]'
-                      : 'text-[#c3c4c7] hover:bg-[#2c3338] hover:text-white border-l-4 border-transparent'
-                    }`}
-                  title={isCollapsed ? item.label : undefined}
-                >
+                  className={`flex items-center gap-3 px-4 py-2.5 w-full transition-all duration-150 relative group ${
+                    item.isActive && !hasSubItems
+                      ? "bg-[#2c3338] text-[#72aee6] border-l-4 border-[#72aee6]"
+                      : "text-[#c3c4c7] hover:bg-[#2c3338] hover:text-white border-l-4 border-transparent"
+                  }`}
+                  title={isCollapsed ? item.label : undefined}>
                   <MaterialSymbol
                     name={item.icon}
                     filled={item.isActive && !hasSubItems}
                     size={20}
                     className="flex-shrink-0"
                   />
-                  <span className={`flex-1 text-left text-sm font-normal transition-opacity duration-300 ${isCollapsed ? 'lg:opacity-0 lg:w-0 lg:overflow-hidden' : 'opacity-100'}`}>
+                  <span
+                    className={`flex-1 text-left text-sm font-normal transition-opacity duration-300 ${isCollapsed ? "lg:opacity-0 lg:w-0 lg:overflow-hidden" : "opacity-100"}`}>
                     {item.label}
                   </span>
                   {item.hasBadge && (
-                    <span className={`flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#d63638] text-white text-[10px] font-semibold transition-opacity duration-300 ${isCollapsed ? 'lg:absolute lg:top-1 lg:right-1' : ''}`}>
+                    <span
+                      className={`flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#d63638] text-white text-[10px] font-semibold transition-opacity duration-300 ${isCollapsed ? "lg:absolute lg:top-1 lg:right-1" : ""}`}>
                       {item.badgeCount}
                     </span>
                   )}
@@ -179,7 +194,7 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed 
                     <MaterialSymbol
                       name="expand_more"
                       size={18}
-                      className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                      className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
                     />
                   )}
                 </button>
@@ -194,13 +209,15 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed 
                           onItemClick?.(subItem.id);
                           if (window.innerWidth < 1024) onClose();
                         }}
-                        className={`flex items-center gap-2 pl-12 pr-4 py-2 w-full text-sm transition-all duration-150 relative ${subItem.isActive
-                            ? 'text-[#72aee6] bg-[#1d2327]'
-                            : 'text-[#a7aaad] hover:text-[#72aee6] hover:bg-[#1d2327]'
-                          }`}
-                      >
+                        className={`flex items-center gap-2 pl-12 pr-4 py-2 w-full text-sm transition-all duration-150 relative ${
+                          subItem.isActive
+                            ? "text-[#72aee6] bg-[#1d2327]"
+                            : "text-[#a7aaad] hover:text-[#72aee6] hover:bg-[#1d2327]"
+                        }`}>
                         <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50" />
-                        <span className="flex-1 text-left">{subItem.label}</span>
+                        <span className="flex-1 text-left">
+                          {subItem.label}
+                        </span>
                         {subItem.badgeCount && subItem.badgeCount > 0 && (
                           <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#d63638] text-white text-[10px] font-semibold">
                             {subItem.badgeCount}
@@ -219,7 +236,8 @@ export const AdminSidebar = ({ isOpen, onClose, items, onItemClick, isCollapsed 
         </nav>
 
         {/* Footer */}
-        <div className={`absolute bottom-0 left-0 right-0 p-3 border-t border-[#2c3338] bg-[#1d2327] transition-opacity duration-300 ${isCollapsed ? 'lg:opacity-0' : 'opacity-100'}`}>
+        <div
+          className={`absolute bottom-0 left-0 right-0 p-3 border-t border-[#2c3338] bg-[#1d2327] transition-opacity duration-300 ${isCollapsed ? "lg:opacity-0" : "opacity-100"}`}>
           <div className="text-[10px] text-[#787c82] text-center">
             © {new Date().getFullYear()} Dil Mate Admin
           </div>

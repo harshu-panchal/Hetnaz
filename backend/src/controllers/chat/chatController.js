@@ -126,7 +126,18 @@ export const getMyChatList = async (req, res, next) => {
             };
         }).filter(Boolean);
 
-        let finalChats = transformedChats;
+        // Deduplicate chats by otherUserId, keeping only the most recent active chat
+        const seenOtherUsers = new Set();
+        const uniqueChats = [];
+        for (const c of transformedChats) {
+            const otherId = c.otherUser?._id?.toString();
+            if (otherId && !seenOtherUsers.has(otherId)) {
+                seenOtherUsers.add(otherId);
+                uniqueChats.push(c);
+            }
+        }
+
+        let finalChats = uniqueChats;
 
         // Enhancement: If searching, also find matching users (opposite gender) without chat history
         if (search && search.trim().length > 0) {
@@ -232,10 +243,17 @@ export const getOrCreateChat = async (req, res, next) => {
             }
         }
 
-        // Find existing chat
+        const userObjId = new mongoose.Types.ObjectId(userId);
+        const otherUserObjId = new mongoose.Types.ObjectId(otherUserId);
+
+        // Find existing chat between these users (sort by lastMessageAt -1 to pick most recent if multiple)
         let chat = await Chat.findOne({
-            'participants.userId': { $all: [userId, otherUserId] }
+            $and: [
+                { 'participants.userId': userObjId },
+                { 'participants.userId': otherUserObjId }
+            ]
         })
+            .sort({ lastMessageAt: -1 })
             .populate('participants.userId', 'profile phoneNumber isOnline lastSeen isVerified')
             .populate('lastMessage');
 

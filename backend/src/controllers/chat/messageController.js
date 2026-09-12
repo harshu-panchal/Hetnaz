@@ -298,10 +298,16 @@ export const sendHiMessage = async (req, res, next) => {
             throw new BadRequestError('You cannot send messages to this user as you have been blocked.');
         }
 
+        const senderObjId = new mongoose.Types.ObjectId(senderId);
+        const receiverObjId = new mongoose.Types.ObjectId(receiverId);
+
         // Find or create chat
         let chat = await Chat.findOne({
-            'participants.userId': { $all: [senderId, receiverId] }
-        });
+            $and: [
+                { 'participants.userId': senderObjId },
+                { 'participants.userId': receiverObjId }
+            ]
+        }).sort({ lastMessageAt: -1 });
 
         if (!chat) {
             chat = await Chat.create({

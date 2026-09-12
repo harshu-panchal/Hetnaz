@@ -81,11 +81,12 @@ export interface Message {
   timestamp: Date;
   type: 'text' | 'image' | 'photo' | 'gift';
   isSent: boolean; // true if sent by current user, false if received
-  readStatus?: 'sent' | 'delivered' | 'read';
+  readStatus?: 'sent' | 'delivered' | 'read' | 'failed' | 'sending';
   cost?: number; // Cost in coins for male users
   gifts?: Gift[]; // Gifts sent with the message
   giftNote?: string; // Optional note with gifts
   attachments?: Attachment[]; // Multi-media attachments
+  failureReason?: string;
 }
 
 export interface Transaction {

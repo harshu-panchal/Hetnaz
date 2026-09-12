@@ -4,6 +4,7 @@
  * @purpose: Handle auto-message template management and execution
  */
 
+import mongoose from 'mongoose';
 import AutoMessageTemplate from '../../models/AutoMessageTemplate.js';
 import AutoMessageLog from '../../models/AutoMessageLog.js';
 import User from '../../models/User.js';
@@ -348,10 +349,16 @@ class AutoMessageService {
      */
     async _sendAutoMessage(femaleId, maleId, template) {
         try {
+            const femaleObjId = new mongoose.Types.ObjectId(femaleId);
+            const maleObjId = new mongoose.Types.ObjectId(maleId);
+
             // Find or create chat
             let chat = await Chat.findOne({
-                'participants.userId': { $all: [femaleId, maleId] },
-            });
+                $and: [
+                    { 'participants.userId': femaleObjId },
+                    { 'participants.userId': maleObjId }
+                ],
+            }).sort({ lastMessageAt: -1 });
 
             if (!chat) {
                 // Create new chat

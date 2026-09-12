@@ -13,10 +13,13 @@ export default {
     extend: {
       colors: {
         primary: "#f4c025",
-        "background-light": "#f8f8f5",
+        "background-light": "#fffaf7",
         "background-dark": "#221e10",
         gold: "#FFD93D",
         coral: "#FF4D6D",
+        ink: "#1f1420",
+        muted: "#9c8a92",
+        "muted-light": "#c3b3ba",
         pink: {
           50: '#fff1f2',
           100: '#ffe4e6',
@@ -26,6 +29,18 @@ export default {
           500: '#f43f5e',
           600: '#e11d48',
         }
+      },
+      backgroundImage: {
+        'brand-gradient': 'radial-gradient(130% 160% at 15% -20%, #FFD93D 0%, #FF8A5B 30%, #FF4D6D 60%, #e11d48 100%)',
+        'coin-gradient': 'linear-gradient(150deg, #FFE87A, #f4c025 65%, #f4a825)',
+        'cta-gradient': 'linear-gradient(135deg, #ff4d6d, #e11d48)',
+      },
+      boxShadow: {
+        card: '0 10px 26px rgba(120,10,40,0.1)',
+        'card-lg': '0 14px 32px rgba(120,10,40,0.14)',
+        nav: '0 10px 28px rgba(120,10,40,0.14)',
+        cta: '0 8px 20px rgba(255,77,109,0.4)',
+        header: '0 8px 22px rgba(120,10,40,0.18)',
       },
       fontFamily: {
         display: ["Plus Jakarta Sans", "sans-serif"],

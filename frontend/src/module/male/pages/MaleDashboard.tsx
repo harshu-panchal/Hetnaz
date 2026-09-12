@@ -1,46 +1,34 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../core/context/AuthContext';
-import { DiscoverNearbyCard } from '../components/DiscoverNearbyCard';
-import { ActiveChatsList } from '../components/ActiveChatsList';
-import { BottomNavigation } from '../components/BottomNavigation';
-import { ProfileHeader } from '../components/ProfileHeader';
-import { useMaleNavigation } from '../hooks/useMaleNavigation';
-import { useTranslation } from '../../../core/hooks/useTranslation';
-import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
+import { DiscoverFemalesSection } from '../components/DiscoverFemalesSection';
+import { FilterPanel, FilterOptions } from '../components/FilterPanel';
+import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
 import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import apiClient from '../../../core/api/client';
-import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
-
 
 export const MaleDashboard = () => {
-  const { t } = useTranslation();
-
-  // Use optimized chat hook - loads from cache immediately
-  const { chats: rawChats, isLoading: isChatsLoading, refreshChats } = useOptimizedChatList();
-  const { updateBalance } = useGlobalState();
-
-
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { unreadCount, updateBalance } = useGlobalState();
+
+  // Filter state for discovery
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    ageRange: { min: 18, max: 45 },
+    maxDistance: 100,
+  });
 
   // Daily Reward Modal
   const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState(false);
   const [dailyRewardData, setDailyRewardData] = useState({ amount: 0, newBalance: 0 });
 
-
-
   // PHASED BOOT: Check and claim daily reward 3 seconds AFTER dashboard mount
-  // This ensures the initial paint and critical chat list fetch have priority
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const checkDailyReward = async () => {
       try {
-        console.log('[DailyReward] Phase III: Background claim check...');
         const response = await apiClient.post('/rewards/daily/claim');
         const result = response.data.data;
 
@@ -60,132 +48,75 @@ export const MaleDashboard = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    refreshChats();
-    // Nearby users fetched via hook automatically
-
-
   }, []);
 
-  // Use optimized hooks which share cache
-  const { data: nearbyUsersRaw = [] } = useDiscoveryProfiles('all');
-
-  // Transform for dashboard display
-  const nearbyUsers = useMemo(() => {
-    return nearbyUsersRaw.slice(0, 10).map((p: any) => ({
-      id: p.id,
-      name: p.name || 'User',
-      avatar: p.avatar || ''
-    }));
-  }, [nearbyUsersRaw]);
-
-  // Loading state derived from hooks
-  const isNearbyLoading = false; // Query handles background loading, we default to showing cached or empty
-
-  // Note: We don't need manual fetchNearbyUsers anymore
-
-
-
-  const formatTimestamp = (date: string | Date): string => {
-    if (!date) return '';
-    const d = new Date(date);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-    } else if (diffDays === 1) {
-      return t('yesterday');
-    } else if (diffDays < 7) {
-      return d.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-  };
-
-  const activeChatsForDisplay = useMemo(() => {
-    return rawChats.slice(0, 5).map((chat: any) => {
-      const otherUser = chat.otherUser || {};
-
-      return {
-        id: chat._id,
-        userId: otherUser._id,
-        userName: otherUser.name || 'User',
-        userAvatar: otherUser.avatar || '',
-        lastMessage: chat.lastMessage?.content || t('startChatting'),
-        timestamp: formatTimestamp(chat.lastMessageAt),
-        isOnline: !!otherUser.isOnline,
-        hasUnread: (chat.unreadCount || 0) > 0,
-        distance: otherUser.distance // Use distance from backend
-      };
-    });
-  }, [rawChats, t]);
-
-  const handleChatClick = (chatId: string) => {
-    navigate(`/male/chat/${chatId}`);
-  };
-
-  const handleSeeAllChatsClick = () => {
-    navigate('/male/chats');
-  };
+  // Use optimized hook for female profiles
+  const { data: nearbyUsersRaw = [], isLoading: isNearbyLoading } = useDiscoveryProfiles('all');
 
   const handleExploreClick = () => {
     navigate('/male/discover');
   };
 
+  const handleProfileClick = (profileId: string) => {
+    const found = nearbyUsersRaw.find((p: any) => (p.id || p._id) === profileId);
+    navigate(`/male/profile/${profileId}`, { state: { profile: found } });
+  };
 
-  // Only show full loading screen if we have NO chats and NO nearby users AND are loading both
-  // This allows cached chats to show up even if nearby users are loading
-  if (isChatsLoading && isNearbyLoading && rawChats.length === 0 && nearbyUsers.length === 0) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark overflow-hidden relative">
-        <MeshBackground />
-        <div className="relative z-10 flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">
-            {t('loading')}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const handleFemaleChatClick = (profileId: string) => {
+    navigate(`/male/chat/new_${profileId}`);
+  };
+
+  const handleApplyFilters = (newFilters: FilterOptions) => {
+    setFilterOptions(newFilters);
+    setIsFilterModalOpen(false);
+  };
 
   return (
-    <div className="font-display text-slate-900 dark:text-white antialiased selection:bg-pink-500 selection:text-white min-h-screen relative overflow-x-hidden">
-      <MeshBackground />
+    <div className="font-display text-ink antialiased selection:bg-pink-500 selection:text-white min-h-screen relative lg:pl-60 overflow-x-hidden">
       
       {/* Scrollable Content Layer */}
-      <div className="relative z-10 flex flex-col min-h-screen pb-24 max-w-md mx-auto w-full">
-        {/* Header Removed */}
+      <div className="relative z-10 flex flex-col min-h-screen pb-24 max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full">
         
-        <ProfileHeader 
-          user={user ? { 
-            name: user.name || '',
-            avatar: user.avatarUrl || '',
-            isPremium: user.memberTier ? user.memberTier !== 'basic' : false,
-            isOnline: true,
-            memberTier: user.memberTier || 'basic'
-          } : { name: t('loading'), avatar: '', isPremium: false, isOnline: false }}
-          onEditClick={() => navigate('/male/profile/edit')}
-          showEdit={false}
+        {/* Compact Clean Top Header: Brand + Reduced Notification Icon */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-black tracking-tight bg-gradient-to-r from-pink-600 via-rose-600 to-pink-500 bg-clip-text text-transparent uppercase">
+              Dil Mate
+            </span>
+          </div>
+
+          {/* Reduced Notification Button */}
+          <button
+            onClick={() => navigate('/male/notifications')}
+            className="relative size-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 shadow-sm text-slate-600 dark:text-slate-300 hover:text-pink-600 active:scale-90 transition-all"
+            aria-label="Notifications"
+          >
+            <MaterialSymbol name="notifications" size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 size-4 rounded-full bg-pink-500 text-[10px] font-bold text-white flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Recommend and Nearby Girls Section */}
+        <DiscoverFemalesSection
+          profiles={nearbyUsersRaw}
+          isLoading={isNearbyLoading}
+          filterOptions={filterOptions}
+          onFilterClick={() => setIsFilterModalOpen(true)}
+          onProfileClick={handleProfileClick}
+          onChatClick={handleFemaleChatClick}
+          onSeeAllClick={handleExploreClick}
         />
 
-
-
-        <DiscoverNearbyCard
-          nearbyUsers={nearbyUsers}
-          onExploreClick={handleExploreClick}
-        />
-
-        <ActiveChatsList
-          chats={activeChatsForDisplay}
-          onChatClick={handleChatClick}
-          onSeeAllClick={handleSeeAllChatsClick}
-        />
-
-        <BottomNavigation
-          items={navigationItems}
-          onItemClick={handleNavigationClick}
+        {/* Filter Popup Modal */}
+        <FilterPanel
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+          onApply={handleApplyFilters}
+          initialFilters={filterOptions}
         />
 
         {/* Daily Reward Modal */}
@@ -199,5 +130,3 @@ export const MaleDashboard = () => {
     </div>
   );
 };
-
-

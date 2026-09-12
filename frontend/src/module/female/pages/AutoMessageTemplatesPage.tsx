@@ -88,20 +88,20 @@ export const AutoMessageTemplatesPage = () => {
   };
 
   return (
-    <div className="font-display text-slate-800 antialiased selection:bg-pink-500 selection:text-white min-h-screen relative overflow-hidden flex flex-col bg-[#fdfafb] pb-24">
+    <div className="font-display text-ink antialiased selection:bg-pink-500 selection:text-white min-h-screen relative lg:pl-60 overflow-hidden flex flex-col bg-[#fdfafb] pb-24">
       
       {/* Header - Light Mode */}
       <header className="relative z-30 flex items-center justify-between px-4 pb-6 pt-4 bg-white/70 backdrop-blur-3xl border-b border-slate-100 shadow-none">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="h-12 w-12 rounded-2xl flex items-center justify-center bg-slate-50 text-slate-400 active:scale-90 transition-all"
+            className="h-12 w-12 rounded-2xl flex items-center justify-center bg-slate-50 text-muted-light active:scale-90 transition-all"
           >
             <MaterialSymbol name="arrow_back" size={24} />
           </button>
           <div className="space-y-0.5">
-            <h1 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">{t('automation')}</h1>
-            <h2 className="text-xl font-black tracking-tight text-slate-800">{t('autoMessages')}</h2>
+            <h1 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-light leading-none">{t('automation')}</h1>
+            <h2 className="text-xl font-black tracking-tight text-ink">{t('autoMessages')}</h2>
           </div>
         </div>
         <button
@@ -115,7 +115,7 @@ export const AutoMessageTemplatesPage = () => {
 
       <main className="relative z-10 flex-1 overflow-y-auto px-4 py-8 space-y-6">
         <div className="bg-white/50 rounded-[2rem] p-6 border border-slate-100">
-          <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 leading-relaxed text-center">
+          <p className="text-[11px] font-black uppercase tracking-widest text-muted-light leading-relaxed text-center">
              {t('autoMessagesDesc')}
           </p>
         </div>
@@ -126,9 +126,9 @@ export const AutoMessageTemplatesPage = () => {
             {templates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-40">
                 <div className="size-24 rounded-[2.5rem] flex items-center justify-center bg-slate-100 border border-slate-200">
-                  <MaterialSymbol name="forum" size={48} className="text-slate-300" />
+                  <MaterialSymbol name="forum" size={48} className="text-muted-light" />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-light">
                   {t('noTemplatesYet')}
                 </p>
               </div>
@@ -144,17 +144,17 @@ export const AutoMessageTemplatesPage = () => {
                         <div className="size-8 rounded-xl flex items-center justify-center bg-pink-50 text-pink-500">
                            <MaterialSymbol name="auto_awesome" size={16} filled />
                         </div>
-                        <h3 className="text-sm font-black text-slate-800 truncate">{template.name}</h3>
+                        <h3 className="text-sm font-black text-ink truncate">{template.name}</h3>
                         <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wider ${
                           template.isEnabled 
                             ? 'bg-green-50 border-green-100 text-green-600' 
-                            : 'bg-slate-50 border-slate-100 text-slate-400'
+                            : 'bg-slate-50 border-slate-100 text-muted-light'
                         }`}>
                           {template.isEnabled ? t('enabled') : t('disabled')}
                         </div>
                       </div>
                       
-                      <p className="text-sm font-medium text-slate-500 leading-relaxed mb-4 line-clamp-3">
+                      <p className="text-sm font-medium text-muted leading-relaxed mb-4 line-clamp-3">
                         {template.content}
                       </p>
                     </div>
@@ -177,7 +177,7 @@ export const AutoMessageTemplatesPage = () => {
                         <MaterialSymbol
                           name={template.isEnabled ? 'toggle_on' : 'toggle_off'}
                           size={24}
-                          className={template.isEnabled ? 'text-pink-500' : 'text-slate-300'}
+                          className={template.isEnabled ? 'text-pink-500' : 'text-muted-light'}
                           filled
                         />
                       </button>
@@ -216,27 +216,27 @@ export const AutoMessageTemplatesPage = () => {
                  <div className="size-12 rounded-2xl flex items-center justify-center bg-pink-50 text-pink-500 border border-pink-100">
                     <MaterialSymbol name={isCreateModalOpen ? "add_circle" : "edit_note"} size={28} filled />
                  </div>
-                 <h2 className="text-xl font-black tracking-tight text-slate-800">
+                 <h2 className="text-xl font-black tracking-tight text-ink">
                    {isCreateModalOpen ? t('createTemplate') : t('editTemplate')}
                  </h2>
               </div>
               
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 pl-4">{t('templateName')}</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-light pl-4">{t('templateName')}</label>
                   <div className="bg-slate-50 rounded-2xl p-1 border border-slate-100 shadow-inner">
                     <input
                       type="text"
                       value={newTemplate.name}
                       onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
-                      className="w-full bg-transparent border-none text-slate-800 px-4 py-3 placeholder-slate-300 focus:ring-0 text-sm font-bold"
+                      className="w-full bg-transparent border-none text-ink px-4 py-3 placeholder-slate-300 focus:ring-0 text-sm font-bold"
                       placeholder="e.g., Morning Greeting"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 pl-4">{t('messageContent')}</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-light pl-4">{t('messageContent')}</label>
                   <div className="bg-slate-50 rounded-2xl p-1 border border-slate-100 shadow-inner">
                     <textarea
                       value={newTemplate.content}
@@ -256,7 +256,7 @@ export const AutoMessageTemplatesPage = () => {
                     setIsEditModalOpen(false);
                     setEditingTemplateId(null);
                   }}
-                  className="flex-1 h-12 rounded-xl bg-slate-50 text-slate-400 font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all border border-slate-100"
+                  className="flex-1 h-12 rounded-xl bg-slate-50 text-muted-light font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all border border-slate-100"
                 >
                   {t('cancel')}
                 </button>

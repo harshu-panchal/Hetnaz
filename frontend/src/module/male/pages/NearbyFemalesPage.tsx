@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BottomNavigation } from '../components/BottomNavigation';
-import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import chatService from '../../../core/services/chat.service';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
@@ -14,14 +12,12 @@ import { SearchBar } from '../components/SearchBar';
 import { FilterPanel, FilterOptions } from '../components/FilterPanel';
 
 import { useTranslation } from '../../../core/hooks/useTranslation';
-import { MeshBackground } from '../../../shared/components/auth/AuthLayoutComponents';
 
 type FilterType = 'all' | 'online' | 'new' | 'popular';
 
 export const NearbyFemalesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { navigationItems, handleNavigationClick } = useMaleNavigation();
   const { coinBalance, updateBalance } = useGlobalState();
 
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -142,68 +138,131 @@ export const NearbyFemalesPage = () => {
   }, []);
 
   const handleProfileClick = (profileId: string) => {
-    navigate(`/male/profile/${profileId}`);
+    const found = profiles.find((p: any) => (p.id || p._id) === profileId);
+    navigate(`/male/profile/${profileId}`, { state: { profile: found } });
   };
 
   return (
-    <div className="font-display text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white min-h-screen relative overflow-hidden">
-      <MeshBackground />
-      
+    <div className="font-display text-ink antialiased selection:bg-pink-600 selection:text-white min-h-screen relative lg:pl-60 overflow-hidden bg-background-light">
+
       {/* Scrollable Content Layer */}
-      <div className="relative z-10 flex flex-col min-h-screen max-w-md mx-auto w-full">
+      <div className="relative z-10 flex flex-col min-h-screen max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full">
       {/* Search & Filter Header (Sticky) */}
-      <div className="sticky top-0 z-40 bg-white/95 dark:bg-[#1a0f14]/95 backdrop-blur-3xl border-b border-pink-100/30 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.02)] pt-4">
-        <div className="max-w-md mx-auto">
-          <SearchBar 
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-3xl border-b border-pink-100/40 shadow-sm pt-1.5">
+        <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto">
+          <SearchBar
             showLogo={false}
             title="Discover"
-            onSearch={setSearchQuery} 
-            onFilterToggle={() => setIsFilterModalOpen(true)} 
+            onSearch={setSearchQuery}
+            onFilterToggle={() => setIsFilterModalOpen(true)}
           />
         </div>
-        
-        {/* Tabs / Filters */}
-        <div className="px-2 pb-1 max-w-md mx-auto">
-          <div className="flex items-center justify-around w-full">
+
+        {/* Tabs / Filters with Smooth Gliding Indicator */}
+        <div className="px-2 pb-1 max-w-md md:max-w-2xl lg:max-w-4xl mx-auto">
+          <div className="relative flex items-center justify-around w-full">
+            {/* Smooth Sliding Active Indicator Bar */}
+            <div
+              className="absolute left-0 bottom-0 h-[3.5px] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] flex justify-center pointer-events-none z-0"
+              style={{
+                width: `${100 / 4}%`,
+                transform: `translateX(${Math.max(0, ['all', 'online', 'new', 'popular'].indexOf(activeFilter)) * 100}%)`,
+              }}
+            >
+              <div className="w-8 h-[3.5px] bg-cta-gradient rounded-full shadow-xs" />
+            </div>
+
             {[
               { id: 'all', label: t('recommend') },
               { id: 'online', label: t('onlineTab') },
               { id: 'new', label: t('newTab') },
               { id: 'popular', label: t('popularTab') }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveFilter(tab.id as FilterType)}
-                className={`relative flex-1 py-3 text-[12px] font-black uppercase tracking-wider transition-all text-center ${
-                  activeFilter === tab.id 
-                    ? 'text-primary' 
-                    : 'text-gray-400 dark:text-gray-600'
-                }`}
-              >
-                {tab.label}
-                {activeFilter === tab.id && (
-                  <div className="absolute bottom-0.5 left-0 right-0 flex justify-center">
-                    <div className="w-8 h-[3.5px] bg-primary rounded-full shadow-[0_2px_10px_rgba(255,105,180,0.6)]" />
-                  </div>
-                )}
-              </button>
-            ))}
+            ].map((tab) => {
+              const isActive = activeFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFilter(tab.id as FilterType)}
+                  className={`relative z-10 flex-1 py-3 text-[12px] font-black uppercase tracking-wider transition-colors duration-300 text-center active:scale-95 ${
+                    isActive
+                      ? 'text-pink-600'
+                      : 'text-muted-light hover:text-slate-600'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <main className="flex-1 p-3 space-y-2 pb-24">
+        {/* Online Now Stories Strip */}
+        {displayProfiles.length > 0 && (
+          <div className="mb-3 px-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                Active Singles Now
+              </span>
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            </div>
+            <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
+              {displayProfiles.slice(0, 10).map((p: any) => (
+                <div
+                  key={`story-discover-${p.id}`}
+                  onClick={() => handleProfileClick(p.id)}
+                  className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group active:scale-95 transition-transform"
+                >
+                  <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 shadow-sm">
+                    <div className="size-14 rounded-full overflow-hidden border-2 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800">
+                      <img
+                        src={p.avatar || 'https://via.placeholder.com/100?text=?'}
+                        alt={p.name}
+                        className="size-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    </div>
+                    {p.isOnline && (
+                      <div className="absolute bottom-0 right-0 size-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs" />
+                    )}
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 max-w-[62px] truncate text-center leading-tight">
+                    {p.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Loading State */}
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((n) => (
+              <div
+                key={n}
+                className="bg-white rounded-[1.75rem] p-3 flex items-center gap-4 animate-pulse shadow-sm border border-slate-100"
+              >
+                <div className="h-[84px] w-[84px] rounded-[1.25rem] bg-slate-200 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-28 bg-slate-200 rounded" />
+                  <div className="h-3 w-20 bg-slate-200 rounded" />
+                  <div className="h-3 w-40 bg-slate-200 rounded" />
+                </div>
+                <div className="w-16 h-10 rounded-[1.25rem] bg-slate-200 shrink-0" />
+              </div>
+            ))}
           </div>
         )}
 
         {/* Error State */}
         {error && !isLoading && (
-          <div className="p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl">
+          <div className="p-4 bg-red-100 text-red-700 rounded-xl">
             {error}
           </div>
         )}
@@ -212,26 +271,50 @@ export const NearbyFemalesPage = () => {
         {!isLoading && !error && profiles.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <span className="text-6xl mb-4">🔍</span>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('noProfilesFound', { defaultValue: 'No profiles found' })}</h3>
-            <p className="text-gray-500 dark:text-gray-400">
+            <h3 className="text-lg font-bold text-ink mb-2">{t('noProfilesFound', { defaultValue: 'No profiles found' })}</h3>
+            <p className="text-muted">
               {t('noProfilesFoundDesc', { defaultValue: 'No approved female profiles are available right now. Check back later!' })}
             </p>
           </div>
         )}
 
-        {/* Profile List */}
-        {!isLoading && !error && displayProfiles.map((profile: any) => (
-          <NearbyFemaleItem
-            key={profile.id}
-            profile={profile}
-            onProfileClick={handleProfileClick}
-            onChatClick={(id) => navigate(`/male/chat/new_${id}`)}
-          />
-        ))}
-      </main>
+        {/* Animated Profile List */}
+        {!isLoading && !error && (
+          <div key={activeFilter} className="animate-tab-fade-in space-y-2">
+            {displayProfiles.map((profile: any) => (
+              <NearbyFemaleItem
+                key={profile.id}
+                profile={profile}
+                onProfileClick={handleProfileClick}
+                onChatClick={(id) => navigate(`/male/chat/new_${id}`)}
+              />
+            ))}
+          </div>
+        )}
 
-      {/* Bottom Navigation Bar */}
-      <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
+        {/* Radar Exploration Card to eliminate blank space */}
+        {!isLoading && !error && (
+          <div className="mt-4 p-5 rounded-3xl bg-gradient-to-br from-pink-500/10 via-rose-500/5 to-purple-500/10 border border-pink-200/50 dark:border-pink-900/30 flex flex-col items-center text-center gap-3">
+            <div className="size-12 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/30">
+              <span className="text-2xl">📡</span>
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-slate-900 dark:text-white tracking-tight">
+                Looking For More Nearby?
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-xs leading-relaxed">
+                Expand your distance or adjust filters to explore verified singles from surrounding areas.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsFilterModalOpen(true)}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-pink-500/25 active:scale-95 transition-all"
+            >
+              Adjust Distance & Filters
+            </button>
+          </div>
+        )}
+      </main>
 
       {/* Insufficient Balance Modal */}
       <InsufficientBalanceModal

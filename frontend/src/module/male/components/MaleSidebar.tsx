@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { useEffect } from "react";
+import { MaterialSymbol } from "../../../shared/components/MaterialSymbol";
 
 interface NavItem {
   id: string;
@@ -16,29 +16,34 @@ interface MaleSidebarProps {
   onItemClick?: (itemId: string) => void;
 }
 
-export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebarProps) => {
+export const MaleSidebar = ({
+  isOpen,
+  onClose,
+  items,
+  onItemClick,
+}: MaleSidebarProps) => {
   useEffect(() => {
     if (isOpen) {
       // Prevent body scroll when sidebar is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
 
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isOpen]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -61,17 +66,26 @@ export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebar
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-pink-200/50 dark:border-pink-900/30 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-[#2d1a24] dark:to-[#3d2530]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 shadow-md overflow-hidden bg-white">
-              <img src="/DilMatelogo.jpg" alt="Dil Mate" className="w-full h-full object-cover" />
+            <div className="w-8 h-8 shadow-xs overflow-hidden rounded-xl">
+              <img
+                src="/logo.jpeg"
+                alt="Dil Mate"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">Dil Mate</span>
+            <span className="text-lg font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
+              Dil Mate
+            </span>
           </div>
           <button
             onClick={onClose}
             className="flex items-center justify-center size-10 rounded-xl hover:bg-pink-100/50 dark:hover:bg-pink-900/20 transition-colors active:scale-95"
-            aria-label="Close menu"
-          >
-            <MaterialSymbol name="close" size={24} className="text-pink-700 dark:text-pink-300" />
+            aria-label="Close menu">
+            <MaterialSymbol
+              name="close"
+              size={24}
+              className="text-pink-700 dark:text-pink-300"
+            />
           </button>
         </div>
 
@@ -81,17 +95,17 @@ export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebar
             <button
               key={item.id}
               onClick={() => handleItemClick(item.id)}
-              className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group relative active:scale-95 mb-1 ${item.isActive
-                ? 'bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 shadow-md'
-                : 'hover:bg-pink-50/50 dark:hover:bg-pink-900/10'
-                }`}
-            >
+              className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group relative active:scale-95 mb-1 ${
+                item.isActive
+                  ? "bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 shadow-md"
+                  : "hover:bg-pink-50/50 dark:hover:bg-pink-900/10"
+              }`}>
               <div
-                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 shadow-sm ${item.isActive
-                  ? 'bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-lg'
-                  : 'bg-pink-100/50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 group-hover:bg-gradient-to-br group-hover:from-pink-400 group-hover:to-rose-400 group-hover:text-white'
-                  }`}
-              >
+                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 shadow-sm ${
+                  item.isActive
+                    ? "bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-lg"
+                    : "bg-pink-100/50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 group-hover:bg-gradient-to-br group-hover:from-pink-400 group-hover:to-rose-400 group-hover:text-white"
+                }`}>
                 <MaterialSymbol
                   name={item.icon}
                   filled={item.isActive}
@@ -100,11 +114,11 @@ export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebar
               </div>
               <div className="flex-1 text-left min-w-0">
                 <span
-                  className={`text-base font-medium transition-colors duration-200 truncate block ${item.isActive
-                    ? 'text-pink-700 dark:text-pink-300'
-                    : 'text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400'
-                    }`}
-                >
+                  className={`text-base font-medium transition-colors duration-200 truncate block ${
+                    item.isActive
+                      ? "text-pink-700 dark:text-pink-300"
+                      : "text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400"
+                  }`}>
                   {item.label}
                 </span>
               </div>
@@ -149,4 +163,3 @@ export const MaleSidebar = ({ isOpen, onClose, items, onItemClick }: MaleSidebar
     </>
   );
 };
-

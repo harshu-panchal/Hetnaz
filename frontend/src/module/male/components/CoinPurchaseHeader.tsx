@@ -12,7 +12,7 @@ export const CoinPurchaseHeader = ({ onHistoryClick }: CoinPurchaseHeaderProps) 
 
   return (
     <div className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-200 dark:border-white/5 pt-4">
-      <div className="flex items-center p-4 justify-between max-w-md mx-auto w-full">
+      <div className="flex items-center p-4 justify-between max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full">
         <button
           onClick={() => navigate(-1)}
           className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors active:scale-95"

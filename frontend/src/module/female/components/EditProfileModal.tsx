@@ -15,9 +15,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => {
     const { t } = useTranslation();
     const { user, updateUser } = useAuth();
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
 
     const [isLoading, setIsLoading] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
     const [name, setName] = useState('');
     const [age, setAge] = useState(18);
     const [location, setLocation] = useState('');
@@ -33,7 +35,8 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
             setLocation(user.location || user.city || '');
             setBio(user.bio || '');
             setInterests(user.interests || []);
-            setPhotos(user.photos || []);
+            setPhotos(user.photos || (user.avatarUrl ? [user.avatarUrl] : []));
+            setSaveSuccess(false);
         }
     }, [isOpen, user]);
 
@@ -41,28 +44,18 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
         try {
             setIsLoading(true);
             await axios.patch(`${API_URL}/users/me`, {
-                name,
-                age,
-                city: location,
-                bio,
-                interests,
-                photos
+                name, age, city: location, bio, interests, photos
             }, {
                 headers: { Authorization: `Bearer ${getAuthToken()}` }
             });
 
             updateUser({
-                name,
-                age,
-                city: location,
-                location,
-                bio,
-                interests,
-                photos,
+                name, age, city: location, location, bio, interests, photos,
                 avatarUrl: photos.length > 0 ? photos[0] : ''
             });
 
-            onClose();
+            setSaveSuccess(true);
+            setTimeout(() => onClose(), 800);
         } catch (error) {
             console.error('Failed to update profile', error);
         } finally {
@@ -70,14 +63,26 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
         }
     };
 
-    const handlePhotoUpload = () => {
-        fileInputRef.current?.click();
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                setPhotos(prev => {
+                    const updated = [...prev];
+                    if (updated.length === 0) updated.push(result);
+                    else updated[0] = result;
+                    return updated;
+                });
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
-
         const remainingSlots = 4 - photos.length;
         if (remainingSlots <= 0) return;
 
@@ -86,39 +91,31 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const result = event.target?.result as string;
-                    if (result) {
-                        setPhotos((prev) => {
-                            if (prev.length < 4) {
-                                return [...prev, result];
-                            }
-                            return prev;
-                        });
-                    }
+                    if (result) setPhotos(prev => prev.length < 4 ? [...prev, result] : prev);
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+        if (galleryInputRef.current) galleryInputRef.current.value = '';
     };
 
     const handleDeletePhoto = (index: number) => {
-        setPhotos((prev) => prev.filter((_, i) => i !== index));
+        setPhotos(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleSetProfilePhoto = (index: number) => {
         const newPhotos = [...photos];
-        const [selectedPhoto] = newPhotos.splice(index, 1);
-        newPhotos.unshift(selectedPhoto);
+        const [selected] = newPhotos.splice(index, 1);
+        newPhotos.unshift(selected);
         setPhotos(newPhotos);
     };
 
     const handleAddInterest = (e: React.FormEvent) => {
         e.preventDefault();
-        if (newInterest.trim() && !interests.includes(newInterest.trim()) && interests.length < 10) {
-            setInterests([...interests, newInterest.trim()]);
+        const trimmed = newInterest.trim();
+        if (trimmed && !interests.includes(trimmed) && interests.length < 10) {
+            setInterests([...interests, trimmed]);
             setNewInterest('');
         }
     };
@@ -126,204 +123,265 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-500">
-            
-            <div className="relative z-10 bg-white w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-xl sm:rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-500">
-                {/* Header - Light Mesh Glass */}
-                <div className="flex items-center justify-between px-8 pb-6 pt-4 border-b border-slate-100 bg-slate-50/50 backdrop-blur-md shrink-0">
-                    <div className="space-y-1">
-                      <h2 className="text-2xl font-black tracking-tight text-slate-800">{t('editProfile')}</h2>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{t('vaultSettings')}</p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="size-12 rounded-2xl flex items-center justify-center bg-slate-100 text-slate-400 active:scale-90 transition-all hover:bg-pink-50 hover:text-pink-500"
-                    >
-                        <MaterialSymbol name="close" size={24} />
-                    </button>
-                </div>
+        <div className="fixed inset-0 z-[100] bg-[#f8f4f6] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-400">
 
-                {/* Content - Light Mode Scrollable */}
-                <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar bg-white">
-                    
-                    {/* Photo Grid */}
-                    <section className="space-y-6">
-                        <div className="flex items-center justify-between px-1">
-                            <div className="flex items-center gap-3">
-                                <MaterialSymbol name="photo_library" size={20} className="text-pink-500" />
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-800 underline decoration-pink-500/20 underline-offset-4">{t('photos')}</h3>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{photos.length}/4</span>
-                        </div>
-                        
-                        <div className="grid grid-cols-3 gap-3">
-                            {/* Featured Slot */}
-                            <div className="col-span-3 aspect-video relative group rounded-[2rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-inner">
-                                {photos[0] ? (
-                                    <>
-                                        <img src={photos[0]} alt="Featured" className="size-full object-cover" />
-                                        <div className="absolute top-4 left-4 bg-pink-500 px-3 py-1 rounded-full shadow-lg z-20">
-                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white flex items-center gap-1">
-                                                <MaterialSymbol name="star" size={10} filled />
-                                                {t('featured')}
-                                            </span>
-                                        </div>
-                                        <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                                            <button onClick={() => handleDeletePhoto(0)} className="size-12 rounded-2xl bg-red-500 text-white shadow-xl active:scale-95 transition-all">
-                                                <MaterialSymbol name="delete" size={24} />
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <button onClick={handlePhotoUpload} className="size-full flex flex-col items-center justify-center gap-3 bg-slate-50 border-2 border-dashed border-slate-200 hover:border-pink-200 hover:bg-pink-50 transition-all group">
-                                        <MaterialSymbol name="add_a_photo" size={40} className="text-slate-300 group-hover:text-pink-300 transition-colors" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('addCoverPhoto')}</span>
-                                    </button>
-                                )}
-                            </div>
+            {/* ── Sticky Header ── */}
+            <header className="flex items-center justify-between px-4 pt-3 pb-3 bg-white/90 backdrop-blur-xl border-b border-pink-100/50 shrink-0">
+                <button
+                    onClick={onClose}
+                    className="size-10 flex items-center justify-center rounded-2xl bg-pink-50 text-pink-600 active:scale-90 transition-all"
+                >
+                    <MaterialSymbol name="arrow_back" size={22} />
+                </button>
+                <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-pink-600 via-rose-500 to-indigo-600 bg-clip-text text-transparent">
+                    EDIT PROFILE
+                </h1>
+                <button
+                    onClick={handleSave}
+                    disabled={isLoading || saveSuccess}
+                    className={`h-10 px-4 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+                        saveSuccess
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md disabled:opacity-60'
+                    }`}
+                >
+                    {saveSuccess ? '✓ Saved' : isLoading ? 'Saving...' : 'Save'}
+                </button>
+            </header>
 
-                            {/* Others */}
-                            {[1, 2, 3].map((slotIndex) => (
-                                <div key={slotIndex} className="aspect-square relative group rounded-[1.5rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-sm">
-                                    {photos[slotIndex] ? (
-                                        <>
-                                            <img src={photos[slotIndex]} alt={`Slot ${slotIndex}`} className="size-full object-cover" />
-                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                                <button onClick={() => handleSetProfilePhoto(slotIndex)} className="size-10 rounded-xl bg-white/90 text-pink-500 shadow-lg active:scale-95 transition-all">
-                                                    <MaterialSymbol name="star" size={20} filled />
-                                                </button>
-                                                <button onClick={() => handleDeletePhoto(slotIndex)} className="size-10 rounded-xl bg-red-500 text-white shadow-lg active:scale-95 transition-all">
-                                                    <MaterialSymbol name="delete" size={20} />
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <button onClick={handlePhotoUpload} className="size-full flex items-center justify-center border-2 border-dashed border-slate-200 hover:border-pink-200 transition-all">
-                                            <MaterialSymbol name="add" size={24} className="text-slate-300" />
-                                        </button>
-                                    )}
+            {/* ── Scrollable Content ── */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="max-w-md md:max-w-2xl mx-auto w-full px-4 pb-16 space-y-5 pt-5">
+
+                    {/* Avatar Hero */}
+                    <div className="relative">
+                        <div
+                            className="w-full h-48 rounded-[1.5rem] overflow-hidden bg-gradient-to-br from-pink-100 to-indigo-100 relative cursor-pointer"
+                            onClick={() => avatarInputRef.current?.click()}
+                        >
+                            {photos[0] ? (
+                                <img src={photos[0]} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <MaterialSymbol name="person" size={64} className="text-pink-200" />
                                 </div>
-                            ))}
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-2">
+                                <MaterialSymbol name="camera_alt" size={16} className="text-white" />
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Change Photo</span>
+                            </div>
                         </div>
-                        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
-                    </section>
+                        <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                    </div>
 
-                    {/* Basic Info Inputs */}
-                    <section className="space-y-10">
-                        <div className="flex items-center gap-3 px-1">
-                            <MaterialSymbol name="person" size={20} className="text-pink-500" />
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-800">{t('personalDetails')}</h3>
+                    {/* Personal Details */}
+                    <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden">
+                        <div className="flex items-center gap-2.5 px-5 pt-4 pb-3 border-b border-gray-50">
+                            <div className="size-7 rounded-xl bg-pink-50 flex items-center justify-center">
+                                <MaterialSymbol name="person" size={16} className="text-pink-600" />
+                            </div>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Personal Details</h3>
                         </div>
 
-                        <div className="space-y-6">
-                            <div className="space-y-3">
-                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">{t('fullName')}</label>
-                                <div className="bg-slate-50 rounded-2xl p-1.5 px-4 border border-slate-100 focus-within:border-pink-100 focus-within:bg-white transition-all shadow-inner">
+                        <div className="p-5 space-y-4">
+                            {/* Name */}
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-light ml-1">{t('fullName')}</label>
+                                <div className="bg-[#f8f4f6] rounded-2xl px-4 border border-pink-50 focus-within:border-pink-200 focus-within:bg-white transition-all">
                                     <input
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full h-12 bg-transparent text-sm font-bold text-slate-800 outline-none placeholder:text-slate-300"
+                                        className="w-full h-12 bg-transparent text-sm font-bold text-ink outline-none placeholder:text-muted-light"
                                         placeholder={t('enterName')}
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-3">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">{t('age')}</label>
-                                    <div className="bg-slate-50 rounded-2xl p-1.5 px-4 border border-slate-100 focus-within:border-pink-100 focus-within:bg-white transition-all shadow-inner">
+                            {/* Age + Location */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-light ml-1">{t('age')}</label>
+                                    <div className="bg-[#f8f4f6] rounded-2xl px-4 border border-pink-50 focus-within:border-pink-200 focus-within:bg-white transition-all">
                                         <input
                                             type="number"
                                             value={age}
                                             onChange={(e) => setAge(parseInt(e.target.value) || 0)}
-                                            className="w-full h-12 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                                            className="w-full h-12 bg-transparent text-sm font-bold text-ink outline-none"
                                         />
                                     </div>
                                 </div>
-                                <div className="space-y-3">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">{t('location')}</label>
-                                    <div className="bg-slate-50 rounded-2xl p-1.5 px-4 border border-slate-100 focus-within:border-pink-100 focus-within:bg-white transition-all shadow-inner">
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-light ml-1">{t('location')}</label>
+                                    <div className="bg-[#f8f4f6] rounded-2xl px-4 border border-pink-50 focus-within:border-pink-200 focus-within:bg-white transition-all">
                                         <input
                                             type="text"
                                             value={location}
                                             onChange={(e) => setLocation(e.target.value)}
-                                            className="w-full h-12 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                                            className="w-full h-12 bg-transparent text-sm font-bold text-ink outline-none placeholder:text-muted-light"
                                             placeholder={t('city')}
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">{t('bio')}</label>
-                                <div className="bg-slate-50 rounded-3xl p-4 border border-slate-100 focus-within:border-pink-100 focus-within:bg-white transition-all shadow-inner">
+                            {/* Bio */}
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-light ml-1">{t('bio')}</label>
+                                <div className="bg-[#f8f4f6] rounded-2xl px-4 py-3 border border-pink-50 focus-within:border-pink-200 focus-within:bg-white transition-all">
                                     <textarea
                                         value={bio}
                                         onChange={(e) => setBio(e.target.value)}
                                         rows={4}
-                                        className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none placeholder:text-slate-300 resize-none leading-relaxed"
+                                        className="w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted-light resize-none leading-relaxed"
                                         placeholder={t('writeSomethingAboutYourself')}
                                     />
+                                    <div className="text-right">
+                                        <span className="text-[9px] text-muted-light font-semibold">{bio.length}/500</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </section>
+                    </div>
 
-                    {/* Interests Section */}
-                    <section className="space-y-10">
-                        <div className="flex items-center gap-3 px-1">
-                            <MaterialSymbol name="auto_fix" size={20} className="text-pink-500" />
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-800">{t('interests')}</h3>
+                    {/* Interests */}
+                    <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden">
+                        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-50">
+                            <div className="flex items-center gap-2.5">
+                                <div className="size-7 rounded-xl bg-violet-50 flex items-center justify-center">
+                                    <MaterialSymbol name="auto_fix" size={16} className="text-violet-500" />
+                                </div>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">{t('interests')}</h3>
+                            </div>
+                            <span className="text-[9px] font-black text-muted-light">{interests.length}/10</span>
                         </div>
-
-                        <div className="space-y-4">
+                        <div className="p-5 space-y-4">
                             <form onSubmit={handleAddInterest} className="flex gap-2">
-                                <div className="flex-1 bg-slate-50 rounded-2xl p-1 px-4 border border-slate-100 shadow-inner">
+                                <div className="flex-1 bg-[#f8f4f6] rounded-2xl px-4 border border-pink-50 focus-within:border-pink-200 focus-within:bg-white transition-all">
                                     <input
                                         type="text"
                                         value={newInterest}
                                         onChange={(e) => setNewInterest(e.target.value)}
-                                        className="w-full h-10 bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-800 outline-none placeholder:text-slate-300"
+                                        className="w-full h-11 bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-muted-light"
                                         placeholder={t('addNewInterest')}
                                     />
                                 </div>
-                                <button type="submit" className="size-12 rounded-2xl bg-pink-500 text-white shadow-lg active:scale-90 transition-all">
-                                    <MaterialSymbol name="add" size={24} />
+                                <button
+                                    type="submit"
+                                    className="size-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md active:scale-90 transition-all flex items-center justify-center"
+                                >
+                                    <MaterialSymbol name="add" size={20} />
                                 </button>
                             </form>
 
-                            <div className="flex flex-wrap gap-2">
-                                {interests.map((interest, index) => (
-                                    <div key={index} className="flex items-center gap-2 pl-4 pr-2 py-2 rounded-xl bg-slate-50 border border-slate-100 animate-in slide-in-from-left-2 duration-300">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{interest}</span>
-                                        <button
-                                            onClick={() => setInterests(interests.filter((_, i) => i !== index))}
-                                            className="size-6 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
+                            {interests.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {interests.map((interest, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-xl bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-100 animate-in slide-in-from-left-2 duration-300"
                                         >
-                                            <MaterialSymbol name="close" size={14} />
-                                        </button>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-pink-600">{interest}</span>
+                                            <button
+                                                onClick={() => setInterests(interests.filter((_, i) => i !== index))}
+                                                className="size-5 rounded-lg flex items-center justify-center text-pink-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                                            >
+                                                <MaterialSymbol name="close" size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Photo Gallery */}
+                    <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden">
+                        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-50">
+                            <div className="flex items-center gap-2.5">
+                                <div className="size-7 rounded-xl bg-indigo-50 flex items-center justify-center">
+                                    <MaterialSymbol name="photo_library" size={16} className="text-indigo-500" />
+                                </div>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">{t('photos')}</h3>
+                            </div>
+                            <span className="text-[9px] font-black text-muted-light">{photos.length}/4 SLOTS</span>
+                        </div>
+
+                        <div className="p-4 space-y-3">
+                            {/* Featured slot */}
+                            <div className="relative group w-full aspect-video rounded-[1.25rem] overflow-hidden bg-[#f8f4f6] border-2 border-dashed border-pink-100">
+                                {photos[0] ? (
+                                    <>
+                                        <img src={photos[0]} alt="Featured" className="w-full h-full object-cover" />
+                                        <div className="absolute top-3 left-3 bg-gradient-to-r from-pink-500 to-rose-600 px-3 py-1 rounded-full z-20 shadow-sm">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-white flex items-center gap-1">
+                                                <MaterialSymbol name="star" size={9} filled />FEATURED
+                                            </span>
+                                        </div>
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 z-10">
+                                            <button onClick={() => handleDeletePhoto(0)} className="size-10 rounded-2xl bg-red-500 text-white flex items-center justify-center active:scale-90 transition-all shadow-lg">
+                                                <MaterialSymbol name="delete" size={18} />
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <button onClick={() => galleryInputRef.current?.click()} className="w-full h-full flex flex-col items-center justify-center gap-2">
+                                        <div className="size-12 rounded-2xl bg-pink-50 flex items-center justify-center">
+                                            <MaterialSymbol name="add_a_photo" size={24} className="text-pink-300" />
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-light">{t('addCoverPhoto')}</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* 3 small slots */}
+                            <div className="grid grid-cols-3 gap-3">
+                                {[1, 2, 3].map((slotIndex) => (
+                                    <div key={slotIndex} className="relative group aspect-square rounded-[1rem] overflow-hidden bg-[#f8f4f6] border-2 border-dashed border-pink-100">
+                                        {photos[slotIndex] ? (
+                                            <>
+                                                <img src={photos[slotIndex]} alt={`Slot ${slotIndex}`} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 z-10">
+                                                    <button onClick={() => handleSetProfilePhoto(slotIndex)} className="size-9 rounded-xl bg-white/90 text-pink-600 flex items-center justify-center active:scale-90 transition-all shadow-md">
+                                                        <MaterialSymbol name="star" size={18} filled />
+                                                    </button>
+                                                    <button onClick={() => handleDeletePhoto(slotIndex)} className="size-9 rounded-xl bg-red-500 text-white flex items-center justify-center active:scale-90 transition-all shadow-md">
+                                                        <MaterialSymbol name="delete" size={16} />
+                                                    </button>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <button onClick={() => galleryInputRef.current?.click()} className="w-full h-full flex items-center justify-center">
+                                                <MaterialSymbol name="add" size={24} className="text-pink-200" />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
+                            <p className="text-[9px] text-muted-light font-semibold text-center">
+                                Tap ⭐ on any photo to set it as your cover photo
+                            </p>
                         </div>
-                    </section>
-                </div>
+                        <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
+                    </div>
 
-                {/* Footer */}
-                <div className="p-8 pt-4 border-t border-slate-100 bg-white shrink-0">
+                    {/* Save Button */}
                     <button
                         onClick={handleSave}
-                        disabled={isLoading}
-                        className="w-full h-16 bg-pink-500 text-white rounded-2xl shadow-xl hover:bg-pink-600 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                        disabled={isLoading || saveSuccess}
+                        className={`w-full h-14 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2 shadow-lg ${
+                            saveSuccess
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-gradient-to-r from-pink-600 via-rose-500 to-indigo-600 text-white'
+                        }`}
                     >
-                        {isLoading ? (
-                            <div className="size-6 border-3 border-white/20 border-t-white rounded-full animate-spin" />
+                        {saveSuccess ? (
+                            <><MaterialSymbol name="check_circle" size={20} className="text-white" filled />Profile Updated!</>
+                        ) : isLoading ? (
+                            <><div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving Changes...</>
                         ) : (
-                            <>
-                              <span className="text-xs font-black uppercase tracking-[0.3em]">{t('saveProfileChanges')}</span>
-                              <MaterialSymbol name="lock" size={20} className="opacity-50" />
-                            </>
+                            <><MaterialSymbol name="save" size={20} filled />{t('saveProfileChanges')}</>
                         )}
                     </button>
                 </div>

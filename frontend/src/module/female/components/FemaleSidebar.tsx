@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { useEffect } from "react";
+import { MaterialSymbol } from "../../../shared/components/MaterialSymbol";
 
 interface NavItem {
   id: string;
@@ -16,29 +16,34 @@ interface FemaleSidebarProps {
   onItemClick?: (itemId: string) => void;
 }
 
-export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSidebarProps) => {
+export const FemaleSidebar = ({
+  isOpen,
+  onClose,
+  items,
+  onItemClick,
+}: FemaleSidebarProps) => {
   useEffect(() => {
     if (isOpen) {
       // Prevent body scroll when sidebar is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
 
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isOpen]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -61,17 +66,26 @@ export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSid
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 overflow-hidden flex items-center justify-center shadow-sm bg-white">
-              <img src="/DilMatelogo.jpg" alt="Dil Mate" className="w-full h-full object-cover" />
+            <div className="w-8 h-8 rounded-xl overflow-hidden flex items-center justify-center shadow-xs">
+              <img
+                src="/logo.jpeg"
+                alt="Dil Mate"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <span className="text-lg font-bold text-pink-600 dark:text-pink-400">Dil Mate</span>
+            <span className="text-lg font-bold text-pink-600 dark:text-pink-400">
+              Dil Mate
+            </span>
           </div>
           <button
             onClick={onClose}
             className="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 dark:hover:bg-[#342d18] transition-colors active:scale-95"
-            aria-label="Close menu"
-          >
-            <MaterialSymbol name="close" size={24} className="text-gray-900 dark:text-white" />
+            aria-label="Close menu">
+            <MaterialSymbol
+              name="close"
+              size={24}
+              className="text-gray-900 dark:text-white"
+            />
           </button>
         </div>
 
@@ -84,16 +98,15 @@ export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSid
               className="flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group relative active:scale-95"
               style={{
                 backgroundColor: item.isActive
-                  ? 'rgba(244, 192, 37, 0.1)'
-                  : 'transparent',
-              }}
-            >
+                  ? "rgba(244, 192, 37, 0.1)"
+                  : "transparent",
+              }}>
               <div
-                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 ${item.isActive
-                  ? 'bg-primary text-[#231d10]'
-                  : 'bg-gray-100 dark:bg-[#342d18] text-gray-600 dark:text-gray-400 group-hover:bg-primary/10 group-hover:text-primary'
-                  }`}
-              >
+                className={`flex items-center justify-center size-12 rounded-xl transition-all duration-200 ${
+                  item.isActive
+                    ? "bg-primary text-[#231d10]"
+                    : "bg-gray-100 dark:bg-[#342d18] text-gray-600 dark:text-gray-400 group-hover:bg-primary/10 group-hover:text-primary"
+                }`}>
                 <MaterialSymbol
                   name={item.icon}
                   filled={item.isActive}
@@ -102,11 +115,11 @@ export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSid
               </div>
               <div className="flex-1 text-left">
                 <span
-                  className={`text-base font-medium transition-colors duration-200 ${item.isActive
-                    ? 'text-primary'
-                    : 'text-gray-900 dark:text-white group-hover:text-primary'
-                    }`}
-                >
+                  className={`text-base font-medium transition-colors duration-200 ${
+                    item.isActive
+                      ? "text-primary"
+                      : "text-gray-900 dark:text-white group-hover:text-primary"
+                  }`}>
                   {item.label}
                 </span>
               </div>
@@ -149,4 +162,3 @@ export const FemaleSidebar = ({ isOpen, onClose, items, onItemClick }: FemaleSid
     </>
   );
 };
-

@@ -1,6 +1,5 @@
-// @ts-nocheck
-import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
-import type { Chat } from '../types/female.types';
+import { MaterialSymbol } from "../../../shared/components/MaterialSymbol";
+import type { Chat } from "../types/female.types";
 
 interface ChatListItemProps {
   chat: Chat;
@@ -13,58 +12,101 @@ export const ChatListItem = ({ chat, onClick }: ChatListItemProps) => {
   };
 
   return (
-    <button
+    <div
       onClick={handleClick}
-      className={`group flex w-full items-center gap-4 bg-white/40 dark:bg-black/20 backdrop-blur-md px-5 py-4 transition-all duration-300 active:scale-[0.98] border-b border-white/20 dark:border-white/5 first:rounded-t-[2rem] last:rounded-b-[2rem] last:border-b-0 mb-0.5 ${chat.hasUnread ? 'shadow-[inset_0_1px_10px_rgba(255,77,109,0.05)] bg-pink-500/[0.02]' : ''}`}
-    >
-      {/* Premium Avatar with Skeuomorphic Frame */}
+      className={`group relative flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-200 cursor-pointer mb-2.5 active:scale-[0.98] ${
+        chat.hasUnread
+          ? "bg-white shadow-sm border border-pink-200/90 ring-1 ring-pink-500/10"
+          : "bg-white hover:bg-pink-50/30 shadow-xs border border-pink-100/60 hover:border-pink-200"
+      }`}>
+      {/* Left indicator bar for unread */}
+      {chat.hasUnread && (
+        <div className="absolute left-0 top-3 bottom-3 w-1.5 bg-gradient-to-b from-pink-500 via-rose-500 to-indigo-600 rounded-r-full shadow-xs" />
+      )}
+
+      {/* Avatar Container */}
       <div className="relative shrink-0">
-        <div className="h-16 w-16 rounded-full skeuo-card p-1 bg-mesh-glass shadow-lg group-hover:scale-105 transition-transform duration-300 border-white/20 dark:border-white/5">
-           <div 
-             className="w-full h-full rounded-full bg-cover bg-center border-2 border-white/5 dark:border-white/10"
-             style={{ backgroundImage: `url("${chat.userAvatar}")` }}
-           />
+        <div
+          className={`size-14 rounded-2xl p-[2px] transition-transform duration-300 group-hover:scale-105 ${
+            chat.hasUnread || chat.isOnline
+              ? "bg-gradient-to-tr from-pink-500 via-rose-500 to-indigo-600 shadow-sm"
+              : "bg-slate-200"
+          }`}>
+          <img
+            src={chat.userAvatar || "https://via.placeholder.com/56"}
+            alt={chat.userName}
+            className="w-full h-full rounded-[14px] object-cover bg-slate-100"
+            loading="lazy"
+          />
         </div>
+
+        {/* Live Online Dot */}
         {chat.isOnline && (
-          <div className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-green-500 border-2 border-white dark:border-[#230f16] shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />
+          <span
+            className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs ring-1 ring-emerald-400/40 z-10"
+            title="Online"
+          />
         )}
       </div>
 
       {/* Content Area */}
-      <div className="flex flex-1 flex-col justify-center text-left min-w-0">
+      <div className="flex-1 min-w-0">
+        {/* Row 1: Name + Distance + Timestamp */}
         <div className="flex justify-between items-center mb-1">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <h4 className="text-slate-900 dark:text-white text-[15px] font-black tracking-tight leading-none truncate group-hover:text-pink-500 transition-colors">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <h4
+              className={`text-[15px] truncate ${
+                chat.hasUnread
+                  ? "font-black text-slate-900"
+                  : "font-bold text-slate-800"
+              }`}>
               {chat.userName}
             </h4>
+
             {chat.distance && (
-              <div className="px-2 py-0.5 rounded-full bg-pink-500/10 border border-pink-500/20 shrink-0">
-                <span className="text-[8px] font-black uppercase tracking-widest text-pink-500">
-                   {chat.distance}
-                </span>
-              </div>
+              <span className="text-[11px] font-semibold text-slate-400 shrink-0">
+                • {chat.distance}
+              </span>
             )}
           </div>
-          <div className="flex flex-col items-end shrink-0 ml-4">
-             <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 dark:text-[#cc8ea3]">
-               {chat.timestamp}
-             </p>
+
+          {/* Timestamp */}
+          <span
+            className={`text-[11px] shrink-0 ml-2 font-bold ${
+              chat.hasUnread ? "text-pink-600" : "text-slate-400"
+            }`}>
+            {chat.timestamp}
+          </span>
+        </div>
+
+        {/* Row 2: Message Preview + Unread Count */}
+        <div className="flex justify-between items-center gap-2">
+          <p
+            className={`text-[13px] leading-snug line-clamp-1 truncate ${
+              chat.hasUnread
+                ? "font-bold text-slate-900"
+                : "font-medium text-slate-500"
+            }`}>
+            {chat.lastMessage || "Tap to view conversation"}
+          </p>
+
+          <div className="shrink-0 flex items-center">
+            {chat.hasUnread ? (
+              <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-gradient-to-r from-pink-500 to-rose-600 text-white text-[10px] font-black flex items-center justify-center shadow-sm">
+                {chat.unreadCount && chat.unreadCount > 9
+                  ? "9+"
+                  : chat.unreadCount || "1"}
+              </span>
+            ) : (
+              <MaterialSymbol
+                name="chevron_right"
+                size={18}
+                className="text-slate-300 group-hover:text-pink-500 group-hover:translate-x-0.5 transition-all"
+              />
+            )}
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <p className={`text-[12px] leading-snug line-clamp-1 flex-1 min-w-0 ${chat.hasUnread ? 'font-bold text-slate-700 dark:text-slate-300' : 'font-medium text-slate-400 dark:text-slate-500'}`}>
-            {chat.lastMessage}
-          </p>
-          {chat.hasUnread && (
-            <div className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-pulse shadow-[0_0_8px_rgba(255,77,109,0.5)] shrink-0" />
-          )}
-        </div>
       </div>
-
-      <MaterialSymbol name="chevron_right" size={20} className="text-slate-300 dark:text-slate-700 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-    </button>
+    </div>
   );
 };
-
-

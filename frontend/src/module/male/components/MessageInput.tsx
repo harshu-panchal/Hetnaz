@@ -1,7 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { MaterialSymbol } from '../types/material-symbol';
-import { ImagePicker, ImagePickerRef } from '../../../shared/components/ImagePicker';
-import { CameraCapture } from '../../../shared/components/CameraCapture';
+import { useState, useRef, useEffect, useCallback } from "react";
+import { MaterialSymbol } from "../types/material-symbol";
+import {
+  ImagePicker,
+  ImagePickerRef,
+} from "../../../shared/components/ImagePicker";
+import { CameraCapture } from "../../../shared/components/CameraCapture";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -10,10 +13,8 @@ interface MessageInputProps {
   onTypingStart?: () => void;
   onTypingStop?: () => void;
   placeholder?: string;
-  coinCost?: number;
   disabled?: boolean;
   isSending?: boolean;
-  onLowCoins?: () => void; // Callback when user tries to send without enough coins
   showQuickReplies?: boolean;
 }
 
@@ -23,22 +24,21 @@ export const MessageInput = ({
   onSendGift,
   onTypingStart,
   onTypingStop,
-  placeholder = 'Message...',
+  placeholder = "Message...",
   disabled = false,
   isSending = false,
-  onLowCoins,
   showQuickReplies = false,
 }: MessageInputProps) => {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  
+
   const quickReplies = [
-    'Hi! 👋',
-    'You look stunning ✨',
-    'Want to chat?',
-    'Sending a gift! 🎁',
-    'How is your day?',
-    'Let\'s connect! 💖'
+    "Hi! 👋",
+    "You look stunning ✨",
+    "Want to chat?",
+    "Sending a gift! 🎁",
+    "How is your day?",
+    "Let's connect! 💖",
   ];
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -50,50 +50,47 @@ export const MessageInput = ({
 
   const handleSend = () => {
     if (message.trim() && !isSending) {
-      // If disabled (low coins), trigger the callback instead of sending
-      if (disabled && onLowCoins) {
-        onLowCoins();
-        return;
-      }
+      if (disabled) return;
 
-      if (!disabled) {
-        onSendMessage(message.trim());
-        setMessage('');
-        inputRef.current?.focus();
-        if (onTypingStop) {
-          onTypingStop();
-        }
+      onSendMessage(message.trim());
+      setMessage("");
+      inputRef.current?.focus();
+      if (onTypingStop) {
+        onTypingStop();
       }
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
   // Handle typing indicator
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setMessage(value);
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setMessage(value);
 
-    // Start typing indicator
-    if (value && onTypingStart) {
-      onTypingStart();
-    }
-
-    // Stop typing after 2 seconds of inactivity
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    typingTimeoutRef.current = setTimeout(() => {
-      if (onTypingStop) {
-        onTypingStop();
+      // Start typing indicator
+      if (value && onTypingStart) {
+        onTypingStart();
       }
-    }, 2000);
-  }, [onTypingStart, onTypingStop]);
+
+      // Stop typing after 2 seconds of inactivity
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        if (onTypingStop) {
+          onTypingStop();
+        }
+      }, 2000);
+    },
+    [onTypingStart, onTypingStop],
+  );
 
   // Cleanup
   useEffect(() => {
@@ -114,25 +111,23 @@ export const MessageInput = ({
               key={idx}
               onClick={() => handleQuickReplyClick(reply)}
               disabled={disabled || isSending}
-              className="whitespace-nowrap px-4 py-1.5 bg-white/60 dark:bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-gray-800 dark:text-gray-200 active:scale-95 transition-all shadow-sm border border-white/40 dark:border-white/5"
-            >
+              className="whitespace-nowrap px-4 py-1.5 bg-white shadow-card rounded-full text-xs font-semibold text-ink active:scale-95 transition-all">
               {reply}
             </button>
           ))}
         </div>
       )}
 
-      <div className="px-3 flex items-end gap-2.5">
+      <div className="px-3 flex items-end gap-2.5 bg-white pt-2 pb-1">
         {/* Left: Camera Icon */}
         {onSendPhoto && (
           <div className="pb-1.5 shrink-0">
             <button
               onClick={() => setIsCameraOpen(true)}
               disabled={disabled || isSending}
-              className="flex items-center justify-center p-2 bg-primary rounded-full text-white active:scale-90 transition-all shadow-sm"
-              aria-label="Camera"
-            >
-              <MaterialSymbol name="photo_camera" size={20} filled />
+              className="flex items-center justify-center h-10 w-10 bg-[#f6ece7] rounded-full text-muted active:scale-90 transition-all"
+              aria-label="Camera">
+              <MaterialSymbol name="photo_camera" size={19} filled />
             </button>
             <CameraCapture
               isOpen={isCameraOpen}
@@ -149,58 +144,65 @@ export const MessageInput = ({
         )}
 
         {/* Center: Input Pill */}
-        <div className="flex-1 relative flex items-end bg-white/80 dark:bg-white/10 backdrop-blur-md rounded-[24px] px-3.5 py-1.5 border border-white/50 dark:border-white/5 shadow-sm min-h-[44px]">
+        <div className="flex-1 relative flex items-end bg-[#f6ece7] rounded-[24px] px-3.5 py-1.5 min-h-[44px]">
           <input
             ref={inputRef}
             type="text"
             value={message}
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
-            placeholder={disabled ? 'Insufficient coins...' : placeholder}
+            placeholder={placeholder}
             disabled={disabled || isSending}
-            className="flex-1 bg-transparent text-[15px] pb-[7px] pt-[7px] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-[#cc8ea3]/70 focus:outline-none"
+            className="flex-1 bg-transparent text-[15px] pb-[7px] pt-[7px] text-ink placeholder-muted-light focus:outline-none"
           />
-          
+
           {/* Action Icons inside input - Animated Transition */}
-          <div className="flex items-center relative ml-1 pb-[3px] shrink-0 h-9 transition-all duration-500 ease-in-out"
-               style={{ width: message.trim() ? '40px' : (onSendGift && onSendPhoto ? '88px' : '44px') }}>
-            
+          <div
+            className="flex items-center relative ml-1 pb-[3px] shrink-0 h-9 transition-all duration-500 ease-in-out"
+            style={{
+              width: message.trim()
+                ? "40px"
+                : onSendGift && onSendPhoto
+                  ? "88px"
+                  : "44px",
+            }}>
             {/* Gift & Photo Icons Container */}
-            <div className={`flex items-center gap-2 transition-all duration-500 transform ${message.trim() ? '-translate-x-4 opacity-0 pointer-events-none scale-75' : 'translate-x-0 opacity-100 scale-100'}`}>
+            <div
+              className={`flex items-center gap-2 transition-all duration-500 transform ${message.trim() ? "-translate-x-4 opacity-0 pointer-events-none scale-75" : "translate-x-0 opacity-100 scale-100"}`}>
               {onSendGift && (
-                <button 
-                  className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-400 text-white shadow-sm shadow-pink-500/30 hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
+                <button
+                  className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-coin-gradient text-[#7a4400] shadow-sm hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
                   onClick={onSendGift}
-                  title="Send Gift"
-                >
-                  <MaterialSymbol name="featured_seasonal_and_gifts" size={22} filled />
-                  <div className="absolute inset-0 rounded-full w-full h-full animate-ping opacity-0 group-hover:opacity-20 bg-white ease-out duration-1000"></div>
+                  title="Send Gift">
+                  <MaterialSymbol
+                    name="featured_seasonal_and_gifts"
+                    size={22}
+                    filled
+                  />
                 </button>
               )}
               {onSendPhoto && (
-                <button 
-                  className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-400 text-white shadow-sm shadow-blue-500/30 hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
+                <button
+                  className="relative group flex items-center justify-center w-9 h-9 rounded-full bg-white text-muted shadow-sm hover:-translate-y-0.5 hover:shadow-md active:scale-90 transition-all duration-300"
                   onClick={() => imagePickerRef.current?.pickImage()}
-                  title="Send Photo"
-                >
+                  title="Send Photo">
                   <MaterialSymbol name="image" size={22} filled />
-                  <div className="absolute inset-0 rounded-full w-full h-full animate-ping opacity-0 group-hover:opacity-20 bg-white ease-out duration-1000"></div>
                 </button>
               )}
             </div>
-            
+
             {/* Animated Send Arrow Button */}
-            <div className={`absolute right-0.5 transition-all duration-500 transform ${message.trim() ? 'scale-100 opacity-100 rotate-0' : 'scale-0 opacity-0 rotate-45 pointer-events-none'}`}>
+            <div
+              className={`absolute right-0.5 transition-all duration-500 transform ${message.trim() ? "scale-100 opacity-100 rotate-0" : "scale-0 opacity-0 rotate-45 pointer-events-none"}`}>
               <button
                 onClick={handleSend}
                 disabled={isSending}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-white shadow-lg shadow-primary/30 active:scale-90 active:shadow-inner transition-all group"
-              >
-                <MaterialSymbol 
-                  name="arrow_upward" 
-                  size={24} 
-                  filled={message.trim().length > 0} 
-                  className="group-hover:-translate-y-0.5 transition-transform" 
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-cta-gradient text-white shadow-cta active:scale-90 active:shadow-inner transition-all group">
+                <MaterialSymbol
+                  name="arrow_upward"
+                  size={22}
+                  filled={message.trim().length > 0}
+                  className="group-hover:-translate-y-0.5 transition-transform"
                 />
               </button>
             </div>

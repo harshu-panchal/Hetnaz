@@ -67,7 +67,7 @@ export const MessageInput = ({
   }, []);
 
   return (
-    <div className="relative px-3 pt-3 pb-6 bg-white/70 backdrop-blur-3xl border-t border-slate-100 z-20 transition-all duration-300">
+    <div className="relative px-3 pt-3 pb-6 bg-white z-20 transition-all duration-300">
       {onSendPhoto && (
         <ImagePicker
           ref={imagePickerRef}
@@ -88,7 +88,7 @@ export const MessageInput = ({
                <button
                   onClick={() => imagePickerRef.current?.pickImage()}
                   disabled={disabled || isSending}
-                  className="size-11 rounded-2xl flex items-center justify-center bg-slate-50 text-slate-400 hover:text-pink-500 hover:bg-pink-50 border border-slate-100 transition-all active:scale-90 disabled:opacity-50"
+                  className="size-11 rounded-full flex items-center justify-center bg-[#f6ece7] text-muted hover:text-pink-600 transition-all active:scale-90 disabled:opacity-50"
                   aria-label="Send Photo"
                 >
                   <MaterialSymbol name="image" size={22} />
@@ -97,7 +97,7 @@ export const MessageInput = ({
                 <button
                   onClick={onCameraRequest}
                   disabled={disabled || isSending}
-                  className="size-11 rounded-2xl flex items-center justify-center bg-slate-50 text-slate-400 hover:text-pink-500 hover:bg-pink-50 border border-slate-100 transition-all active:scale-90 disabled:opacity-50"
+                  className="size-11 rounded-full flex items-center justify-center bg-[#f6ece7] text-muted hover:text-pink-600 transition-all active:scale-90 disabled:opacity-50"
                   aria-label="Take Photo"
                 >
                   <MaterialSymbol name="photo_camera" size={22} />
@@ -107,7 +107,7 @@ export const MessageInput = ({
         </div>
 
         {/* Premium Glass Input */}
-        <div className="flex-1 min-h-[44px] relative flex items-end bg-slate-50 backdrop-blur-md rounded-[22px] px-4 py-1.5 border border-slate-100 transition-all focus-within:border-pink-200 focus-within:bg-white shadow-sm">
+        <div className="flex-1 min-h-[44px] relative flex items-end bg-[#f6ece7] rounded-[22px] px-4 py-1.5 transition-all">
           <input
             ref={inputRef}
             type="text"
@@ -116,15 +116,15 @@ export const MessageInput = ({
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             disabled={disabled || isSending}
-            className="w-full bg-transparent text-[15px] pb-1.5 pt-1.5 font-medium text-slate-800 outline-none placeholder:text-slate-400"
+            className="w-full bg-transparent text-[15px] pb-1.5 pt-1.5 font-medium text-ink outline-none placeholder:text-muted-light"
           />
-          
+
           {/* Animated Send Arrow */}
           <div className={`absolute right-1 transition-all duration-500 transform ${message.trim() ? 'scale-100 opacity-100 rotate-0' : 'scale-0 opacity-0 rotate-45 pointer-events-none'}`}>
             <button
               onClick={handleSend}
               disabled={isSending || !message.trim()}
-              className="flex items-center justify-center size-9 rounded-full bg-pink-500 text-white shadow-lg shadow-pink-500/20 active:scale-90 transition-all group"
+              className="flex items-center justify-center size-9 rounded-full bg-cta-gradient text-white shadow-cta active:scale-90 transition-all group"
             >
               <MaterialSymbol 
                 name="arrow_upward" 

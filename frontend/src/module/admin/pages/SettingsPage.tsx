@@ -9,8 +9,8 @@ import type { AdminSettings, AdminGift } from '../types/admin.types';
 // Mock data - replace with actual API calls
 const mockSettings: AdminSettings = {
   general: {
-    platformName: 'HETNAZ',
-    supportEmail: 'support@hetnaz.com',
+    platformName: 'Dil Mate',
+    supportEmail: 'support@dilmate.com',
     supportPhone: '+91 9876543210',
     termsOfServiceUrl: 'https://hetnaz.com/terms',
     privacyPolicyUrl: 'https://hetnaz.com/privacy',
@@ -280,7 +280,7 @@ export const SettingsPage = () => {
       <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
               <p className="text-gray-600 dark:text-gray-400">Configure platform settings and preferences</p>

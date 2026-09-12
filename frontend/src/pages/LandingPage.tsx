@@ -1,11 +1,11 @@
-import { useNavigate } from 'react-router-dom';
-import { MaterialSymbol } from '../shared/components/MaterialSymbol';
+import { useNavigate } from "react-router-dom";
+import { MaterialSymbol } from "../shared/components/MaterialSymbol";
 
 export const LandingPage = () => {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    navigate('/signup');
+    navigate("/signup");
   };
 
   return (
@@ -22,7 +22,11 @@ export const LandingPage = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
             <div className="flex flex-col items-center justify-center mb-6">
-              <img src="/DilMatelogo.jpg" alt="Dil Mate Logo" className="w-24 h-24 md:w-32 md:h-32 shadow-2xl mb-6 object-cover" />
+              <img
+                src="/logo.jpeg"
+                alt="Dil Mate Logo"
+                className="w-24 h-24 md:w-32 md:h-32 shadow-2xl mb-6 object-cover rounded-3xl"
+              />
               <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-pink-500 via-pink-600 to-pink-700 bg-clip-text text-transparent">
                 Dil Mate
               </h1>
@@ -31,22 +35,21 @@ export const LandingPage = () => {
               Find Your Perfect Match
             </p>
             <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-xl mx-auto">
-              Connect with amazing people nearby. Start meaningful conversations and build lasting relationships.
+              Connect with amazing people nearby. Start meaningful conversations
+              and build lasting relationships.
             </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button
                 onClick={handleGetStarted}
-                className="px-8 py-4 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold text-lg rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
-              >
+                className="px-8 py-4 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold text-lg rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2">
                 <MaterialSymbol name="download" className="text-2xl" />
                 Install App
               </button>
               <button
-                onClick={() => navigate('/login')}
-                className="px-8 py-4 bg-white text-pink-600 font-bold text-lg rounded-full border-2 border-pink-600 hover:bg-pink-50 transform hover:scale-105 transition-all duration-200"
-              >
+                onClick={() => navigate("/login")}
+                className="px-8 py-4 bg-white text-pink-600 font-bold text-lg rounded-full border-2 border-pink-600 hover:bg-pink-50 transform hover:scale-105 transition-all duration-200">
                 Login
               </button>
             </div>
@@ -58,7 +61,11 @@ export const LandingPage = () => {
               <div className="bg-gradient-to-br from-pink-100 to-pink-200 rounded-3xl p-8 shadow-2xl">
                 <div className="bg-white rounded-2xl p-4 shadow-lg">
                   <div className="aspect-[9/16] bg-gradient-to-br from-pink-50 to-white rounded-xl flex items-center justify-center">
-                    <img src="/DilMatelogo.jpg" alt="Dil Mate" className="w-32 h-32 object-cover shadow-lg" />
+                    <img
+                      src="/logo.jpeg"
+                      alt="Dil Mate"
+                      className="w-32 h-32 object-cover shadow-lg rounded-3xl"
+                    />
                   </div>
                 </div>
               </div>
@@ -77,9 +84,15 @@ export const LandingPage = () => {
             {/* Feature 1 */}
             <div className="text-center p-6 rounded-2xl hover:bg-pink-50 transition-colors">
               <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialSymbol name="location_on" size={40} className="text-pink-600" />
+                <MaterialSymbol
+                  name="location_on"
+                  size={40}
+                  className="text-pink-600"
+                />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-gray-900">Location-Based Matching</h3>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900">
+                Location-Based Matching
+              </h3>
               <p className="text-gray-600">
                 Discover people nearby and connect with matches in your area.
               </p>
@@ -88,31 +101,51 @@ export const LandingPage = () => {
             {/* Feature 2 */}
             <div className="text-center p-6 rounded-2xl hover:bg-pink-50 transition-colors">
               <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialSymbol name="chat_bubble" size={40} className="text-pink-600" />
+                <MaterialSymbol
+                  name="chat_bubble"
+                  size={40}
+                  className="text-pink-600"
+                />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-gray-900">Real-Time Messaging</h3>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900">
+                Real-Time Messaging
+              </h3>
               <p className="text-gray-600">
-                Chat instantly with your matches and build meaningful connections.
+                Chat instantly with your matches and build meaningful
+                connections.
               </p>
             </div>
 
             {/* Feature 3 */}
             <div className="text-center p-6 rounded-2xl hover:bg-pink-50 transition-colors">
               <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialSymbol name="verified" size={40} className="text-pink-600" />
+                <MaterialSymbol
+                  name="verified"
+                  size={40}
+                  className="text-pink-600"
+                />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-gray-900">Verified Profiles</h3>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900">
+                Verified Profiles
+              </h3>
               <p className="text-gray-600">
-                Connect with verified users for a safe and authentic dating experience.
+                Connect with verified users for a safe and authentic dating
+                experience.
               </p>
             </div>
 
             {/* Feature 4 */}
             <div className="text-center p-6 rounded-2xl hover:bg-pink-50 transition-colors">
               <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialSymbol name="security" size={40} className="text-pink-600" />
+                <MaterialSymbol
+                  name="security"
+                  size={40}
+                  className="text-pink-600"
+                />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-gray-900">Safe & Secure</h3>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900">
+                Safe & Secure
+              </h3>
               <p className="text-gray-600">
                 Your privacy and safety are our top priorities.
               </p>
@@ -121,22 +154,36 @@ export const LandingPage = () => {
             {/* Feature 5 */}
             <div className="text-center p-6 rounded-2xl hover:bg-pink-50 transition-colors">
               <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialSymbol name="groups" size={40} className="text-pink-600" />
+                <MaterialSymbol
+                  name="groups"
+                  size={40}
+                  className="text-pink-600"
+                />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-gray-900">Large Community</h3>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900">
+                Large Community
+              </h3>
               <p className="text-gray-600">
-                Join thousands of active users looking for meaningful connections.
+                Join thousands of active users looking for meaningful
+                connections.
               </p>
             </div>
 
             {/* Feature 6 */}
             <div className="text-center p-6 rounded-2xl hover:bg-pink-50 transition-colors">
               <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialSymbol name="favorite" size={40} className="text-pink-600" />
+                <MaterialSymbol
+                  name="favorite"
+                  size={40}
+                  className="text-pink-600"
+                />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-gray-900">Smart Matching</h3>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900">
+                Smart Matching
+              </h3>
               <p className="text-gray-600">
-                Our algorithm helps you find compatible matches based on your preferences.
+                Our algorithm helps you find compatible matches based on your
+                preferences.
               </p>
             </div>
           </div>
@@ -150,12 +197,12 @@ export const LandingPage = () => {
             Ready to Find Your Match?
           </h2>
           <p className="text-xl text-pink-100 mb-8">
-            Join Dil Mate today and start your journey to meaningful connections.
+            Join Dil Mate today and start your journey to meaningful
+            connections.
           </p>
           <button
             onClick={handleGetStarted}
-            className="px-10 py-5 bg-white text-pink-600 font-bold text-xl rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 flex items-center gap-3 mx-auto"
-          >
+            className="px-10 py-5 bg-white text-pink-600 font-bold text-xl rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 flex items-center gap-3 mx-auto">
             <MaterialSymbol name="download" className="text-2xl" />
             Install App Now
           </button>
@@ -170,37 +217,73 @@ export const LandingPage = () => {
               <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">
                 Dil Mate
               </h3>
-              <p className="text-gray-400">
-                Find your perfect match today.
-              </p>
+              <p className="text-gray-400">Find your perfect match today.</p>
             </div>
             <div>
               <h4 className="font-bold mb-4">Company</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-pink-400">About</a></li>
-                <li><a href="#" className="hover:text-pink-400">Careers</a></li>
-                <li><a href="#" className="hover:text-pink-400">Press</a></li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    About
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    Careers
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    Press
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-pink-400">Help Center</a></li>
-                <li><a href="#" className="hover:text-pink-400">Safety</a></li>
-                <li><a href="#" className="hover:text-pink-400">Community</a></li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    Help Center
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    Safety
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    Community
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4">Legal</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-pink-400">Privacy</a></li>
-                <li><a href="#" className="hover:text-pink-400">Terms</a></li>
-                <li><a href="#" className="hover:text-pink-400">Cookies</a></li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    Privacy
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    Terms
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-pink-400">
+                    Cookies
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Dil Mate. All rights reserved.</p>
+            <p>
+              &copy; {new Date().getFullYear()} Dil Mate. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
@@ -233,4 +316,3 @@ export const LandingPage = () => {
     </div>
   );
 };
-
