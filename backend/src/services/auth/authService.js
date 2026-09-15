@@ -10,7 +10,7 @@ import { getEnvConfig } from '../../config/env.js';
 import { BadRequestError, UnauthorizedError } from '../../utils/errors.js';
 import { normalizeReferralCode, generateReferralId } from '../../utils/referral.js';
 import AppSettings from '../../models/AppSettings.js';
-import relationshipManager from '../../core/relationships/relationshipManager.js';
+import Referral from '../../models/Referral.js';
 import mongoose from 'mongoose';
 
 const { jwtSecret, jwtExpiresIn } = getEnvConfig();
@@ -262,26 +262,20 @@ export const verifySignupOtp = async (phoneNumber, otpCode, io = null) => {
         newUser = await User.create([userPayload], { session });
         newUser = newUser[0];
 
-        // Process referral reward if referrer exists
+        // Track the referral relationship. The coin reward is paid out later,
+        // once this new user completes their first coin recharge (see
+        // paymentController.js) - not immediately on signup.
         if (referrer) {
             const settings = await AppSettings.getSettings();
-            if (settings.referral?.isEnabled && referrer.role === 'male') {
-                const rewardAmount = settings.referral.rewardAmount || 200;
+            if (settings.referral?.isEnabled) {
+                await Referral.create([{
+                    referrerId: referrer._id,
+                    refereeId: newUser._id,
+                    referralCode: normalizedReferralCode,
+                    status: 'pending',
+                }], { session });
 
-                await relationshipManager.updateUserBalanceWithTransaction(
-                    referrer._id,
-                    {
-                        type: 'referral_bonus',
-                        direction: 'credit',
-                        amountCoins: rewardAmount,
-                        description: `Referral bonus for inviting ${newUser.profile.name}`,
-                        relatedEntityId: newUser._id,
-                        status: 'completed'
-                    },
-                    session
-                );
-
-                // Increment referral count
+                // Increment referral count (total people referred, regardless of reward status)
                 await User.findByIdAndUpdate(referrer._id, { $inc: { referralCount: 1 } }, { session });
 
                 // Send non-disturbing notification (handled after transaction commit)
@@ -289,12 +283,13 @@ export const verifySignupOtp = async (phoneNumber, otpCode, io = null) => {
                 setImmediate(async () => {
                     try {
                         const Notification = (await import('../../models/Notification.js')).default;
+                        const referralPath = referrer.role === 'female' ? '/female/referral' : '/male/referral';
                         const notification = await Notification.create({
                             userId: referrer._id,
                             type: 'system',
-                            title: 'Referral Successful! 🎉',
-                            message: `You earned ${rewardAmount} coins for inviting ${newUser.profile.name}.`,
-                            actionUrl: '/male/my-profile/referral'
+                            title: 'New Referral! 🎉',
+                            message: `${newUser.profile.name} joined using your referral code. You'll earn coins once they make their first recharge.`,
+                            actionUrl: referralPath
                         });
 
                         // Emit real-time notification if io is available

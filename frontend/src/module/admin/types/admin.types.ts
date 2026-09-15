@@ -94,10 +94,17 @@ export interface PayoutSlab {
 }
 
 export interface MessageCosts {
+  costMode: 'perMessage' | 'perWord';
   basic: number;
   silver: number;
   gold: number;
   platinum: number;
+  wordCosts: {
+    basic: number;
+    silver: number;
+    gold: number;
+    platinum: number;
+  };
   videoCall: number;
 }
 
@@ -136,6 +143,30 @@ export interface AdminTransaction {
   timestamp: Date;
   status: 'completed' | 'pending' | 'failed';
   relatedEntityId?: string; // e.g., chatId, paymentId, withdrawalId
+}
+
+// Referral (Refer & Earn)
+export interface AdminReferral {
+  id: string;
+  referrerId: string;
+  referrerName: string;
+  referrerPhone: string;
+  referrerRole: 'male' | 'female';
+  referralCode: string;
+  refereeId: string;
+  refereeName: string;
+  refereePhone: string;
+  status: 'pending' | 'rewarded';
+  rewardCoins: number;
+  rewardedAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminReferralSummary {
+  totalReferrals: number;
+  pending: number;
+  rewarded: number;
+  totalCoinsPaid: number;
 }
 
 // Settings

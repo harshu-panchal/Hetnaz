@@ -111,6 +111,12 @@ export const useAdminNavigation = () => {
           path: '/admin/transactions',
           isActive: location.pathname.startsWith('/admin/transactions'),
         },
+        {
+          id: 'referrals',
+          label: 'Refer & Earn',
+          path: '/admin/referrals',
+          isActive: location.pathname.startsWith('/admin/referrals'),
+        },
       ],
     },
     {
@@ -151,6 +157,9 @@ export const useAdminNavigation = () => {
         break;
       case 'transactions':
         navigate('/admin/transactions');
+        break;
+      case 'referrals':
+        navigate('/admin/referrals');
         break;
       case 'settings':
         navigate('/admin/settings');

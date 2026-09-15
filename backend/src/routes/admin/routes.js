@@ -33,6 +33,9 @@ router.delete('/users/:id', adminController.deleteUser);
 // Transaction Management
 router.get('/transactions', adminController.listTransactions);
 
+// Referral (Refer & Earn) Management
+router.get('/referrals', adminController.listReferrals);
+
 // Platform Settings
 router.get('/settings', adminController.getAppSettings);
 router.patch('/settings', adminController.updateAppSettings);

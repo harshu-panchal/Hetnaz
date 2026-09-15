@@ -17,9 +17,23 @@ import { emitNewMessage, emitBalanceUpdate } from '../../socket/chatHandlers.js'
 import chatNotificationService from '../../services/notification/chatNotification.service.js';
 import earningBatchService from '../../services/wallet/earningBatchService.js';
 
+// Counts words in a message (whitespace-separated, ignoring empty tokens)
+export const countWords = (text) => {
+    if (!text) return 0;
+    return text.trim().split(/\s+/).filter(Boolean).length;
+};
+
 // Helper functions to get costs from AppSettings
-const getMessageCost = async (userTier) => {
+export const getMessageCost = async (userTier, content = '') => {
     const settings = await AppSettings.getSettings();
+
+    if (settings.messageCosts.costMode === 'perWord') {
+        const wordCosts = settings.messageCosts.wordCosts;
+        const perWordCost = wordCosts[userTier] ?? wordCosts.basic;
+        const wordCount = Math.max(countWords(content), 1);
+        return perWordCost * wordCount;
+    }
+
     const tierCosts = {
         basic: settings.messageCosts.basic,
         silver: settings.messageCosts.silver,
@@ -82,7 +96,7 @@ export const sendMessage = async (req, res, next) => {
         const [sender, receiver, MESSAGE_COST] = await Promise.all([
             User.findById(senderId).select('blockedUsers memberTier profile coinBalance'),
             User.findById(receiverId).select('blockedUsers profile'),
-            (messageType === 'image' ? getImageMessageCost() : getMessageCost(req.user.memberTier))
+            (messageType === 'image' ? getImageMessageCost() : getMessageCost(req.user.memberTier, content))
         ]);
 
         if (!sender || !receiver) throw new NotFoundError('User not found');

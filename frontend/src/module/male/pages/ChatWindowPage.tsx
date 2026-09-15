@@ -55,10 +55,25 @@ export const ChatWindowPage = () => {
     useState<Message | null>(null);
 
   // Dynamic Costs from Admin Settings
-  const currentMessageCost =
-    appSettings?.messageCosts?.[user?.memberTier || "basic"] || MESSAGE_COST;
   const currentImageCost =
     appSettings?.messageCosts?.imageMessage || IMAGE_MESSAGE_COST;
+
+  // Computes the coin cost for a given text message, honoring the admin's
+  // per-message vs per-word cost mode
+  const computeMessageCost = (content: string) => {
+    const messageCosts = appSettings?.messageCosts;
+    const tier = user?.memberTier || "basic";
+    if (messageCosts?.costMode === "perWord" && messageCosts.wordCosts) {
+      const wordCount = Math.max(
+        content.trim().split(/\s+/).filter(Boolean).length,
+        1,
+      );
+      const perWordCost =
+        messageCosts.wordCosts[tier] ?? messageCosts.wordCosts.basic;
+      return perWordCost * wordCount;
+    }
+    return messageCosts?.[tier] || MESSAGE_COST;
+  };
 
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ApiMessage[]>(() => {
@@ -476,7 +491,8 @@ export const ChatWindowPage = () => {
     setMessages((prev) => [...prev, optimisticMessage]);
 
     // Check coins before sending to female user
-    if (coinBalance < currentMessageCost) {
+    const messageCost = computeMessageCost(content);
+    if (coinBalance < messageCost) {
       // Message is NOT sent to female. Mark as failed with alert icon!
       setMessages((prev) =>
         prev.map((m) =>
@@ -492,7 +508,7 @@ export const ChatWindowPage = () => {
       return;
     }
 
-    const newBalance = coinBalance - currentMessageCost;
+    const newBalance = coinBalance - messageCost;
     updateBalance(newBalance);
 
     try {
@@ -583,8 +599,9 @@ export const ChatWindowPage = () => {
     if (!chatId) return;
 
     // Check if coins are available now
-    if (coinBalance < currentMessageCost) {
-      setRequiredCoinsModal(currentMessageCost);
+    const messageCost = computeMessageCost(msgToResend.content);
+    if (coinBalance < messageCost) {
+      setRequiredCoinsModal(messageCost);
       setModalAction(t("actionSendMessage"));
       setIsBalanceModalOpen(true);
       return;
@@ -599,7 +616,7 @@ export const ChatWindowPage = () => {
       ),
     );
 
-    const newBalance = coinBalance - currentMessageCost;
+    const newBalance = coinBalance - messageCost;
     updateBalance(newBalance);
 
     try {
@@ -1229,7 +1246,7 @@ export const ChatWindowPage = () => {
           onClose={() => setSelectedFailedMessage(null)}
           message={selectedFailedMessage}
           coinBalance={coinBalance || 0}
-          messageCost={currentMessageCost}
+          messageCost={computeMessageCost(selectedFailedMessage?.content || "")}
           onResend={handleResendMessage}
           onDelete={handleDeleteFailedMessage}
           onBuyCoins={() => navigate("/male/buy-coins")}

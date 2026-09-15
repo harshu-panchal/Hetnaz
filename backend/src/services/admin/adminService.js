@@ -9,6 +9,7 @@ import Withdrawal from '../../models/Withdrawal.js';
 import AuditLog from '../../models/AuditLog.js';
 import AppSettings from '../../models/AppSettings.js';
 import Report from '../../models/Report.js';
+import Referral from '../../models/Referral.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
 
 /**
@@ -486,6 +487,84 @@ export const listTransactions = async (filters, pagination) => {
 };
 
 
+
+/**
+ * List all referrals (Refer & Earn tracking) with pagination/filtering
+ */
+export const listReferrals = async (filters, pagination) => {
+    const { page = 1, limit = 20 } = pagination;
+    const { search, status } = filters;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+
+    if (search) {
+        const userQuery = {
+            $or: [
+                { phoneNumber: { $regex: search, $options: 'i' } },
+                { 'profile.name': { $regex: search, $options: 'i' } }
+            ]
+        };
+        const userIds = await User.find(userQuery).distinct('_id');
+        query.$or = [
+            { referrerId: { $in: userIds } },
+            { refereeId: { $in: userIds } },
+        ];
+    }
+
+    const [referrals, total, summary] = await Promise.all([
+        Referral.find(query)
+            .populate('referrerId', 'profile.name phoneNumber role referralId')
+            .populate('refereeId', 'profile.name phoneNumber role')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        Referral.countDocuments(query),
+        Referral.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: '$status',
+                    count: { $sum: 1 },
+                    coins: { $sum: '$rewardCoins' },
+                }
+            }
+        ]),
+    ]);
+
+    const pending = summary.find(s => s._id === 'pending')?.count || 0;
+    const rewarded = summary.find(s => s._id === 'rewarded')?.count || 0;
+    const totalCoinsPaid = summary.find(s => s._id === 'rewarded')?.coins || 0;
+
+    return {
+        referrals: referrals.map(r => ({
+            id: r._id,
+            referrerId: r.referrerId?._id,
+            referrerName: r.referrerId?.profile?.name || 'Unknown',
+            referrerPhone: r.referrerId?.phoneNumber,
+            referrerRole: r.referrerId?.role,
+            referralCode: r.referralCode || r.referrerId?.referralId,
+            refereeId: r.refereeId?._id,
+            refereeName: r.refereeId?.profile?.name || 'Unknown',
+            refereePhone: r.refereeId?.phoneNumber,
+            status: r.status,
+            rewardCoins: r.rewardCoins,
+            rewardedAt: r.rewardedAt,
+            createdAt: r.createdAt,
+        })),
+        total,
+        totalPages: Math.ceil(total / limit),
+        page,
+        summary: {
+            totalReferrals: total,
+            pending,
+            rewarded,
+            totalCoinsPaid,
+        },
+    };
+};
 
 /**
  * Get platform settings

@@ -12,10 +12,17 @@ import type { CoinPlan as WalletCoinPlan, PayoutSlab as WalletPayoutSlab } from 
 
 // Default values for settings (these would come from an app settings API in production)
 const defaultMessageCosts: MessageCosts = {
+  costMode: 'perMessage',
   basic: 20,
   silver: 18,
   gold: 16,
   platinum: 12,
+  wordCosts: {
+    basic: 20,
+    silver: 18,
+    gold: 16,
+    platinum: 14,
+  },
   videoCall: 500,
 };
 
@@ -79,7 +86,11 @@ export const CoinEconomyPage = () => {
 
       setCoinPlans(plans.map(mapWalletPlanToAdminPlan));
       setPayoutSlabs(slabs.map(mapWalletSlabToAdminSlab));
-      setMessageCosts(settings.messageCosts);
+      setMessageCosts({
+        ...defaultMessageCosts,
+        ...settings.messageCosts,
+        wordCosts: { ...defaultMessageCosts.wordCosts, ...settings.messageCosts?.wordCosts },
+      });
       setWithdrawalSettings(settings.withdrawal);
     } catch (err: any) {
       console.error('Failed to fetch data:', err);
@@ -332,108 +343,264 @@ export const CoinEconomyPage = () => {
               Configure coin costs for messages and video calls by tier
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Basic Tier
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={messageCosts.basic}
-                    onChange={(e) =>
-                      setMessageCosts({ ...messageCosts, basic: parseInt(e.target.value) || 0 })
-                    }
-                    min="0"
-                    step="1"
-                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                    coins
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Silver Tier
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={messageCosts.silver}
-                    onChange={(e) =>
-                      setMessageCosts({ ...messageCosts, silver: parseInt(e.target.value) || 0 })
-                    }
-                    min="0"
-                    step="1"
-                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                    coins
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Gold Tier
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={messageCosts.gold}
-                    onChange={(e) =>
-                      setMessageCosts({ ...messageCosts, gold: parseInt(e.target.value) || 0 })
-                    }
-                    min="0"
-                    step="1"
-                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                    coins
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Platinum Tier
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={messageCosts.platinum}
-                    onChange={(e) =>
-                      setMessageCosts({ ...messageCosts, platinum: parseInt(e.target.value) || 0 })
-                    }
-                    min="0"
-                    step="1"
-                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                    coins
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Video Call
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={messageCosts.videoCall}
-                    onChange={(e) =>
-                      setMessageCosts({ ...messageCosts, videoCall: parseInt(e.target.value) || 0 })
-                    }
-                    min="0"
-                    step="1"
-                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                    coins
-                  </span>
-                </div>
+            {/* Cost Calculation Mode Toggle */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Cost Calculation Mode
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Choose whether coins are deducted as a flat cost per message, or based on the number of words in each message.
+              </p>
+              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-1">
+                <button
+                  type="button"
+                  onClick={() => setMessageCosts({ ...messageCosts, costMode: 'perMessage' })}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    messageCosts.costMode === 'perMessage'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  Per Message
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMessageCosts({ ...messageCosts, costMode: 'perWord' })}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    messageCosts.costMode === 'perWord'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  Per Word
+                </button>
               </div>
             </div>
+
+            {messageCosts.costMode === 'perMessage' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Basic Tier
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={messageCosts.basic}
+                      onChange={(e) =>
+                        setMessageCosts({ ...messageCosts, basic: parseInt(e.target.value) || 0 })
+                      }
+                      min="0"
+                      step="1"
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                      coins
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Silver Tier
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={messageCosts.silver}
+                      onChange={(e) =>
+                        setMessageCosts({ ...messageCosts, silver: parseInt(e.target.value) || 0 })
+                      }
+                      min="0"
+                      step="1"
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                      coins
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Gold Tier
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={messageCosts.gold}
+                      onChange={(e) =>
+                        setMessageCosts({ ...messageCosts, gold: parseInt(e.target.value) || 0 })
+                      }
+                      min="0"
+                      step="1"
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                      coins
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Platinum Tier
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={messageCosts.platinum}
+                      onChange={(e) =>
+                        setMessageCosts({ ...messageCosts, platinum: parseInt(e.target.value) || 0 })
+                      }
+                      min="0"
+                      step="1"
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                      coins
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Video Call
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={messageCosts.videoCall}
+                      onChange={(e) =>
+                        setMessageCosts({ ...messageCosts, videoCall: parseInt(e.target.value) || 0 })
+                      }
+                      min="0"
+                      step="1"
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                      coins
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Basic Tier
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={messageCosts.wordCosts.basic}
+                        onChange={(e) =>
+                          setMessageCosts({
+                            ...messageCosts,
+                            wordCosts: { ...messageCosts.wordCosts, basic: parseInt(e.target.value) || 0 },
+                          })
+                        }
+                        min="0"
+                        step="1"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                        coins/word
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Silver Tier
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={messageCosts.wordCosts.silver}
+                        onChange={(e) =>
+                          setMessageCosts({
+                            ...messageCosts,
+                            wordCosts: { ...messageCosts.wordCosts, silver: parseInt(e.target.value) || 0 },
+                          })
+                        }
+                        min="0"
+                        step="1"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                        coins/word
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Gold Tier
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={messageCosts.wordCosts.gold}
+                        onChange={(e) =>
+                          setMessageCosts({
+                            ...messageCosts,
+                            wordCosts: { ...messageCosts.wordCosts, gold: parseInt(e.target.value) || 0 },
+                          })
+                        }
+                        min="0"
+                        step="1"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                        coins/word
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Platinum Tier
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={messageCosts.wordCosts.platinum}
+                        onChange={(e) =>
+                          setMessageCosts({
+                            ...messageCosts,
+                            wordCosts: { ...messageCosts.wordCosts, platinum: parseInt(e.target.value) || 0 },
+                          })
+                        }
+                        min="0"
+                        step="1"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                        coins/word
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Video Call
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={messageCosts.videoCall}
+                        onChange={(e) =>
+                          setMessageCosts({ ...messageCosts, videoCall: parseInt(e.target.value) || 0 })
+                        }
+                        min="0"
+                        step="1"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                        coins
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                  Example: at {messageCosts.wordCosts.basic} coins/word, a 5-word message from a Basic tier sender costs {messageCosts.wordCosts.basic * 5} coins.
+                </p>
+              </div>
+            )}
 
             <button
               onClick={handleSaveMessageCosts}

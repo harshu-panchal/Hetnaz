@@ -174,6 +174,31 @@ export const listTransactions = async (req, res, next) => {
 
 
 /**
+ * List all referrals (Refer & Earn tracking)
+ */
+export const listReferrals = async (req, res, next) => {
+    try {
+        const filters = {
+            search: req.query.search,
+            status: req.query.status
+        };
+        const pagination = {
+            page: parseInt(req.query.page) || 1,
+            limit: parseInt(req.query.limit) || 20
+        };
+
+        const result = await adminService.listReferrals(filters, pagination);
+
+        res.status(200).json({
+            status: 'success',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * Get platform settings
  */
 export const getAppSettings = async (req, res, next) => {

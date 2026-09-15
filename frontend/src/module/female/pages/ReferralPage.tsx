@@ -76,17 +76,13 @@ export const ReferralPage = () => {
         />
       </div>
 
-      {/* Header Removed for Immersive View */}
-
       <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full flex flex-col relative z-10">
         <main className="p-4 space-y-8 mt-2">
           {/* Premium Reward Hero */}
           <div className="relative group">
-            {/* Glow Behind Hero */}
             <div className="absolute -inset-1 bg-gradient-to-r from-primary to-rose-500 rounded-[2.5rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
 
             <div className="relative bg-white shadow-card bg-premium-pink text-white rounded-[2.5rem] p-8 overflow-hidden shadow-2xl">
-              {/* Animated Background Icon */}
               <div className="absolute -top-6 -right-6 opacity-10 rotate-12 transition-transform group-hover:scale-110 duration-700">
                 <MaterialSymbol name="redeem" size={200} filled />
               </div>
@@ -168,7 +164,6 @@ export const ReferralPage = () => {
             </h3>
 
             <div className="relative pl-8 space-y-6">
-              {/* Visual Timeline Line */}
               <div className="absolute left-3.5 top-2 bottom-8 w-1 bg-gradient-to-b from-primary via-primary/50 to-transparent rounded-full opacity-20"></div>
 
               {[
@@ -199,7 +194,6 @@ export const ReferralPage = () => {
                 <div
                   key={i}
                   className="relative group transition-all hover:translate-x-1 duration-300">
-                  {/* Connecting Dot */}
                   <div className="absolute -left-[24px] top-4 size-4 rounded-full border-4 border-white bg-cta-gradient z-10 shadow-[0_0_8px_rgba(255,77,109,0.4)]"></div>
 
                   <div className="glass-card rounded-[1.5rem] p-4 flex gap-4 transition-all duration-300 hover:shadow-lg border-white/60">
@@ -312,7 +306,6 @@ export const ReferralPage = () => {
           <button
             onClick={handleShare}
             className="bg-white shadow-card-bold w-full h-20 rounded-[2rem] flex items-center justify-center gap-4 group transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden">
-            {/* Shimmer Effect */}
             <div className="absolute inset-x-0 h-[200%] top-[-50%] bg-gradient-to-b from-transparent via-white/10 to-transparent rotate-45 transform transition-transform group-hover:translate-x-full duration-1000 -translate-x-full" />
 
             <div className="size-10 rounded-xl bg-white/20 flex items-center justify-center">

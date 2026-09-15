@@ -25,6 +25,7 @@ router.use(protect);
 // === User Balance & Transactions ===
 router.get('/balance', walletController.getMyBalance);
 router.get('/transactions', walletController.getMyTransactions);
+router.get('/referrals', walletController.getMyReferrals);
 router.get('/earnings-summary', restrictTo('female'), walletController.getEarningsSummary);
 
 // === Withdrawal Routes (Female only) ===

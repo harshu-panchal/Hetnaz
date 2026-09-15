@@ -353,6 +353,19 @@ export const MyProfilePage = () => {
           </div>
           <div className="bg-white rounded-[1.5rem] shadow-card overflow-hidden divide-y divide-gray-50">
             <button
+              onClick={() => navigate("/female/referral")}
+              className="w-full flex items-center justify-between px-5 py-4 group active:bg-pink-50/50 transition-colors"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="size-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                  <MaterialSymbol name="diversity_3" size={20} className="text-emerald-500" filled />
+                </div>
+                <span className="text-[13px] font-bold text-ink">{t("referAndEarn")}</span>
+              </div>
+              <MaterialSymbol name="chevron_right" size={20} className="text-muted-light group-hover:translate-x-0.5 transition-transform" />
+            </button>
+
+            <button
               onClick={() => navigate("/female/faqs")}
               className="w-full flex items-center justify-between px-5 py-4 group active:bg-pink-50/50 transition-colors"
             >

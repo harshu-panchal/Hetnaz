@@ -25,11 +25,22 @@ const appSettingsSchema = new mongoose.Schema(
             weeklyLimit: { type: Number, default: 50000 },
         },
         messageCosts: {
-            // Tier-based message costs (for regular messages)
+            // How text message costs are calculated: flat cost per message, or cost per word
+            costMode: { type: String, enum: ['perMessage', 'perWord'], default: 'perMessage' },
+
+            // Tier-based message costs (used when costMode = 'perMessage')
             basic: { type: Number, default: 50 },
             silver: { type: Number, default: 45 },
             gold: { type: Number, default: 40 },
             platinum: { type: Number, default: 35 },
+
+            // Tier-based per-word costs (used when costMode = 'perWord')
+            wordCosts: {
+                basic: { type: Number, default: 20 },
+                silver: { type: Number, default: 18 },
+                gold: { type: Number, default: 16 },
+                platinum: { type: Number, default: 14 },
+            },
 
             // Special message types
             hiMessage: { type: Number, default: 5 },

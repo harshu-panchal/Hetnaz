@@ -9,10 +9,17 @@ export interface AppConfig {
         registrationEnabled: boolean;
     };
     messageCosts: {
+        costMode: 'perMessage' | 'perWord';
         basic: number;
         silver: number;
         gold: number;
         platinum: number;
+        wordCosts: {
+            basic: number;
+            silver: number;
+            gold: number;
+            platinum: number;
+        };
         hiMessage: number;
         imageMessage: number;
         videoCall: number;
@@ -62,10 +69,17 @@ class ConfigService {
                         registrationEnabled: true
                     },
                     messageCosts: {
+                        costMode: 'perMessage',
                         basic: 50,
                         silver: 45,
                         gold: 40,
                         platinum: 35,
+                        wordCosts: {
+                            basic: 20,
+                            silver: 18,
+                            gold: 16,
+                            platinum: 14,
+                        },
                         hiMessage: 5,
                         imageMessage: 100,
                         videoCall: 500

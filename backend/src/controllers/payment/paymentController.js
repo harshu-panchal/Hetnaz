@@ -8,12 +8,85 @@ import crypto from 'crypto';
 import CoinPlan from '../../models/CoinPlan.js';
 import Transaction from '../../models/Transaction.js';
 import User from '../../models/User.js';
+import Referral from '../../models/Referral.js';
+import AppSettings from '../../models/AppSettings.js';
+import Notification from '../../models/Notification.js';
 import { getRazorpayInstance } from '../../config/razorpay.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
 import transactionManager from '../../core/transactions/transactionManager.js';
 import relationshipManager from '../../core/relationships/relationshipManager.js';
 import dataValidation from '../../core/validation/dataValidation.js';
 import logger from '../../utils/logger.js';
+import { emitNotification } from '../../socket/index.js';
+
+/**
+ * If this is the user's first-ever completed recharge and they were referred
+ * by someone, pay out the configured referral reward to the referrer.
+ * Idempotent: the atomic `firstRechargeAt` guard ensures this only fires once
+ * per user, even if verifyPayment and the payment.captured webhook both run.
+ */
+export const awardReferralBonusOnFirstRecharge = async (userId, session, io = null) => {
+    const firstTimeUser = await User.findOneAndUpdate(
+        { _id: userId, firstRechargeAt: null },
+        { $set: { firstRechargeAt: new Date() } },
+        { session }
+    );
+
+    // findOneAndUpdate (without { new: true }) returns the pre-update doc,
+    // or null if the guard condition (firstRechargeAt: null) didn't match -
+    // meaning this user already recharged before.
+    if (!firstTimeUser || !firstTimeUser.referredBy) return;
+
+    const settings = await AppSettings.getSettings();
+    if (!settings.referral?.isEnabled) return;
+
+    const referral = await Referral.findOneAndUpdate(
+        { refereeId: userId, status: 'pending' },
+        {
+            $set: {
+                status: 'rewarded',
+                rewardedAt: new Date(),
+                rewardCoins: settings.referral.rewardAmount || 0,
+            },
+        },
+        { session, new: true }
+    );
+
+    if (!referral || referral.rewardCoins <= 0) return;
+
+    await relationshipManager.updateUserBalanceWithTransaction(
+        referral.referrerId,
+        {
+            userId: referral.referrerId,
+            type: 'referral_bonus',
+            direction: 'credit',
+            amountCoins: referral.rewardCoins,
+            description: `Referral bonus - your friend completed their first recharge`,
+            relatedUserId: userId,
+            status: 'completed',
+        },
+        session
+    );
+
+    setImmediate(async () => {
+        try {
+            const referrerUser = await User.findById(referral.referrerId).select('role');
+            const referralPath = referrerUser?.role === 'female' ? '/female/referral' : '/male/referral';
+            const notification = await Notification.create({
+                userId: referral.referrerId,
+                type: 'system',
+                title: 'Referral Reward! 🎉',
+                message: `You earned ${referral.rewardCoins} coins because your referred friend made their first recharge.`,
+                actionUrl: referralPath,
+            });
+            if (io) {
+                emitNotification(io, referral.referrerId, notification);
+            }
+        } catch (err) {
+            logger.error(`Failed to send referral reward notification: ${err.message}`);
+        }
+    });
+};
 
 /**
  * Create a Razorpay order for coin purchase
@@ -122,6 +195,7 @@ export const verifyPayment = async (req, res, next) => {
         } = req.body;
 
         const userId = req.user.id;
+        const io = req.app.get('io');
 
         // Debug Log 1: Request received
         logger.info(`🔍 Verify Payment Request: User=${userId}, Order=${razorpay_order_id}, Tx=${transactionId}`);
@@ -267,6 +341,9 @@ export const verifyPayment = async (req, res, next) => {
                     await user.save({ session });
                     logger.debug('   > User and Transaction saved successfully');
 
+                    // Pay out referral reward if this is the user's first recharge
+                    await awardReferralBonusOnFirstRecharge(userId, session, io);
+
                     return { transaction, user, membershipUpgraded, previousTier, newTier };
                 },
             ]);
@@ -329,12 +406,13 @@ export const handleWebhook = async (req, res, next) => {
         }
 
         const { event, payload } = req.body;
+        const io = req.app.get('io');
 
         logger.info(`📨 Webhook received: ${event}`);
 
         switch (event) {
             case 'payment.captured':
-                await handlePaymentCaptured(payload.payment.entity);
+                await handlePaymentCaptured(payload.payment.entity, io);
                 break;
             case 'payment.failed':
                 await handlePaymentFailed(payload.payment.entity);
@@ -353,7 +431,7 @@ export const handleWebhook = async (req, res, next) => {
 /**
  * Handle payment.captured webhook event
  */
-async function handlePaymentCaptured(payment) {
+async function handlePaymentCaptured(payment, io = null) {
     const orderId = payment.order_id;
     const paymentId = payment.id;
 
@@ -391,6 +469,9 @@ async function handlePaymentCaptured(payment) {
 
             user.coinBalance = balanceAfter;
             await user.save({ session });
+
+            // Pay out referral reward if this is the user's first recharge
+            await awardReferralBonusOnFirstRecharge(transaction.userId, session, io);
 
             logger.info(`✅ Webhook: Coins credited for order ${orderId}`);
         },

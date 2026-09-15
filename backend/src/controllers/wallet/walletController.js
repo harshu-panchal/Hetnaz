@@ -10,6 +10,7 @@ import PayoutSlab from '../../models/PayoutSlab.js';
 import Transaction from '../../models/Transaction.js';
 import Withdrawal from '../../models/Withdrawal.js';
 import User from '../../models/User.js';
+import Referral from '../../models/Referral.js';
 import { BadRequestError, NotFoundError } from '../../utils/errors.js';
 import transactionService from '../../services/wallet/transactionService.js';
 import dataValidation from '../../core/validation/dataValidation.js';
@@ -391,6 +392,73 @@ export const getMyBalance = async (req, res, next) => {
             data: {
                 balance: req.user.coinBalance || 0,
                 memberTier: req.user.memberTier || 'basic'
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ========================
+// REFERRALS (Refer & Earn)
+// ========================
+
+/**
+ * Get the current user's own referral history + earnings summary.
+ * Any role (male or female) can refer friends and earn coins.
+ */
+export const getMyReferrals = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { limit = 20, page = 1 } = req.query;
+        const skip = (page - 1) * limit;
+
+        const [referrals, total, summary] = await Promise.all([
+            Referral.find({ referrerId: userId })
+                .populate('refereeId', 'profile.name phoneNumber')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit))
+                .lean(),
+            Referral.countDocuments({ referrerId: userId }),
+            Referral.aggregate([
+                { $match: { referrerId: new mongoose.Types.ObjectId(userId) } },
+                {
+                    $group: {
+                        _id: '$status',
+                        count: { $sum: 1 },
+                        coins: { $sum: '$rewardCoins' },
+                    }
+                }
+            ]),
+        ]);
+
+        const pending = summary.find(s => s._id === 'pending')?.count || 0;
+        const rewarded = summary.find(s => s._id === 'rewarded')?.count || 0;
+        const totalCoinsEarned = summary.find(s => s._id === 'rewarded')?.coins || 0;
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                referralId: req.user.referralId,
+                referralCount: req.user.referralCount || 0,
+                totalCoinsEarned,
+                pending,
+                rewarded,
+                referrals: referrals.map(r => ({
+                    id: r._id,
+                    refereeName: r.refereeId?.profile?.name || 'A friend',
+                    status: r.status,
+                    rewardCoins: r.rewardCoins,
+                    rewardedAt: r.rewardedAt,
+                    createdAt: r.createdAt,
+                })),
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    totalPages: Math.ceil(total / limit),
+                },
             }
         });
     } catch (error) {

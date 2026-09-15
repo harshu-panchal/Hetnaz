@@ -74,6 +74,11 @@ export const getEarningsSummary = async () => {
     return response.data.data;
 };
 
+export const getMyReferrals = async (params?: any) => {
+    const response = await apiClient.get('/wallet/referrals', { params });
+    return response.data.data;
+};
+
 export const getAllTransactions = async (params?: any) => {
     const response = await apiClient.get('/wallet/admin/transactions', { params });
     return response.data.data;
@@ -133,6 +138,7 @@ export default {
     getGifts,
     getMyTransactions,
     getEarningsSummary,
+    getMyReferrals,
     getAllTransactions,
     // Withdrawals (Female)
     requestWithdrawal,

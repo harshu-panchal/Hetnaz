@@ -291,6 +291,12 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Set the first time this user completes a coin recharge (used to gate
+    // one-time referral rewards to the referrer)
+    firstRechargeAt: {
+      type: Date,
+      default: null,
+    },
     // Internal migration flag
     blockedBySyncFlag: {
       type: Boolean,

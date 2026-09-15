@@ -711,20 +711,30 @@ export const SettingsPage = () => {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Referral Program</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Refer & Earn</h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Configure rewards for user invitations
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.referral?.isEnabled ?? true}
-                      onChange={(e) => handleReferralChange('isEnabled', e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                  </label>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => handleNavigationClick('referrals')}
+                      className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                    >
+                      <MaterialSymbol name="list_alt" size={18} />
+                      View All Referrals
+                    </button>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.referral?.isEnabled ?? true}
+                        onChange={(e) => handleReferralChange('isEnabled', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="space-y-6">
@@ -746,7 +756,7 @@ export const SettingsPage = () => {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      Amount of coins to award to the referrer upon successful registration of a new user.
+                      Amount of coins awarded to the referrer once the friend they referred completes their first coin recharge.
                     </p>
                   </div>
 
@@ -756,9 +766,10 @@ export const SettingsPage = () => {
                       <div className="text-sm text-blue-800 dark:text-blue-300">
                         <p className="font-bold mb-1">How it works:</p>
                         <ul className="list-disc ml-4 space-y-1">
-                          <li>The program is active and only male referrers will receive the reward coin.</li>
+                          <li>Any user - male or female - can refer friends and earn the reward coins.</li>
                           <li>New users must enter a valid referral ID during the registration process.</li>
-                          <li>Rewards are credited instantly after OTP verification.</li>
+                          <li>The reward is credited to the referrer only after their referred friend completes their first-ever coin recharge - not at signup.</li>
+                          <li>Every referral is tracked and shown on the "View All Referrals" page, including its status (awaiting recharge or rewarded).</li>
                           <li>Referral IDs are case-insensitive and ignore spaces.</li>
                         </ul>
                       </div>

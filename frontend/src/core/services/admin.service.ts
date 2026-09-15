@@ -15,6 +15,11 @@ export const listTransactions = async (filters: any = {}, page = 1, limit = 20) 
     return response.data.data;
 };
 
+export const listReferrals = async (filters: any = {}, page = 1, limit = 20) => {
+    const response = await apiClient.get('/admin/referrals', { params: { ...filters, page, limit } });
+    return response.data.data;
+};
+
 
 
 export const getAppSettings = async () => {
@@ -165,6 +170,7 @@ export const adminService = {
     getDashboardStats,
     listUsers,
     listTransactions,
+    listReferrals,
 
     getAppSettings,
     updateAppSettings,

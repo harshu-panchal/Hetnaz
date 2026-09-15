@@ -183,6 +183,11 @@ const FemaleSettingsPage = lazy(() =>
     default: m.SettingsPage,
   })),
 );
+const FemaleReferralPage = lazy(() =>
+  import("./module/female/pages/ReferralPage").then((m) => ({
+    default: m.ReferralPage,
+  })),
+);
 
 // Admin module - lazy loaded
 const AdminDashboard = lazy(() =>
@@ -238,6 +243,11 @@ const CoinEconomyPage = lazy(() =>
 const TransactionsPage = lazy(() =>
   import("./module/admin/pages/TransactionsPage").then((m) => ({
     default: m.TransactionsPage,
+  })),
+);
+const ReferralsPage = lazy(() =>
+  import("./module/admin/pages/ReferralsPage").then((m) => ({
+    default: m.ReferralsPage,
   })),
 );
 const SettingsPage = lazy(() =>
@@ -449,6 +459,10 @@ function AppShell() {
                         path="/female/settings"
                         element={<FemaleSettingsPage />}
                       />
+                      <Route
+                        path="/female/referral"
+                        element={<FemaleReferralPage />}
+                      />
                       <Route path="/female/faqs" element={<FaqsPage />} />
                     </Route>
 
@@ -501,6 +515,10 @@ function AppShell() {
                               <Route
                                 path="transactions"
                                 element={<TransactionsPage />}
+                              />
+                              <Route
+                                path="referrals"
+                                element={<ReferralsPage />}
                               />
                               <Route
                                 path="reports"
