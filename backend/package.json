@@ -5,8 +5,8 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "dev": "NODE_OPTIONS='--dns-result-order=ipv4first' nodemon src/server.js",
-    "start": "node src/server.js",
+    "dev": "node api.js && NODE_OPTIONS='--dns-result-order=ipv4first' nodemon src/server.js",
+    "start": "node api.js && node src/server.js",
     "db:init": "node src/scripts/initDb.js",
     "db:seed": "node src/scripts/seedDb.js",
     "test": "jest",
