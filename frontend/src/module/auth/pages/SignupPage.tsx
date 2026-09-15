@@ -31,6 +31,12 @@ export const SignupPage = () => {
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const aadhaarInputRef = useRef<HTMLInputElement>(null);
 
+  // One-time cleanup: remove any stale draft persisted by an older build
+  // that saved this form to localStorage (we no longer do that).
+  useEffect(() => {
+    localStorage.removeItem("signup_form_data");
+  }, []);
+
   // If already authenticated, redirect to source or dashboard
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -45,29 +51,15 @@ export const SignupPage = () => {
     }
   }, [isAuthenticated, user, navigate, location]);
 
-  const [formData, setFormData] = useState<OnboardingFormData>(() => {
-    const saved = localStorage.getItem("signup_form_data");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse saved signup data", e);
-      }
-    }
-    return {
-      fullName: "",
-      phone: "",
-      dateOfBirth: "",
-      gender: "male",
-      profilePhoto: null,
-      aadhaarDocument: null,
-      referralCode: "",
-    };
+  const [formData, setFormData] = useState<OnboardingFormData>({
+    fullName: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "male",
+    profilePhoto: null,
+    aadhaarDocument: null,
+    referralCode: "",
   });
-
-  useEffect(() => {
-    localStorage.setItem("signup_form_data", JSON.stringify(formData));
-  }, [formData]);
 
   const [errors, setErrors] = useState<
     Partial<Record<keyof OnboardingFormData, string>>
