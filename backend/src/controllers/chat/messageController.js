@@ -4,6 +4,7 @@
  * @purpose: Handle message sending, gifting with coin deduction
  */
 
+import mongoose from 'mongoose';
 import Message from '../../models/Message.js';
 import Chat from '../../models/Chat.js';
 import User from '../../models/User.js';

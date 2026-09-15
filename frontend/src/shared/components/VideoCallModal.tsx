@@ -29,7 +29,11 @@ export const VideoCallModal = () => {
         rejoinCall,
         closeModal,
         callPrice,
+        voiceCallPrice,
     } = useVideoCall();
+
+    const isVoiceCall = callState.callType === 'voice';
+    const activeCallPrice = isVoiceCall ? voiceCallPrice : callPrice;
 
     const localVideoRef = useRef<HTMLDivElement>(null);
     const remoteVideoRef = useRef<HTMLDivElement>(null);
@@ -108,7 +112,7 @@ export const VideoCallModal = () => {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
+                video: !isVoiceCall,
                 audio: true,
             });
             stream.getTracks().forEach(track => track.stop());
@@ -116,9 +120,9 @@ export const VideoCallModal = () => {
         } catch (error: any) {
             console.error('Permission error:', error);
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                setPermissionError('Camera and microphone access is required for video calls.');
+                setPermissionError(isVoiceCall ? 'Microphone access is required for voice calls.' : 'Camera and microphone access is required for video calls.');
             } else {
-                setPermissionError(error.message || 'Failed to access camera/microphone.');
+                setPermissionError(error.message || (isVoiceCall ? 'Failed to access microphone.' : 'Failed to access camera/microphone.'));
             }
             setIsInternalProcessing(false);
         } finally {
@@ -256,12 +260,12 @@ export const VideoCallModal = () => {
                         <h2 className="text-2xl font-bold text-white mb-2">
                             {callState.remoteUserName || 'Unknown'}
                         </h2>
-                        <p className="text-white/80 mb-8">Incoming video call...</p>
+                        <p className="text-white/80 mb-8">{isVoiceCall ? 'Incoming voice call...' : 'Incoming video call...'}</p>
 
                         {/* Call cost notice */}
                         <div className="bg-white/10 rounded-xl px-4 py-2 mb-4 inline-block">
                             <span className="text-white/70 text-sm">
-                                💰 This call is worth <span className="font-bold text-yellow-300">{callPrice} coins</span>
+                                💰 This call is worth <span className="font-bold text-yellow-300">{activeCallPrice} coins</span>
                             </span>
                         </div>
 
@@ -377,8 +381,112 @@ export const VideoCallModal = () => {
             );
         }
 
-        // Connected call UI
-        if (callState.status === 'connected') {
+        // Connected VOICE call UI - no video tiles, just a draggable avatar card.
+        // Rendered before the video branch so voice calls never touch any of
+        // the video-specific (fullscreen/PiP/camera) UI below.
+        if (callState.status === 'connected' && isVoiceCall) {
+            return (
+                <div
+                    className="fixed z-[10000] bg-gray-900 rounded-[2.5rem] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.8)] overflow-hidden border border-white/10 backdrop-blur-3xl transition-all"
+                    style={{
+                        left: position.x,
+                        top: position.y,
+                        width: '300px',
+                        cursor: isDragging ? 'grabbing' : 'default',
+                    }}
+                >
+                    {/* Header - draggable */}
+                    <div
+                        className="bg-gray-800/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between cursor-grab active:cursor-grabbing border-b border-white/5"
+                        onMouseDown={handleDragStart}
+                        onTouchStart={handleDragStart}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.7)]" />
+                            <span className="text-white text-sm font-black truncate max-w-[140px] tracking-tight uppercase">
+                                Voice Call
+                            </span>
+                        </div>
+                        <div className="bg-black/40 rounded-xl px-3 py-1.5 border border-white/5">
+                            <span className={`text-sm font-mono font-black ${remainingTime <= 60 ? 'text-red-400' : 'text-white'}`}>
+                                {formatTime(remainingTime)}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Avatar area */}
+                    <div className="relative py-10 flex flex-col items-center justify-center bg-[#0a0a0a]">
+                        <div className="relative">
+                            <div className="w-28 h-28 rounded-full bg-white/10 overflow-hidden ring-4 ring-white/10">
+                                {callState.remoteUserAvatar ? (
+                                    <img
+                                        src={callState.remoteUserAvatar}
+                                        alt={callState.remoteUserName || 'User'}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-white">
+                                        {callState.remoteUserName?.[0]?.toUpperCase() || '?'}
+                                    </div>
+                                )}
+                            </div>
+                            {!callState.isPeerDisconnected && (
+                                <div className="absolute inset-0 rounded-full border-2 border-green-500/40 animate-ping" style={{ animationDuration: '2s' }} />
+                            )}
+                        </div>
+                        <h3 className="text-white font-bold text-lg mt-4 tracking-tight">{callState.remoteUserName || 'Unknown'}</h3>
+                        <span className="text-green-400 text-xs font-bold flex items-center gap-1.5 uppercase tracking-widest mt-1">
+                            {callState.isPeerDisconnected ? (
+                                'Reconnecting...'
+                            ) : (
+                                <>
+                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                    On Call
+                                </>
+                            )}
+                        </span>
+                    </div>
+
+                    {/* Compact Controls Bar */}
+                    <div className="bg-gray-800/95 backdrop-blur-2xl px-5 py-4 flex items-center justify-around gap-2 border-t border-white/5">
+                        <button
+                            onClick={toggleMute}
+                            className={`w-13 h-13 rounded-2xl flex items-center justify-center transition-all ${callState.isMuted ? 'bg-red-500 shadow-lg shadow-red-500/20' : 'bg-white/5 hover:bg-white/10 active:scale-90 border border-white/5'}`}
+                        >
+                            {callState.isMuted ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                            )}
+                        </button>
+
+                        <button
+                            onClick={async () => {
+                                if (isInternalProcessing) return;
+                                setIsInternalProcessing(true);
+                                await endCall();
+                            }}
+                            className={`w-16 h-16 rounded-3xl bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-2xl shadow-red-600/30 transition-all hover:scale-105 active:scale-90 group ${isInternalProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={isInternalProcessing}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 rotate-[135deg] transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57-.35-.11-.74-.03-1.02.24l-2.2 2.2c-2.83-1.44-5.15-3.75-6.59-6.59l2.2-2.21c.28-.26.36-.65.25-1C8.7 6.45 8.5 5.25 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z" />
+                            </svg>
+                        </button>
+
+                        {/* Spacer to balance layout (no camera toggle for voice calls) */}
+                        <div className="w-13 h-13" />
+                    </div>
+                </div>
+            );
+        }
+
+        // Connected VIDEO call UI
+        if (callState.status === 'connected' && !isVoiceCall) {
             if (isFullScreen) {
                 return (
                     <div className="fixed inset-0 z-[10000] bg-black flex flex-col font-sans overscroll-contain touch-none">

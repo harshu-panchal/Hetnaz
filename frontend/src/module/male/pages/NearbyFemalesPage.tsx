@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import chatService from '../../../core/services/chat.service';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
-import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
 import offlineQueueService from '../../../core/services/offlineQueue.service';
-import apiClient from '../../../core/api/client';
 import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
 import { NearbyFemaleItem } from '../components/NearbyFemaleItem';
 import { SearchBar } from '../components/SearchBar';
@@ -18,7 +16,7 @@ type FilterType = 'all' | 'online' | 'new' | 'popular';
 export const NearbyFemalesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { coinBalance, updateBalance } = useGlobalState();
+  const { coinBalance } = useGlobalState();
 
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,41 +76,9 @@ export const NearbyFemalesPage = () => {
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const requiredCoins = 5;
 
-  // Daily Reward Modal
-  const [isDailyRewardModalOpen, setIsDailyRewardModalOpen] = useState(false);
-  const [dailyRewardData, setDailyRewardData] = useState({ amount: 0, newBalance: 0 });
-
-  // Check and claim daily reward on page load
-  useEffect(() => {
-    const checkDailyReward = async () => {
-      try {
-        console.log('[DailyReward] Attempting to claim...');
-        const response = await apiClient.post('/rewards/daily/claim');
-        console.log('[DailyReward] Response:', response.data);
-        const result = response.data.data;
-        console.log('[DailyReward] Result:', result);
-
-        if (result.claimed) {
-          console.log('[DailyReward] Reward claimed! Amount:', result.amount, 'New Balance:', result.newBalance);
-          // Show celebration modal
-          setDailyRewardData({
-            amount: result.amount,
-            newBalance: result.newBalance
-          });
-          setIsDailyRewardModalOpen(true);
-          console.log('[DailyReward] Modal state set to true');
-          // Update global balance
-          updateBalance(result.newBalance);
-        } else {
-          console.log('[DailyReward] Not claimed. Reason:', result.reason);
-        }
-      } catch (error) {
-        // Silently fail - don't disrupt user experience
-        console.log('[DailyReward] Failed to claim:', error);
-      }
-    };
-    checkDailyReward();
-  }, []);
+  // Note: daily reward claim is handled once app-wide from MaleDashboard.tsx
+  // (the post-login landing page) - it isn't re-attempted here to avoid a
+  // redundant /rewards/daily/claim call on every visit to this page.
 
   // Process offline queue when back online
   useEffect(() => {
@@ -140,6 +106,16 @@ export const NearbyFemalesPage = () => {
   const handleProfileClick = (profileId: string) => {
     const found = profiles.find((p: any) => (p.id || p._id) === profileId);
     navigate(`/male/profile/${profileId}`, { state: { profile: found } });
+  };
+
+  const handleSendHi = (profileId: string) => {
+    if ((coinBalance || 0) < requiredCoins) {
+      setIsBalanceModalOpen(true);
+      return;
+    }
+    navigate(`/male/chat/new_${profileId}`, {
+      state: { prefillMessage: '👋 Hi! Nice to meet you.' },
+    });
   };
 
   return (
@@ -286,7 +262,7 @@ export const NearbyFemalesPage = () => {
                 key={profile.id}
                 profile={profile}
                 onProfileClick={handleProfileClick}
-                onChatClick={(id) => navigate(`/male/chat/new_${id}`)}
+                onSendHi={(id) => handleSendHi(id)}
               />
             ))}
           </div>
@@ -335,14 +311,6 @@ export const NearbyFemalesPage = () => {
           setFilterOptions(filters);
           setIsFilterModalOpen(false);
         }}
-      />
-
-      {/* Daily Reward Modal */}
-      <DailyRewardModal
-        isOpen={isDailyRewardModalOpen}
-        onClose={() => setIsDailyRewardModalOpen(false)}
-        coinsAwarded={dailyRewardData.amount}
-        newBalance={dailyRewardData.newBalance}
       />
       </div>
     </div>

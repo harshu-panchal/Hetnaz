@@ -27,6 +27,14 @@ const videoCallSchema = new mongoose.Schema(
             required: true,
         },
 
+        // Call type - video (camera + mic) or voice (audio-only), both over Agora
+        callType: {
+            type: String,
+            enum: ['video', 'voice'],
+            default: 'video',
+            index: true,
+        },
+
         // Call Status
         status: {
             type: String,

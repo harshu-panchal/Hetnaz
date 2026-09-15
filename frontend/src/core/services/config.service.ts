@@ -23,6 +23,7 @@ export interface AppConfig {
         hiMessage: number;
         imageMessage: number;
         videoCall: number;
+        voiceCall: number;
     };
     withdrawal: {
         minAmount: number;
@@ -39,6 +40,10 @@ class ConfigService {
     private config: AppConfig | null = null;
     private lastFetch: number = 0;
     private CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+    // Dedupes concurrent callers (e.g. React StrictMode's double effect-fire)
+    // so they share one in-flight network request instead of each firing
+    // their own /users/config call.
+    private inFlightRequest: Promise<AppConfig> | null = null;
 
     async getConfig(): Promise<AppConfig> {
         const now = Date.now();
@@ -51,6 +56,18 @@ class ConfigService {
     }
 
     async refreshConfig(): Promise<AppConfig> {
+        if (this.inFlightRequest) {
+            return this.inFlightRequest;
+        }
+        this.inFlightRequest = this.doRefresh();
+        try {
+            return await this.inFlightRequest;
+        } finally {
+            this.inFlightRequest = null;
+        }
+    }
+
+    private async doRefresh(): Promise<AppConfig> {
         try {
             const response = await apiClient.get('/users/config');
             this.config = response.data.data.settings;
@@ -82,7 +99,8 @@ class ConfigService {
                         },
                         hiMessage: 5,
                         imageMessage: 100,
-                        videoCall: 500
+                        videoCall: 500,
+                        voiceCall: 300
                     },
                     withdrawal: {
                         minAmount: 500,

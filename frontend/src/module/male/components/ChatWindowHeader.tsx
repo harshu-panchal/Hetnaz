@@ -18,8 +18,10 @@ interface ChatWindowHeaderProps {
   onMoreClick?: () => void;
   onBackClick?: () => void;
   onVideoCall?: () => void;
+  onVoiceCall?: () => void;
   onUserInfoClick?: () => void;
   showVideoCall?: boolean;
+  showVoiceCall?: boolean;
 }
 
 export const ChatWindowHeader = ({
@@ -32,8 +34,10 @@ export const ChatWindowHeader = ({
   onMoreClick,
   onBackClick,
   onVideoCall,
+  onVoiceCall,
   onUserInfoClick,
   showVideoCall = false,
+  showVoiceCall = false,
 }: ChatWindowHeaderProps) => {
   const navigate = useNavigate();
 
@@ -108,6 +112,17 @@ export const ChatWindowHeader = ({
 
         {/* Right Side: Action Icons */}
         <div className="flex items-center gap-1.5">
+          {/* Voice Call */}
+          {showVoiceCall && onVoiceCall && (
+            <button
+              onClick={onVoiceCall}
+              className="flex items-center justify-center h-9 w-9 rounded-full bg-white/25 text-white active:opacity-70 hover:scale-110 transition-transform"
+              aria-label="Voice Call"
+            >
+              <MaterialSymbol name="call" size={19} />
+            </button>
+          )}
+
           {/* Video Call */}
           {showVideoCall && onVideoCall && (
             <button

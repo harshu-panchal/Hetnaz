@@ -103,7 +103,10 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
     const refreshSettings = useCallback(async () => {
         try {
             const { configService } = await import('../services/config.service');
-            const config = await configService.refreshConfig();
+            // getConfig() respects the 5-minute in-memory cache - avoids an
+            // unnecessary /users/config network call if settings were already
+            // fetched recently (e.g. on a provider remount).
+            const config = await configService.getConfig();
             setAppSettings(config);
         } catch (error) {
             console.error('Failed to refresh app settings:', error);

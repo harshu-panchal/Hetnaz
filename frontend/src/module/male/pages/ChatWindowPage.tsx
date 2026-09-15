@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ChatWindowHeader } from "../components/ChatWindowHeader";
 import { MessageBubble } from "../components/MessageBubble";
 import { MessageInput } from "../components/MessageInput";
@@ -40,6 +40,8 @@ export const ChatWindowPage = () => {
   const { t } = useTranslation();
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefillMessage = (location.state as { prefillMessage?: string } | null)?.prefillMessage;
   const {
     coinBalance,
     updateBalance,
@@ -48,7 +50,7 @@ export const ChatWindowPage = () => {
     saveToChatCache,
     appSettings,
   } = useGlobalState();
-  const { requestCall, isInCall, callPrice } = useVideoCall();
+  const { requestCall, isInCall, callPrice, voiceCallPrice } = useVideoCall();
 
   // Failed message selection for retry/delete modal
   const [selectedFailedMessage, setSelectedFailedMessage] =
@@ -889,6 +891,59 @@ export const ChatWindowPage = () => {
     }
   };
 
+  const handleStartCall = async (type: "video" | "voice") => {
+    if (!chatInfo) return;
+
+    if (isInCall) {
+      setError(t("errorAlreadyInCall"));
+      return;
+    }
+    if (isBlockedByMe || isBlockedByOther) {
+      setError(isBlockedByMe ? t("unblockToCall") : t("youAreBlocked"));
+      return;
+    }
+    const price = type === "voice" ? voiceCallPrice : callPrice;
+    if (coinBalance < price) {
+      setRequiredCoinsModal(price);
+      setModalAction(t(type === "voice" ? "actionVoiceCall" : "actionVideoCall"));
+      setIsBalanceModalOpen(true);
+      return;
+    }
+
+    if (!chatInfo.otherUser.isOnline) {
+      setError(t("errorUserOffline"));
+      return;
+    }
+    try {
+      await requestCall(
+        chatInfo.otherUser._id,
+        chatInfo.otherUser.name,
+        chatInfo.otherUser.avatar || "",
+        chatId!,
+        user?.name || "User",
+        user?.photos?.[0] || "",
+        type,
+      );
+    } catch (err: any) {
+      // Special handling for permission denied errors
+      if (err.message === "PERMISSION_DENIED_SETTINGS") {
+        setError(
+          type === "voice"
+            ? "Microphone access blocked. Please enable permissions in your browser settings:\n" +
+                "1. Tap the lock icon in the address bar\n" +
+                "2. Enable Microphone\n" +
+                "3. Refresh the page and try again"
+            : "Camera and microphone access blocked. Please enable permissions in your browser settings:\n" +
+                "1. Tap the lock icon in the address bar\n" +
+                "2. Enable Camera and Microphone\n" +
+                "3. Refresh the page and try again",
+        );
+      } else {
+        setError(err.message || t("errorFailedToStartCall"));
+      }
+    }
+  };
+
   if (isLoading && !chatInfo) {
     return <ChatSkeletonLoader />;
   }
@@ -937,49 +992,9 @@ export const ChatWindowPage = () => {
           }
           onBackClick={() => navigate("/male/chats")}
           showVideoCall={true}
-          onVideoCall={async () => {
-            if (isInCall) {
-              setError(t("errorAlreadyInCall"));
-              return;
-            }
-            if (isBlockedByMe || isBlockedByOther) {
-              setError(isBlockedByMe ? t("unblockToCall") : t("youAreBlocked"));
-              return;
-            }
-            if (coinBalance < callPrice) {
-              setRequiredCoinsModal(callPrice);
-              setModalAction(t("actionVideoCall"));
-              setIsBalanceModalOpen(true);
-              return;
-            }
-
-            if (!chatInfo.otherUser.isOnline) {
-              setError(t("errorUserOffline"));
-              return;
-            }
-            try {
-              await requestCall(
-                chatInfo.otherUser._id,
-                chatInfo.otherUser.name,
-                chatInfo.otherUser.avatar || "",
-                chatId!,
-                user?.name || "User",
-                user?.photos?.[0] || "",
-              );
-            } catch (err: any) {
-              // Special handling for permission denied errors
-              if (err.message === "PERMISSION_DENIED_SETTINGS") {
-                setError(
-                  "Camera and microphone access blocked. Please enable permissions in your browser settings:\n" +
-                    "1. Tap the lock icon in the address bar\n" +
-                    "2. Enable Camera and Microphone\n" +
-                    "3. Refresh the page and try again",
-                );
-              } else {
-                setError(err.message || t("errorFailedToStartCall"));
-              }
-            }
-          }}
+          onVideoCall={() => handleStartCall("video")}
+          showVoiceCall={true}
+          onVoiceCall={() => handleStartCall("voice")}
         />
 
         {error && (
@@ -1191,6 +1206,7 @@ export const ChatWindowPage = () => {
 
         <div className="relative">
           <MessageInput
+            initialMessage={prefillMessage}
             onSendMessage={handleSendMessage}
             onSendPhoto={handleSendImage}
             onSendGift={() => setIsGiftSelectorOpen(true)}

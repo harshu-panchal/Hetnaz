@@ -48,6 +48,8 @@ const appSettingsSchema = new mongoose.Schema(
 
             // Video call cost
             videoCall: { type: Number, default: 500 },
+            // Voice (audio-only) call cost
+            voiceCall: { type: Number, default: 300 },
         },
         giftCosts: {
             // Default cost for new gifts

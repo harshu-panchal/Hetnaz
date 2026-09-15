@@ -24,6 +24,7 @@ export interface VideoCallContext {
     // Call identification
     callId: string | null;
     chatId: string | null;
+    callType: 'video' | 'voice';
 
     // Remote user info
     remoteUserId: string | null;
@@ -70,7 +71,7 @@ export interface VideoCallContext {
 
 export type VideoCallEvent =
     // User actions
-    | { type: 'REQUEST_CALL'; receiverId: string; receiverName: string; receiverAvatar: string; chatId: string; callerName: string; callerAvatar: string }
+    | { type: 'REQUEST_CALL'; receiverId: string; receiverName: string; receiverAvatar: string; chatId: string; callerName: string; callerAvatar: string; callType?: 'video' | 'voice' }
     | { type: 'ACCEPT_CALL' }
     | { type: 'REJECT_CALL' }
     | { type: 'END_CALL' }
@@ -80,7 +81,7 @@ export type VideoCallEvent =
     | { type: 'CLOSE_MODAL' }
 
     // Socket events from backend
-    | { type: 'CALL_INCOMING'; callId: string; callerId: string; callerName: string; callerAvatar: string; chatId: string }
+    | { type: 'CALL_INCOMING'; callId: string; callerId: string; callerName: string; callerAvatar: string; chatId: string; callType?: 'video' | 'voice' }
     | { type: 'CALL_OUTGOING'; callId: string }
     | { type: 'CALL_ACCEPTED'; callId: string; agora: { channelName: string; token: string; uid: number; appId: string } }
     | { type: 'CALL_PROCEED'; callId: string; agora: { channelName: string; token: string; uid: number; appId: string } }
@@ -96,7 +97,7 @@ export type VideoCallEvent =
     | { type: 'REJOIN_PROCEED'; callId: string; agora: { channelName: string; token: string; uid: number; appId: string }; remainingSeconds: number; startTime: number }
 
     // Media events
-    | { type: 'MEDIA_INITIALIZED'; localVideoTrack: ICameraVideoTrack; localAudioTrack: IMicrophoneAudioTrack }
+    | { type: 'MEDIA_INITIALIZED'; localVideoTrack: ICameraVideoTrack | null; localAudioTrack: IMicrophoneAudioTrack }
     | { type: 'MEDIA_FAILED'; error: string }
     | { type: 'AGORA_CONNECTED' }
     | { type: 'AGORA_FAILED'; error: string }
@@ -116,6 +117,7 @@ const VIDEO_CALL_DURATION = parseInt(import.meta.env.VITE_VIDEO_CALL_DURATION ||
 const initialContext: VideoCallContext = {
     callId: null,
     chatId: null,
+    callType: 'video',
     remoteUserId: null,
     remoteUserName: null,
     remoteUserAvatar: null,
@@ -167,6 +169,7 @@ const actions = {
         chatId: ({ event }) => (event as any).chatId,
         callerName: ({ event }) => (event as any).callerName,
         callerAvatar: ({ event }) => (event as any).callerAvatar,
+        callType: ({ event }) => (event as any).callType === 'voice' ? 'voice' : 'video',
         isIncoming: () => false,
         error: () => null,
     }),
@@ -177,6 +180,7 @@ const actions = {
         remoteUserName: ({ event }) => (event as any).callerName,
         remoteUserAvatar: ({ event }) => (event as any).callerAvatar,
         chatId: ({ event }) => (event as any).chatId,
+        callType: ({ event }) => (event as any).callType === 'voice' ? 'voice' : 'video',
         isIncoming: () => true,
         error: () => null,
     }),

@@ -24,6 +24,7 @@ const defaultMessageCosts: MessageCosts = {
     platinum: 14,
   },
   videoCall: 500,
+  voiceCall: 300,
 };
 
 const defaultWithdrawalSettings = {
@@ -378,7 +379,7 @@ export const CoinEconomyPage = () => {
             </div>
 
             {messageCosts.costMode === 'perMessage' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Basic Tier
@@ -479,10 +480,30 @@ export const CoinEconomyPage = () => {
                     </span>
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Voice Call
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={messageCosts.voiceCall}
+                      onChange={(e) =>
+                        setMessageCosts({ ...messageCosts, voiceCall: parseInt(e.target.value) || 0 })
+                      }
+                      min="0"
+                      step="1"
+                      className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                      coins
+                    </span>
+                  </div>
+                </div>
               </div>
             ) : (
               <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Basic Tier
@@ -585,6 +606,26 @@ export const CoinEconomyPage = () => {
                         value={messageCosts.videoCall}
                         onChange={(e) =>
                           setMessageCosts({ ...messageCosts, videoCall: parseInt(e.target.value) || 0 })
+                        }
+                        min="0"
+                        step="1"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                        coins
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Voice Call
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={messageCosts.voiceCall}
+                        onChange={(e) =>
+                          setMessageCosts({ ...messageCosts, voiceCall: parseInt(e.target.value) || 0 })
                         }
                         min="0"
                         step="1"

@@ -71,6 +71,8 @@ export const EarningsPage = () => {
         return "mail";
       case "video_call_earned":
         return "videocam";
+      case "voice_call_earned":
+        return "call";
       case "gift_received":
         return "redeem";
       default:
@@ -85,6 +87,8 @@ export const EarningsPage = () => {
         return t("typeMessage");
       case "video_call_earned":
         return t("typeVideoCall");
+      case "voice_call_earned":
+        return t("typeVoiceCall");
       case "gift_received":
         return t("typeGift");
       default:

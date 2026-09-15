@@ -109,6 +109,8 @@ export const UserProfilePage = () => {
   const [requiredCoinsModal, setRequiredCoinsModal] = useState(0);
   const [modalAction, setModalAction] = useState('');
 
+  const HI_MESSAGE_COST = 5;
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchProfile();
@@ -202,6 +204,21 @@ export const UserProfilePage = () => {
       setIsBlocking(false);
       setIsOptionsOpen(false);
     }
+  };
+
+  const handleSendHi = () => {
+    if (!profile) return;
+
+    if (coinBalance < HI_MESSAGE_COST) {
+      setRequiredCoinsModal(HI_MESSAGE_COST);
+      setModalAction(t('actionSendHi') || 'send a Hi');
+      setIsBalanceModalOpen(true);
+      return;
+    }
+
+    navigate(`/male/chat/new_${profileId}`, {
+      state: { prefillMessage: '👋 Hi! Nice to meet you.' },
+    });
   };
 
   const handleVideoCall = async () => {
@@ -497,7 +514,7 @@ export const UserProfilePage = () => {
                 </div>
               </div>
               <button
-                onClick={() => navigate(`/male/chat/new_${profileId}`)}
+                onClick={handleSendHi}
                 className="px-3.5 py-1.5 rounded-xl bg-pink-600 text-white text-xs font-bold shrink-0 hover:bg-pink-700 active:scale-95 transition-all shadow-sm"
               >
                 Say Hi 👋

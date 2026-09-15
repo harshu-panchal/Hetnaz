@@ -16,6 +16,7 @@ interface MessageInputProps {
   disabled?: boolean;
   isSending?: boolean;
   showQuickReplies?: boolean;
+  initialMessage?: string;
 }
 
 export const MessageInput = ({
@@ -28,8 +29,9 @@ export const MessageInput = ({
   disabled = false,
   isSending = false,
   showQuickReplies = false,
+  initialMessage = "",
 }: MessageInputProps) => {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const quickReplies = [

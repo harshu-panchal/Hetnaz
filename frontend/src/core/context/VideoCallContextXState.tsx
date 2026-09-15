@@ -21,7 +21,7 @@ interface VideoCallContextType {
     remainingTime: number;
 
     // Actions
-    requestCall: (receiverId: string, receiverName: string, receiverAvatar: string, chatId: string, callerName: string, callerAvatar: string) => Promise<void>;
+    requestCall: (receiverId: string, receiverName: string, receiverAvatar: string, chatId: string, callerName: string, callerAvatar: string, callType?: 'video' | 'voice') => Promise<void>;
     acceptCall: () => Promise<void>;
     rejectCall: () => void;
     endCall: () => void;
@@ -32,6 +32,7 @@ interface VideoCallContextType {
 
     // Config
     callPrice: number;
+    voiceCallPrice: number;
     callDuration: number;
 }
 
@@ -39,6 +40,7 @@ interface VideoCallContextType {
 
 const VIDEO_CALL_DURATION = parseInt(import.meta.env.VITE_VIDEO_CALL_DURATION || '300', 10);
 const VIDEO_CALL_PRICE = parseInt(import.meta.env.VITE_VIDEO_CALL_PRICE || '500', 10);
+const VOICE_CALL_PRICE = parseInt(import.meta.env.VITE_VOICE_CALL_PRICE || '300', 10);
 
 // ==================== CONTEXT ====================
 
@@ -260,16 +262,17 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
         receiverAvatar: string,
         chatId: string,
         callerName: string,
-        callerAvatar: string
+        callerAvatar: string,
+        callType: 'video' | 'voice' = 'video'
     ): Promise<void> => {
-        // Request permissions first
+        // Request permissions first - voice calls never need the camera
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: callType === 'video', audio: true });
             stream.getTracks().forEach(track => track.stop());
             await new Promise(resolve => setTimeout(resolve, 200));
         } catch (permError) {
             console.error('Permission denied:', permError);
-            throw new Error('Camera and microphone access required for video calls');
+            throw new Error(callType === 'voice' ? 'Microphone access required for voice calls' : 'Camera and microphone access required for video calls');
         }
 
         // Send event to machine
@@ -281,11 +284,12 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
             chatId,
             callerName,
             callerAvatar,
+            callType,
         });
 
         // Initialize media
         try {
-            const { localVideoTrack, localAudioTrack } = await agoraManager.initializeMedia();
+            const { localVideoTrack, localAudioTrack } = await agoraManager.initializeMedia(callType);
             send({
                 type: 'MEDIA_INITIALIZED',
                 localVideoTrack,
@@ -297,27 +301,29 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
         }
 
         // Emit to backend
-        socketEmitters.requestCall(receiverId, chatId, callerName, callerAvatar);
+        socketEmitters.requestCall(receiverId, chatId, callerName, callerAvatar, callType);
     }, [send]);
 
     const acceptCall = useCallback(async (): Promise<void> => {
         if (!state.context.callId) return;
 
-        // Request permissions first
+        const callType = state.context.callType;
+
+        // Request permissions first - voice calls never need the camera
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: callType === 'video', audio: true });
             stream.getTracks().forEach(track => track.stop());
             await new Promise(resolve => setTimeout(resolve, 200));
         } catch (permError) {
             console.error('Permission denied:', permError);
-            throw new Error('Camera and microphone access required for video calls');
+            throw new Error(callType === 'voice' ? 'Microphone access required for voice calls' : 'Camera and microphone access required for video calls');
         }
 
         send({ type: 'ACCEPT_CALL' });
 
         // Initialize media
         try {
-            const { localVideoTrack, localAudioTrack } = await agoraManager.initializeMedia();
+            const { localVideoTrack, localAudioTrack } = await agoraManager.initializeMedia(callType);
             send({
                 type: 'MEDIA_INITIALIZED',
                 localVideoTrack,
@@ -330,7 +336,7 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
 
         // Emit to backend
         socketEmitters.acceptCall(state.context.callId);
-    }, [state.context.callId, send]);
+    }, [state.context.callId, state.context.callType, send]);
 
     const rejectCall = useCallback((): void => {
         if (state.context.callId) {
@@ -402,6 +408,7 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
         rejoinCall,
         closeModal,
         callPrice: appSettings?.messageCosts?.videoCall || VIDEO_CALL_PRICE,
+        voiceCallPrice: appSettings?.messageCosts?.voiceCall || VOICE_CALL_PRICE,
         callDuration: VIDEO_CALL_DURATION,
     };
 

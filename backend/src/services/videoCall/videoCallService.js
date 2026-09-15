@@ -19,29 +19,33 @@ import logger from '../../utils/logger.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../../utils/errors.js';
 import earningBatchService from '../wallet/earningBatchService.js';
 
-// Helper function to get video call config from AppSettings (Priority) or Env (Fallback)
-const getDynamicConfig = async () => {
+// Helper function to get video/voice call config from AppSettings (Priority) or Env (Fallback)
+// callType: 'video' | 'voice' - selects which coin cost to use; duration/timeout are shared
+const getDynamicConfig = async (callType = 'video') => {
     const settings = await AppSettings.getSettings();
+    const defaultPrice = callType === 'voice' ? 300 : 500;
+    const settingsPrice = callType === 'voice' ? settings.messageCosts?.voiceCall : settings.messageCosts?.videoCall;
     const envConfig = {
         durationSeconds: parseInt(process.env.VIDEO_CALL_DURATION_SECONDS, 10) || 300,
         connectionTimeout: parseInt(process.env.CALL_CONNECTION_TIMEOUT_SECONDS, 10) || 20,
-        price: settings.messageCosts?.videoCall || 500
+        price: settingsPrice || defaultPrice
     };
 
     return {
-        price: settings.messageCosts?.videoCall || envConfig.price,
+        price: settingsPrice || envConfig.price,
         durationSeconds: settings.videoCall?.durationSeconds || envConfig.durationSeconds,
         connectionTimeoutSeconds: settings.videoCall?.connectionTimeoutSeconds || envConfig.connectionTimeout
     };
 };
 
 /**
- * Validate if a user can initiate a video call
+ * Validate if a user can initiate a video or voice call
  * @param {string} callerId - Male user ID
  * @param {string} receiverId - Female user ID
+ * @param {string} callType - 'video' | 'voice'
  * @returns {Promise<{valid: boolean, chat: Chat, caller: User, receiver: User}>}
  */
-export const validateCallRequest = async (callerId, receiverId) => {
+export const validateCallRequest = async (callerId, receiverId, callType = 'video') => {
     // 1. Get both users
     const [caller, receiver] = await Promise.all([
         User.findById(callerId),
@@ -55,17 +59,19 @@ export const validateCallRequest = async (callerId, receiverId) => {
         throw new NotFoundError('Receiver not found');
     }
 
+    const callLabel = callType === 'voice' ? 'voice' : 'video';
+
     // 2. Validate roles (male calls female)
     if (caller.role !== 'male') {
-        throw new ForbiddenError('Only male users can initiate video calls');
+        throw new ForbiddenError(`Only male users can initiate ${callLabel} calls`);
     }
     if (receiver.role !== 'female') {
-        throw new ForbiddenError('Video calls can only be made to female users');
+        throw new ForbiddenError(`${callLabel === 'voice' ? 'Voice' : 'Video'} calls can only be made to female users`);
     }
 
     // 3. Check for blocks
     if (caller.blockedUsers.some(id => id.toString() === receiverId.toString())) {
-        throw new ForbiddenError('You have blocked this user. Unblock to make a video call.');
+        throw new ForbiddenError(`You have blocked this user. Unblock to make a ${callLabel} call.`);
     }
     if (receiver.blockedUsers.some(id => id.toString() === callerId.toString())) {
         throw new ForbiddenError('You cannot call this user as you have been blocked.');
@@ -91,10 +97,10 @@ export const validateCallRequest = async (callerId, receiverId) => {
     }
 
     // 5. Check caller has enough coins
-    const callConfig = await getDynamicConfig();
-    const VIDEO_CALL_PRICE = callConfig.price;
-    if (caller.coinBalance < VIDEO_CALL_PRICE) {
-        throw new BadRequestError(`Insufficient coins. Video call costs ${VIDEO_CALL_PRICE} coins.`);
+    const callConfig = await getDynamicConfig(callType);
+    const CALL_PRICE = callConfig.price;
+    if (caller.coinBalance < CALL_PRICE) {
+        throw new BadRequestError(`Insufficient coins. ${callLabel === 'voice' ? 'Voice' : 'Video'} call costs ${CALL_PRICE} coins.`);
     }
 
     // 6. Check receiver is online (optional but recommended)
@@ -107,18 +113,19 @@ export const validateCallRequest = async (callerId, receiverId) => {
 };
 
 /**
- * Initiate a video call - Lock coins from caller
+ * Initiate a video or voice call - Lock coins from caller
  * @param {string} callerId - Male user ID
  * @param {string} receiverId - Female user ID
+ * @param {string} callType - 'video' | 'voice'
  * @returns {Promise<VideoCall>}
  */
-export const initiateCall = async (callerId, receiverId) => {
+export const initiateCall = async (callerId, receiverId, callType = 'video') => {
     try {
         // Validate
-        const { chat } = await validateCallRequest(callerId, receiverId);
+        const { chat } = await validateCallRequest(callerId, receiverId, callType);
 
-        // Get video call config (Dynamic from Admin Panel)
-        const callConfig = await getDynamicConfig();
+        // Get call config (Dynamic from Admin Panel)
+        const callConfig = await getDynamicConfig(callType);
         const VIDEO_CALL_PRICE = callConfig.price;
         const VIDEO_CALL_DURATION = callConfig.durationSeconds;
 
@@ -176,6 +183,7 @@ export const initiateCall = async (callerId, receiverId) => {
             callerId: new mongoose.Types.ObjectId(callerId),
             receiverId: new mongoose.Types.ObjectId(receiverId),
             chatId: chat._id,
+            callType,
             coinAmount: VIDEO_CALL_PRICE,
             callDurationSeconds: VIDEO_CALL_DURATION,
             status: 'ringing',
@@ -183,7 +191,7 @@ export const initiateCall = async (callerId, receiverId) => {
             requestedAt: new Date(),
         });
 
-        logger.info(`📞 Video call initiated: ${videoCall._id} (${callerId} → ${receiverId})`);
+        logger.info(`📞 ${callType === 'voice' ? 'Voice' : 'Video'} call initiated: ${videoCall._id} (${callerId} → ${receiverId})`);
 
         return videoCall;
     } catch (error) {
@@ -268,29 +276,31 @@ export const markCallConnected = async (callId) => {
         }
 
         // Batch Credit to Receiver (Optimized)
-        const callConfig = await getDynamicConfig();
+        const isVoice = videoCall.callType === 'voice';
+        const callConfig = await getDynamicConfig(videoCall.callType);
+        const callLabel = isVoice ? 'Voice' : 'Video';
         earningBatchService.addEarning(videoCall.receiverId.toString(), {
             amount: videoCall.coinAmount,
-            type: 'video_call_earned',
+            type: isVoice ? 'voice_call_earned' : 'video_call_earned',
             relatedUserId: videoCall.callerId,
             relatedChatId: videoCall.chatId,
-            description: `Video call earnings (${callConfig.durationSeconds / 60} min)`,
+            description: `${callLabel} call earnings (${callConfig.durationSeconds / 60} min)`,
         });
 
         // Create transaction record for Caller (Immediate)
         await Transaction.create({
             userId: videoCall.callerId,
-            type: 'video_call_spent',
+            type: isVoice ? 'voice_call_spent' : 'video_call_spent',
             direction: 'debit',
             amountCoins: videoCall.coinAmount,
             relatedUserId: videoCall.receiverId,
             relatedChatId: videoCall.chatId,
             status: 'completed',
-            description: `Video call (${callConfig.durationSeconds / 60} min)`,
+            description: `${callLabel} call (${callConfig.durationSeconds / 60} min)`,
             metadata: { videoCallId: videoCall._id },
         });
 
-        logger.info(`📞 Video call connected & billed: ${callId}`);
+        logger.info(`📞 ${callLabel} call connected & billed: ${callId}`);
 
         return videoCall;
     } catch (error) {

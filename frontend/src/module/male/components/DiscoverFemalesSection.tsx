@@ -8,7 +8,7 @@ export interface DiscoverFemalesSectionProps {
   profiles: any[];
   isLoading?: boolean;
   onProfileClick: (profileId: string) => void;
-  onChatClick: (profileId: string) => void;
+  onSendHi: (profileId: string) => void;
   onSeeAllClick: () => void;
   onFilterClick?: () => void;
   filterOptions?: FilterOptions;
@@ -20,7 +20,7 @@ export const DiscoverFemalesSection: React.FC<DiscoverFemalesSectionProps> = ({
   profiles = [],
   isLoading = false,
   onProfileClick,
-  onChatClick,
+  onSendHi,
   onSeeAllClick,
   onFilterClick,
   filterOptions,
@@ -310,14 +310,12 @@ export const DiscoverFemalesSection: React.FC<DiscoverFemalesSectionProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onChatClick(profile.id);
+                      onSendHi(profile.id);
                     }}
                     className="h-10 px-5 rounded-full bg-gradient-to-r from-[#ff9f00] via-[#ff7800] to-[#ff5e00] hover:brightness-105 active:scale-95 shadow-[0_4px_14px_rgba(255,120,0,0.38)] text-white flex items-center justify-center gap-1.5 transition-all group"
                   >
                     <span className="text-base group-hover:rotate-12 transition-transform">👋</span>
-                    <span className="text-[14px] font-black tracking-wide leading-none">
-                      Hi
-                    </span>
+                    <span className="text-[14px] font-black tracking-wide leading-none">Hi</span>
                   </button>
                 </div>
               </div>

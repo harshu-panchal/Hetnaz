@@ -52,6 +52,8 @@ export type TransactionType =
     | 'message_earned'
     | 'video_call_spent'
     | 'video_call_earned'
+    | 'voice_call_spent'
+    | 'voice_call_earned'
     | 'gift_sent'
     | 'gift_received'
     | 'withdrawal'

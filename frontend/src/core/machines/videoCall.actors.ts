@@ -35,11 +35,21 @@ class AgoraClientManager {
         AgoraRTC.setLogLevel(1); // INFO level
     }
 
-    async initializeMedia(): Promise<{ localVideoTrack: ICameraVideoTrack; localAudioTrack: IMicrophoneAudioTrack }> {
-        console.log('📹 [AgoraManager] Initializing local media...');
+    async initializeMedia(callType: 'video' | 'voice' = 'video'): Promise<{ localVideoTrack: ICameraVideoTrack | null; localAudioTrack: IMicrophoneAudioTrack }> {
+        console.log(`📹 [AgoraManager] Initializing local media (${callType})...`);
 
         // Clean up existing tracks first
         await this.cleanupTracks();
+
+        if (callType === 'voice') {
+            // Voice calls never touch the camera - mic only
+            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true, AGC: true });
+            this.localAudioTrack = audioTrack;
+            this.localVideoTrack = null;
+
+            console.log('✅ [AgoraManager] Local audio-only media initialized');
+            return { localVideoTrack: null, localAudioTrack: audioTrack };
+        }
 
         const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
             { AEC: true, ANS: true, AGC: true },
@@ -135,10 +145,14 @@ class AgoraClientManager {
                 throw lastError || new Error('Failed to join channel');
             }
 
-            // Publish local tracks
-            if (this.localVideoTrack && this.localAudioTrack) {
-                await this.client.publish([this.localVideoTrack, this.localAudioTrack]);
-                console.log('✅ [AgoraManager] Published local tracks');
+            // Publish whichever local tracks exist - video calls publish both,
+            // voice calls only ever have an audio track (see initializeMedia)
+            const tracksToPublish = [this.localVideoTrack, this.localAudioTrack].filter(
+                (track): track is ICameraVideoTrack | IMicrophoneAudioTrack => !!track
+            );
+            if (tracksToPublish.length > 0) {
+                await this.client.publish(tracksToPublish);
+                console.log('✅ [AgoraManager] Published local tracks:', tracksToPublish.length);
             }
 
         } finally {
@@ -258,6 +272,7 @@ export function createSocketEventBridge(send: (event: any) => void) {
                 callerName: data.callerName,
                 callerAvatar: data.callerAvatar,
                 chatId: data.chatId,
+                callType: data.callType,
             });
         },
         'call:outgoing': (data: any) => {
@@ -360,12 +375,13 @@ export function createSocketEventBridge(send: (event: any) => void) {
 // ==================== SOCKET EMITTERS ====================
 
 export const socketEmitters = {
-    requestCall: (receiverId: string, chatId: string, callerName: string, callerAvatar: string) => {
+    requestCall: (receiverId: string, chatId: string, callerName: string, callerAvatar: string, callType: 'video' | 'voice' = 'video') => {
         socketService.emitToServer('call:request', {
             receiverId,
             chatId,
             callerName,
             callerAvatar,
+            callType,
         });
     },
 

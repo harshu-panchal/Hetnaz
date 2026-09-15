@@ -5,16 +5,14 @@ import { MaterialSymbol } from "../../../shared/components/MaterialSymbol";
 
 interface NearbyFemaleItemProps {
   profile: DiscoverProfile;
-  onChatClick: (id: string, name: string) => void;
+  onSendHi: (id: string, name: string) => void;
   onProfileClick: (id: string) => void;
-  isSendingHi?: boolean;
 }
 
 export const NearbyFemaleItem: React.FC<NearbyFemaleItemProps> = ({
   profile,
-  onChatClick,
+  onSendHi,
   onProfileClick,
-  isSendingHi,
 }) => {
   const { t } = useTranslation();
 
@@ -93,22 +91,15 @@ export const NearbyFemaleItem: React.FC<NearbyFemaleItemProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onChatClick(profile.id, profile.name);
+              onSendHi(profile.id, profile.name);
             }}
-            disabled={isSendingHi}
             className="h-10 px-5 rounded-full bg-gradient-to-r from-[#ff9f00] via-[#ff7800] to-[#ff5e00] hover:brightness-105 active:scale-95 shadow-[0_4px_14px_rgba(255,120,0,0.38)] text-white flex items-center justify-center gap-1.5 transition-all group">
-            {isSendingHi ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>
-                <span className="text-base group-hover:rotate-12 transition-transform">
-                  👋
-                </span>
-                <span className="text-[14px] font-black tracking-wide leading-none">
-                  {t("HI") || "Hi"}
-                </span>
-              </>
-            )}
+            <span className="text-base group-hover:rotate-12 transition-transform">
+              👋
+            </span>
+            <span className="text-[14px] font-black tracking-wide leading-none">
+              {t("HI") || "Hi"}
+            </span>
           </button>
         </div>
       </div>

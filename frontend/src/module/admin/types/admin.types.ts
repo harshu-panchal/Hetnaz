@@ -106,6 +106,7 @@ export interface MessageCosts {
     platinum: number;
   };
   videoCall: number;
+  voiceCall: number;
 }
 
 // Withdrawal Management
@@ -198,6 +199,8 @@ export interface AdminSettings {
     imageMessage: number;
     // Video call cost
     videoCall: number;
+    // Voice call cost
+    voiceCall: number;
   };
   giftCosts: {
     defaultCost: number;

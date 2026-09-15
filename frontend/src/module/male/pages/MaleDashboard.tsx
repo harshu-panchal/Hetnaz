@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DiscoverFemalesSection } from '../components/DiscoverFemalesSection';
 import { FilterPanel, FilterOptions } from '../components/FilterPanel';
+import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { useDiscoveryProfiles } from '../../../core/queries/useDiscoveryQuery';
 import { DailyRewardModal } from '../../../shared/components/DailyRewardModal';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import apiClient from '../../../core/api/client';
 
+const HI_MESSAGE_COST = 5;
+
 export const MaleDashboard = () => {
   const navigate = useNavigate();
-  const { unreadCount, updateBalance } = useGlobalState();
+  const { unreadCount, coinBalance, updateBalance } = useGlobalState();
 
   // Filter state for discovery
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -62,8 +65,16 @@ export const MaleDashboard = () => {
     navigate(`/male/profile/${profileId}`, { state: { profile: found } });
   };
 
-  const handleFemaleChatClick = (profileId: string) => {
-    navigate(`/male/chat/new_${profileId}`);
+  const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+
+  const handleSendHi = (profileId: string) => {
+    if ((coinBalance || 0) < HI_MESSAGE_COST) {
+      setIsBalanceModalOpen(true);
+      return;
+    }
+    navigate(`/male/chat/new_${profileId}`, {
+      state: { prefillMessage: '👋 Hi! Nice to meet you.' },
+    });
   };
 
   const handleApplyFilters = (newFilters: FilterOptions) => {
@@ -107,7 +118,7 @@ export const MaleDashboard = () => {
           filterOptions={filterOptions}
           onFilterClick={() => setIsFilterModalOpen(true)}
           onProfileClick={handleProfileClick}
-          onChatClick={handleFemaleChatClick}
+          onSendHi={handleSendHi}
           onSeeAllClick={handleExploreClick}
         />
 
@@ -117,6 +128,16 @@ export const MaleDashboard = () => {
           onClose={() => setIsFilterModalOpen(false)}
           onApply={handleApplyFilters}
           initialFilters={filterOptions}
+        />
+
+        {/* Insufficient Balance Modal */}
+        <InsufficientBalanceModal
+          isOpen={isBalanceModalOpen}
+          onClose={() => setIsBalanceModalOpen(false)}
+          onBuyCoins={() => navigate('/male/buy-coins')}
+          requiredCoins={HI_MESSAGE_COST}
+          currentBalance={coinBalance || 0}
+          action="send a Hi"
         />
 
         {/* Daily Reward Modal */}

@@ -87,14 +87,15 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
     socket.on('call:request', async (data) => {
         try {
             const { receiverId, chatId } = data;
-            logger.info(`📞 Call request from ${userId} to ${receiverId}`);
+            const callType = data.callType === 'voice' ? 'voice' : 'video';
+            logger.info(`📞 Call request (${callType}) from ${userId} to ${receiverId}`);
 
             // STEP 0: Force-clear any previous call UI traces on both clients
             io.to(userId).emit('call:clear-all');
             io.to(receiverId).emit('call:clear-all');
 
             // Initiate call (validates and locks coins)
-            const videoCall = await videoCallService.initiateCall(userId, receiverId);
+            const videoCall = await videoCallService.initiateCall(userId, receiverId, callType);
 
             // Join the call room
             const callId = videoCall._id.toString();
@@ -105,6 +106,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 callId: videoCall._id.toString(),
                 receiverId,
                 status: 'ringing',
+                callType,
                 coinAmount: videoCall.coinAmount,
                 duration: videoCall.callDurationSeconds,
             });
@@ -115,6 +117,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
                 callerId: userId,
                 callerName: data.callerName || 'User',
                 callerAvatar: data.callerAvatar || '',
+                callType,
                 coinAmount: videoCall.coinAmount,
                 duration: videoCall.callDurationSeconds,
             });
@@ -122,7 +125,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             logger.info(`📞 Sent call:incoming to room ${receiverId}`);
 
             // Start ringing timeout
-            const callConfig = await videoCallService.getDynamicConfig();
+            const callConfig = await videoCallService.getDynamicConfig(callType);
             const timeoutId = setTimeout(async () => {
                 try {
                     await videoCallService.handleMissedCall(videoCall._id.toString());
@@ -203,6 +206,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             io.to(videoCall.callerId.toString()).emit('call:accepted', {
                 callId,
                 receiverId: videoCall.receiverId.toString(),
+                callType: videoCall.callType,
                 agora: {
                     channelName,
                     token: callerToken,
@@ -215,6 +219,7 @@ export const setupVideoCallHandlers = (socket, io, userId) => {
             socket.emit('call:proceed', {
                 callId,
                 callerId: videoCall.callerId.toString(),
+                callType: videoCall.callType,
                 agora: {
                     channelName,
                     token: receiverToken,

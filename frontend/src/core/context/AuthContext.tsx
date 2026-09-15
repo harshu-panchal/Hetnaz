@@ -10,6 +10,8 @@ import {
     fetchUserProfile,
     mapUserToProfile,
 } from '../utils/auth';
+import { queryClient } from '../queries/queryClient';
+import { USER_KEYS } from '../queries/useUserQuery';
 
 interface AuthContextType {
     user: UserProfile | null;
@@ -46,6 +48,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     setUserState(profile);
                     setIsAuthenticated(true);
                     setIsLoading(false);
+                    // Seed the React Query cache so useCurrentUser() (used by
+                    // discovery, etc.) doesn't fire its own redundant /users/me
+                    // call before the background refresh below completes.
+                    queryClient.setQueryData(USER_KEYS.me, profile);
                 }
                 // If we have token but NO cached user, we MUST wait for the fetch
                 // to avoid flickering into 'not authenticated' state
@@ -57,6 +63,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     setUserState(profile);
                     setStorageUser(profile);
                     setIsAuthenticated(true);
+                    queryClient.setQueryData(USER_KEYS.me, profile);
                 } catch (error) {
                     console.error('Failed to refresh profile', error);
                     // If 401, token is invalid - clear auth
@@ -87,6 +94,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setToken(newToken);
         setUserState(newUser);
         setIsAuthenticated(true);
+        queryClient.setQueryData(USER_KEYS.me, newUser);
     }, []);
 
     const logout = React.useCallback(() => {
@@ -101,6 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (!prev) return null;
             const updated = { ...prev, ...updates };
             setStorageUser(updated);
+            queryClient.setQueryData(USER_KEYS.me, updated);
             return updated;
         });
     }, []);

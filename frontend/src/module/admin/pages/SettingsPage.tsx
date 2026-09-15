@@ -32,6 +32,7 @@ const mockSettings: AdminSettings = {
     hiMessage: 5,
     imageMessage: 100,
     videoCall: 500,
+    voiceCall: 300,
   },
   giftCosts: {
     defaultCost: 100,
@@ -677,9 +678,9 @@ export const SettingsPage = () => {
                     </div>
                   </div>
 
-                  {/* Video Call Section */}
+                  {/* Video & Voice Call Section */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Video Calls</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Video & Voice Calls</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Video Call */}
                       <div>
@@ -691,6 +692,26 @@ export const SettingsPage = () => {
                             type="number"
                             value={settings.messageCosts.videoCall}
                             onChange={(e) => handleMessageCostChange('videoCall', parseInt(e.target.value) || 0)}
+                            min="0"
+                            step="1"
+                            className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                            coins
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Voice Call */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Voice Call Cost (per call)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={settings.messageCosts.voiceCall}
+                            onChange={(e) => handleMessageCostChange('voiceCall', parseInt(e.target.value) || 0)}
                             min="0"
                             step="1"
                             className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
